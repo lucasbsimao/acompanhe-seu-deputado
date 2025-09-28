@@ -1,45 +1,38 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useEffect, useState } from 'react';
+import { Text, View, StyleSheet, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+export default function App() {
+  const [json, setJson] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    const url = 'http://127.0.0.1:8080/person';
+    fetch(url)
+      .then(r => r.json())
+      .then(setJson)
+      .catch(e => setError(String(e)));
+  }, []);
+
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
+    <SafeAreaProvider style={styles.container}>
+      <Text style={styles.title}>React Native + Go (local)</Text>
+      {error && <Text style={styles.error}>Error: {error}</Text>}
+      <View style={styles.card}>
+        <Text style={styles.mono}>{JSON.stringify(json, null, 2)}</Text>
+      </View>
     </SafeAreaProvider>
   );
 }
 
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+  title: { fontSize: 20, fontWeight: '600', marginBottom: 12 },
+  error: { color: 'red', marginBottom: 12 },
+  card: { width: '90%', borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12 },
+  mono: { fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }), fontSize: 14 },
 });
-
-export default App;
