@@ -1,3 +1,5 @@
+android/app/libs/*
+
 # OSX
 #
 .DS_Store
