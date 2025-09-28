@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, View, StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { getLocalApiBase } from './ServiceDiscovery';
 
 
 export default function App() {
@@ -9,11 +10,15 @@ export default function App() {
 
 
   useEffect(() => {
-    const url = 'http://127.0.0.1:8080/person';
-    fetch(url)
-      .then(r => r.json())
-      .then(setJson)
-      .catch(e => setError(String(e)));
+    (async () => {
+      try {
+        const base = await getLocalApiBase();
+        const r = await fetch(`${base}/person`);
+        setJson(await r.json());
+      } catch (e: any) {
+        setError(String(e?.message ?? e));
+      }
+    })();
   }, []);
 
 

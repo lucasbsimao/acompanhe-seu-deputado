@@ -14,16 +14,21 @@ mkdir -p "$ANDROID_LIBS_DIR"
 
 # Ensure gomobile is installed and initialized
 if ! command -v gomobile >/dev/null 2>&1; then
-echo "Installing gomobile..."
-go install golang.org/x/mobile/cmd/gomobile@latest
-go install golang.org/x/mobile/cmd/gobind@latest
+    echo "Installing gomobile..."
+    go install golang.org/x/mobile/cmd/gomobile@latest
+    go install golang.org/x/mobile/cmd/gobind@latest
 fi
 
 
 echo "Running gomobile init (may take a while first time)..."
 # ANDROID_NDK_HOME is auto-detected if Android Studio is installed; otherwise set it here
-GOMOBILE_VERBOSE=1 gomobile init -androidapi "$ANDROID_API" || true
+GOMOBILE_VERBOSE=1 gomobile init || true
 
+if [ -z "${ANDROID_NDK_HOME:-}" ] && [ -d "${ANDROID_HOME:-$HOME/Android/Sdk}/ndk" ]; then
+    export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+    export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$(ls "$ANDROID_HOME/ndk" | sort -V | tail -1)"
+    echo "Detected ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
+fi
 
 pushd "$GOAPI_DIR" >/dev/null
 

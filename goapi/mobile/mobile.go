@@ -3,6 +3,7 @@ package mobile
 import (
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
@@ -17,15 +18,23 @@ type Person struct {
 	Party string `json:"party"`
 }
 
-var started atomic.Bool
+var (
+	started     atomic.Bool
+	currentAddr atomic.Value
+)
 
-func StartServer(addr string) {
-	if addr == "" {
-		addr = ":8080"
+func Addr() string {
+	if v := currentAddr.Load(); v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
 	}
+	return ""
+}
 
+func StartServer() {
 	if !started.CompareAndSwap(false, true) {
-		log.Printf("[GoAPI] StartServer called more than once; reusing existing server on %s", addr)
+		log.Printf("[GoAPI] StartServer called more than once; keeping server at %s", Addr())
 		return
 	}
 
@@ -33,7 +42,12 @@ func StartServer(addr string) {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(10 * time.Second))
 
-	r.Get("/person", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	r.Get("/person", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(Person{
 			Name:  "Teste",
@@ -42,16 +56,26 @@ func StartServer(addr string) {
 	})
 
 	srv := &http.Server{
-		Addr:         addr,
 		Handler:      r,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 		IdleTimeout:  30 * time.Second,
 	}
 
+	// Bind to loopback, port 0 (OS picks a free port)
+	ln, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		log.Printf("[GoAPI] listen error: %v", err)
+		started.Store(false)
+		return
+	}
+
+	chosen := ln.Addr().String()
+	currentAddr.Store(chosen)
+
 	go func() {
-		log.Printf("[GoAPI] Starting server on %s", addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Printf("[GoAPI] Serving on http://%s (loopback only)", chosen)
+		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			log.Printf("[GoAPI] server stopped: %v", err)
 		}
 	}()

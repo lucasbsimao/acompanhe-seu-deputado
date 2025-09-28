@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "react-native start",
-    "android": "(./scripts/build_gomobile.sh) && cd android && ./gradlew :app:installDebug && adb shell am start -n com.rngolocal/.MainActivity",
+    "android": "(./scripts/build_gomobile.sh) && npx react-native run-android",
     "ios": "(./scripts/build_gomobile.sh) && cd ios && pod install && cd .. && react-native run-ios",
     "build:gomobile": "./scripts/build_gomobile.sh"
   },
