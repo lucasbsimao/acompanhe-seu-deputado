@@ -1,4 +1,4 @@
-package mobile
+package mobileapi
 
 import (
 	"encoding/json"

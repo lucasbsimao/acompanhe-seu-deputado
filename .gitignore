@@ -79,4 +79,4 @@ yarn-error.log
 # VSCode
 .vscode/*
 
-goapi/runLocal
+goapi/main

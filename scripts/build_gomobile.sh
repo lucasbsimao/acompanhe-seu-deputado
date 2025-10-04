@@ -35,15 +35,15 @@ pushd "$GOAPI_DIR" >/dev/null
 
 # ANDROID (AAR)
 echo "Building Android AAR..."
-gomobile bind -target=android -androidapi "$ANDROID_API" -o "$ANDROID_LIBS_DIR/mobile.aar" ./mobile
+gomobile bind -target=android -androidapi "$ANDROID_API" -o "$ANDROID_LIBS_DIR/api.aar" ./mobileapi
 
 
 # iOS (XCFramework)
 echo "Building iOS XCFramework..."
-gomobile bind -target=ios -o "$IOS_OUT_DIR/Mobile.xcframework" ./mobile
+gomobile bind -target=ios -o "$IOS_OUT_DIR/Mobile.xcframework" ./mobileapi
 
 
 popd >/dev/null
 
 
-echo "Done. AAR -> android/app/libs/mobile.aar | iOS -> ios/Mobile.xcframework"
+echo "Done. AAR -> android/app/libs/api.aar | iOS -> ios/Mobile.xcframework"

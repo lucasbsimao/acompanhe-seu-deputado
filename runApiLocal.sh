@@ -2,4 +2,4 @@
 
 cd goapi
 
-go build -o runLocal ./cmd/local/runLocal.go && ./runLocal
+go build -o main ./cmd/local/main.go && ./main
