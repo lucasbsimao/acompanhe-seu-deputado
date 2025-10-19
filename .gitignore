@@ -80,3 +80,4 @@ yarn-error.log
 .vscode/*
 
 goapi/main
+goapi/acompanheseudeputado.db*

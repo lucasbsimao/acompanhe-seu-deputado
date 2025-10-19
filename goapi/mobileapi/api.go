@@ -1,22 +1,17 @@
 package mobileapi
 
 import (
-	"encoding/json"
+	"context"
 	"log"
-	"net"
-	"net/http"
-	"time"
 
 	"sync/atomic"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/acompahe-seu-deputado/internal/adapters/controllers"
+	"github.com/acompahe-seu-deputado/internal/adapters/repositories/sqlite"
+	"github.com/acompahe-seu-deputado/internal/migrations"
+	"github.com/acompahe-seu-deputado/internal/server"
+	"github.com/acompahe-seu-deputado/internal/services"
 )
-
-type Person struct {
-	Name  string `json:"name"`
-	Party string `json:"party"`
-}
 
 var (
 	started     atomic.Bool
@@ -34,49 +29,33 @@ func Addr() string {
 
 func StartServer() {
 	if !started.CompareAndSwap(false, true) {
-		log.Printf("[GoAPI] StartServer called more than once; keeping server at %s", Addr())
+		log.Printf("[GoAPI] already running at %s", Addr())
 		return
 	}
 
-	r := chi.NewRouter()
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(10 * time.Second))
-
-	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
-
-	r.Get("/person", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(Person{
-			Name:  "Teste",
-			Party: "Partido Exemplo",
-		})
-	})
-
-	srv := &http.Server{
-		Handler:      r,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
-		IdleTimeout:  30 * time.Second,
+	db, _ := sqlite.Open(sqlite.Options{Path: "file:acompanheseudeputado.db?_pragma=busy_timeout(5000)"})
+	if err := migrations.Apply(context.Background(), db); err != nil {
+		log.Fatalf("migrate: %v", err)
 	}
+	repo := sqlite.NewPersonRepo(db)
+	svc := services.NewPersonService(repo)
+	ph := controllers.NewPersonController(svc)
+	router := controllers.NewRouter(controllers.Deps{Person: ph})
+	srv := server.New(router)
 
-	// Bind to loopback, port 0 (OS picks a free port)
-	ln, err := net.Listen("tcp4", "127.0.0.1:0")
+	ln, err := srv.Listen(true, "")
 	if err != nil {
-		log.Printf("[GoAPI] listen error: %v", err)
 		started.Store(false)
+		log.Printf("[GoAPI] listen error: %v", err)
 		return
 	}
 
-	chosen := ln.Addr().String()
-	currentAddr.Store(chosen)
-
+	addr := ln.Addr().String()
+	currentAddr.Store(addr)
 	go func() {
-		log.Printf("[GoAPI] Serving on http://%s (loopback only)", chosen)
-		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Printf("[GoAPI] server stopped: %v", err)
+		log.Printf("[GoAPI] serving at http://%s", addr)
+		if err := srv.Serve(ln); err != nil && err != context.Canceled {
+			log.Printf("[GoAPI] stopped: %v", err)
 		}
 	}()
 }

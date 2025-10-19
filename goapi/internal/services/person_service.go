@@ -6,11 +6,14 @@ import (
 
 	"github.com/acompahe-seu-deputado/internal/domain"
 	"github.com/acompahe-seu-deputado/internal/ports/repositories"
+	"github.com/acompahe-seu-deputado/internal/ports/services"
 )
 
 type PersonService struct {
 	repo repositories.PersonRepo
 }
+
+var _ services.PersonService = (*PersonService)(nil)
 
 func NewPersonService(repo repositories.PersonRepo) *PersonService {
 	return &PersonService{repo: repo}
