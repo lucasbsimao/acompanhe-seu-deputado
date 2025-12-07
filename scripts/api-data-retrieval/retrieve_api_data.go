@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"net/http"
 	"net/url"
+	"scripts/pagination"
 	"strconv"
+	"time"
 )
 
 type politicianData struct {
@@ -21,6 +23,7 @@ type apiResponse struct {
 	Data []politicianData `json:"dados"`
 }
 
+// Endpoint-specific URL builder.
 func buildDeputadosURL(page, pageSize int) (string, error) {
 	u, err := url.Parse("https://dadosabertos.camara.leg.br/api/v2/deputados")
 	if err != nil {
@@ -37,56 +40,46 @@ func buildDeputadosURL(page, pageSize int) (string, error) {
 	return u.String(), nil
 }
 
-func retrieveAllDeputados() ([]politicianData, error) {
-	const pageSize = 100
+// Endpoint-specific decoder
+func decodeDeputadosPage(resp *http.Response) ([]politicianData, error) {
+	var apiResp apiResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, err
+	}
+	return apiResp.Data, nil
+}
 
-	var all []politicianData
-	page := 1
-	totalPages := 1
+// Extract total from X-Total-Count header.
+func extractTotalFromHeader(resp *http.Response) (int, error) {
+	totalCountHeader := resp.Header.Get("X-Total-Count")
+	if totalCountHeader == "" {
+		return 0, fmt.Errorf("missing X-Total-Count header")
+	}
+	return strconv.Atoi(totalCountHeader)
+}
 
-	for page <= totalPages {
-		url, err := buildDeputadosURL(page, pageSize)
-		if err != nil {
-			fmt.Println("Error building URL:", err)
-			return nil, err
-		}
-
-		resp, err := http.Get(url)
-		if err != nil {
-			fmt.Printf("Error fetching page %d: %v\n", page, err)
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		if page == 1 {
-			totalCountHeader := resp.Header.Get("X-Total-Count")
-			totalCount, err := strconv.Atoi(totalCountHeader)
-			if err != nil {
-				return nil, fmt.Errorf("Invalid X-Total-Count header: %v", err)
-			}
-
-			totalPages = int(math.Ceil(float64(totalCount) / float64(pageSize)))
-			fmt.Println("Total records:", totalCount)
-			fmt.Println("Total pages:", totalPages)
-		}
-
-		var apiResp apiResponse
-		if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-			fmt.Printf("Error decoding response for page %d: %v\n", page, err)
-			return nil, err
-		}
-
-		all = append(all, apiResp.Data...)
-
-		fmt.Println("Fetched page:", page, "records:", len(apiResp.Data))
-		page++
+func retrieveAllDeputados(ctx context.Context) ([]politicianData, error) {
+	cfg := pagination.PaginationConfig[politicianData]{
+		PageSize:          100,
+		Workers:           5,
+		MaxRetries:        3,
+		RetryWaitMin:      250 * time.Millisecond,
+		RetryWaitMax:      2 * time.Second,
+		Client:            nil, // use default client with timeout from pagination package
+		BuildURL:          buildDeputadosURL,
+		DecodePage:        decodeDeputadosPage,
+		ExtractTotalCount: extractTotalFromHeader,
 	}
 
-	return all, nil
+	return pagination.FetchPaginatedParallel(ctx, cfg)
 }
 
 func main() {
-	data, err := retrieveAllDeputados()
+	// Global timeout for the whole operation.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	data, err := retrieveAllDeputados(ctx)
 	if err != nil {
 		panic(err)
 	}
