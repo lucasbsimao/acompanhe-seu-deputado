@@ -3,11 +3,17 @@ CREATE TABLE IF NOT EXISTS ufs (
   name  varchar(2) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS parties (
+  id    TEXT PRIMARY KEY,
+  name  TEXT NOT NULL,
+  acronym TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS politicians (
   id    TEXT PRIMARY KEY,
   name  TEXT NOT NULL,
   uf    CHAR(2) NOT NULL REFERENCES ufs(uf),
-  party TEXT
+  party_id TEXT REFERENCES parties(id)
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -21,31 +27,9 @@ CREATE TABLE IF NOT EXISTS users_politicians_followed (
   PRIMARY KEY (user_id, politician_id)
 )
 
-INSERT INTO ufs (uf, name) VALUES
-  ('AC', 'Acre'),
-  ('AL', 'Alagoas'),
-  ('AP', 'Amapá'),
-  ('AM', 'Amazonas'),
-  ('BA', 'Bahia'),
-  ('CE', 'Ceará'),
-  ('DF', 'Distrito Federal'),
-  ('ES', 'Espírito Santo'),
-  ('GO', 'Goiás'),
-  ('MA', 'Maranhão'),
-  ('MT', 'Mato Grosso'),
-  ('MS', 'Mato Grosso do Sul'),
-  ('MG', 'Minas Gerais'),
-  ('PA', 'Pará'),
-  ('PB', 'Paraíba'),
-  ('PR', 'Paraná'),
-  ('PE', 'Pernambuco'),
-  ('PI', 'Piauí'),
-  ('RJ', 'Rio de Janeiro'),
-  ('RN', 'Rio Grande do Norte'),
-  ('RS', 'Rio Grande do Sul'),
-  ('RO', 'Rondônia'),
-  ('RR', 'Roraima'),
-  ('SC', 'Santa Catarina'),
-  ('SP', 'São Paulo'),
-  ('SE', 'Sergipe'),
-  ('TO', 'Tocantins');
+CREATE TABLE IF NOT EXISTS users_parties_followed (
+  id            TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL REFERENCES users(id),
+  description   TEXT,
+  date          TIMESTAMP NOT NULL
+);
