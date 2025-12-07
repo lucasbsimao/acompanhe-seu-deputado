@@ -114,7 +114,7 @@ func normalizePaginationConfig[T any](cfg PaginationConfig[T]) (PaginationConfig
 	client := cfg.Client
 	if client == nil {
 		cfg.Client = &http.Client{
-			Timeout: 2 * time.Second,
+			Timeout: 4 * time.Second,
 		}
 	}
 
