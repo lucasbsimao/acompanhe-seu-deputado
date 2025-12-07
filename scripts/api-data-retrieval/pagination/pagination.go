@@ -114,7 +114,7 @@ func normalizePaginationConfig[T any](cfg PaginationConfig[T]) (PaginationConfig
 	client := cfg.Client
 	if client == nil {
 		cfg.Client = &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: 2 * time.Second,
 		}
 	}
 
@@ -288,7 +288,7 @@ func doGetWithRetry[T any](
 		}
 
 		resp, err := cfg.Client.Do(req)
-		if !shouldRetry(resp, err) || attempt >= cfg.MaxRetries {
+		if !shouldRetry(ctx, resp, err) || attempt >= cfg.MaxRetries {
 			return resp, err
 		}
 
@@ -309,12 +309,17 @@ func doGetWithRetry[T any](
 	}
 }
 
-func shouldRetry(resp *http.Response, err error) bool {
+func shouldRetry(ctx context.Context, resp *http.Response, err error) bool {
 	if err != nil {
 		// don't retry on context cancellation/timeouts
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		if errors.Is(err, context.Canceled) {
 			return false
 		}
+
+		if errors.Is(err, context.DeadlineExceeded) && ctx.Err() == context.DeadlineExceeded {
+			return false
+		}
+
 		return true // network or other transient error
 	}
 
