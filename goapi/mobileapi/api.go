@@ -40,7 +40,7 @@ func StartServer() {
 	repo := sqlite.NewPersonRepo(db)
 	svc := services.NewPersonService(repo)
 	ph := controllers.NewPersonController(svc)
-	router := controllers.NewRouter(controllers.Deps{Person: ph})
+	router := controllers.NewRouter(controllers.Deps{User: ph})
 	srv := server.New(router)
 
 	ln, err := srv.Listen(true, "")

@@ -9,7 +9,7 @@ import (
 )
 
 type Deps struct {
-	Person *PersonController
+	User *UserController
 }
 
 func NewRouter(d Deps) http.Handler {
@@ -25,7 +25,7 @@ func NewRouter(d Deps) http.Handler {
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Mount("/persons", d.Person.Routes())
+		r.Mount("/users", d.User.Routes())
 	})
 
 	return r

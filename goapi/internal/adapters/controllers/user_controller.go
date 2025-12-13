@@ -12,12 +12,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type PersonController struct {
-	personService services.PersonService
+type UserController struct {
+	personService services.UserService
 }
 
-func NewPersonController(s services.PersonService) *PersonController {
-	return &PersonController{personService: s}
+func NewPersonController(s services.UserService) *UserController {
+	return &UserController{personService: s}
 }
 
 type personResp struct {
@@ -32,7 +32,7 @@ type createReq struct {
 	Party string `json:"party"`
 }
 
-func (h *PersonController) Routes() chi.Router {
+func (h *UserController) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/{id}", h.get)
 	r.Get("/", h.list)
@@ -40,7 +40,7 @@ func (h *PersonController) Routes() chi.Router {
 	return r
 }
 
-func (h *PersonController) get(w http.ResponseWriter, r *http.Request) {
+func (h *UserController) get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	p, err := h.personService.Get(r.Context(), id)
 	if err != nil {
@@ -50,7 +50,7 @@ func (h *PersonController) get(w http.ResponseWriter, r *http.Request) {
 	h.writeJSON(w, http.StatusOK, personResp{ID: p.ID, Name: p.Name, Party: p.Party})
 }
 
-func (h *PersonController) list(w http.ResponseWriter, r *http.Request) {
+func (h *UserController) list(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	if limit == 0 {
 		limit = 50
@@ -68,13 +68,13 @@ func (h *PersonController) list(w http.ResponseWriter, r *http.Request) {
 	h.writeJSON(w, http.StatusOK, out)
 }
 
-func (h *PersonController) create(w http.ResponseWriter, r *http.Request) {
+func (h *UserController) create(w http.ResponseWriter, r *http.Request) {
 	var in createReq
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
-	p, err := h.personService.Create(r.Context(), domain.Person{ID: in.ID, Name: in.Name, Party: in.Party})
+	p, err := h.personService.Create(r.Context(), domain.User{ID: in.ID, Name: in.Name, Party: in.Party})
 	if err != nil {
 		h.writeErr(w, err)
 		return
@@ -82,7 +82,7 @@ func (h *PersonController) create(w http.ResponseWriter, r *http.Request) {
 	h.writeJSON(w, http.StatusCreated, personResp{ID: p.ID, Name: p.Name, Party: p.Party})
 }
 
-func (h *PersonController) writeErr(w http.ResponseWriter, err error) {
+func (h *UserController) writeErr(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, domain.ErrValidation):
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -95,7 +95,7 @@ func (h *PersonController) writeErr(w http.ResponseWriter, err error) {
 	}
 }
 
-func (h *PersonController) writeJSON(w http.ResponseWriter, status int, v any) {
+func (h *UserController) writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
