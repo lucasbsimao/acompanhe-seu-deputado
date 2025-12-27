@@ -58,7 +58,7 @@ func extractTotalFromHeader(resp *http.Response) (int, error) {
 	return strconv.Atoi(totalCountHeader)
 }
 
-func RetrieveAllDeputies(ctx context.Context) ([]politicianData, error) {
+func RetrieveAllDeputies(ctx context.Context) error {
 	cfg := pagination.PaginationConfig[politicianData]{
 		PageSize:          100,
 		Workers:           5,
@@ -69,6 +69,7 @@ func RetrieveAllDeputies(ctx context.Context) ([]politicianData, error) {
 		BuildURL:          buildDeputiesURL,
 		DecodePage:        decodeDeputiesPage,
 		ExtractTotalCount: extractTotalFromHeader,
+		FileName:          "deputies.json",
 	}
 
 	return pagination.FetchPaginatedParallel(ctx, cfg)

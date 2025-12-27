@@ -32,6 +32,9 @@ type PaginationConfig[T any] struct {
 	// Example: from "X-Total-Count" header.
 	// If nil, we assume a single page.
 	ExtractTotalCount func(resp *http.Response) (int, error)
+
+	// Name of the file to stream data to.
+	FileName string
 }
 
 type pageResult[T any] struct {
@@ -43,20 +46,30 @@ type pageResult[T any] struct {
 // Public entry point.
 // ctx is used for cancellation/timeouts.
 // This function is generic over T, and orchestrates pagination + parallelism.
-func FetchPaginatedParallel[T any](ctx context.Context, cfg PaginationConfig[T]) ([]T, error) {
+func FetchPaginatedParallel[T any](ctx context.Context, cfg PaginationConfig[T]) error {
 	cfg, err := normalizePaginationConfig(cfg)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// 1) Fetch first page (and compute total pages).
 	firstItems, totalPages, err := fetchFirstPage(ctx, cfg)
 	if err != nil {
-		return nil, err
+		return err
+	}
+
+	stream, err := newJSONArrayStreamWriter[T](cfg.FileName)
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+
+	if err := stream.WriteItems(firstItems); err != nil {
+		return err
 	}
 
 	if totalPages == 1 {
-		return firstItems, nil
+		return nil
 	}
 
 	// 2) Parallel fetch of remaining pages.
@@ -67,7 +80,7 @@ func FetchPaginatedParallel[T any](ctx context.Context, cfg PaginationConfig[T])
 	enqueuePageJobs(totalPages, jobs)
 
 	// 3) Collect and assemble in order.
-	return collectPageResults(ctx, totalPages, firstItems, results)
+	return collectPageResults(ctx, totalPages, firstItems, results, stream)
 }
 
 // ----------------- internal helpers -----------------
@@ -249,29 +262,27 @@ func collectPageResults[T any](
 	totalPages int,
 	firstItems []T,
 	results <-chan pageResult[T],
-) ([]T, error) {
+	stream *jsonArrayStreamWriter[T],
+) error {
 	pageMap := make(map[int][]T)
 	pageMap[1] = firstItems
 
 	for i := 2; i <= totalPages; i++ {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return ctx.Err()
 		case res := <-results:
 			if res.Err != nil {
-				return nil, fmt.Errorf("error fetching page %d: %w", res.Page, res.Err)
+				return fmt.Errorf("error fetching page %d: %w", res.Page, res.Err)
 			}
 			fmt.Println("Fetched page:", res.Page, "records:", len(res.Items))
-			pageMap[res.Page] = res.Items
+			if err := stream.WriteItems(res.Items); err != nil {
+				return err
+			}
 		}
 	}
 
-	var all []T
-	for page := 1; page <= totalPages; page++ {
-		all = append(all, pageMap[page]...)
-	}
-
-	return all, nil
+	return nil
 }
 
 func doGetWithRetry[T any](
