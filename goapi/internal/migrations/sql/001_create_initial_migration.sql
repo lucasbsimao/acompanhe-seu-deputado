@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS ufs (
   uf    CHAR(2) PRIMARY KEY,
-  name  varchar(2) NOT NULL
+  name  TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS parties (
@@ -29,8 +29,7 @@ CREATE TABLE IF NOT EXISTS users_politicians_followed (
 )
 
 CREATE TABLE IF NOT EXISTS users_parties_followed (
-  id            TEXT PRIMARY KEY,
   user_id       TEXT NOT NULL REFERENCES users(id),
-  description   TEXT,
-  date          TIMESTAMP NOT NULL
+  uf_id    TEXT NOT NULL REFERENCES ufs(uf),
+  PRIMARY KEY (user_id, uf_id)
 );

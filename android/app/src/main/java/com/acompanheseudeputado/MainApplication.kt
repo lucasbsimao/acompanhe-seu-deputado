@@ -9,17 +9,12 @@ import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
-import mobile.Mobile
 
 class MainApplication : Application(), ReactApplication {
 
   override val reactNativeHost: ReactNativeHost =
       object : DefaultReactNativeHost(this) {
-        override fun getPackages(): List<ReactPackage> {
-          val packages = PackageList(this).packages
-          packages += LocalApiPackage()
-          return packages
-        }
+        override fun getPackages(): List<ReactPackage> = PackageList(this).packages
 
         override fun getJSMainModuleName(): String = "index"
 
@@ -36,10 +31,5 @@ class MainApplication : Application(), ReactApplication {
     super.onCreate()
     loadReactNative(this)
 
-    try {
-      Mobile.startServer()
-    } catch (t: Throwable) {
-      t.printStackTrace()
-    }
   }
 }
