@@ -9,19 +9,19 @@ import (
 	"github.com/acompahe-seu-deputado/internal/ports/repositories"
 )
 
-var _ repositories.PersonRepo = (*PersonRepo)(nil)
+var _ repositories.PoliticianRepo = (*PoliticianRepo)(nil)
 
-type PersonRepo struct {
+type PoliticianRepo struct {
 	db *sql.DB
 }
 
-func NewPersonRepo(db *sql.DB) *PersonRepo {
-	return &PersonRepo{db: db}
+func NewPoliticianRepo(db *sql.DB) *PoliticianRepo {
+	return &PoliticianRepo{db: db}
 }
 
-func (r *PersonRepo) GetByID(ctx context.Context, id string) (*domain.Person, error) {
-	row := r.db.QueryRowContext(ctx, `SELECT id, name, party FROM persons WHERE id = ?`, id)
-	var p domain.Person
+func (r *PoliticianRepo) GetByID(ctx context.Context, id string) (*domain.Politician, error) {
+	row := r.db.QueryRowContext(ctx, `SELECT id, name, party FROM politicians WHERE id = ?`, id)
+	var p domain.Politician
 	if err := row.Scan(&p.ID, &p.Name, &p.Party); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrNotFound
@@ -31,20 +31,20 @@ func (r *PersonRepo) GetByID(ctx context.Context, id string) (*domain.Person, er
 	return &p, nil
 }
 
-func (r *PersonRepo) List(ctx context.Context, limit, offset int) ([]domain.Person, error) {
+func (r *PoliticianRepo) List(ctx context.Context, limit, offset int) ([]domain.Politician, error) {
 	if limit <= 0 {
 		limit = 50
 	}
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, name, party FROM persons ORDER BY id LIMIT ? OFFSET ?`, limit, offset)
+		`SELECT id, name, party FROM politicians ORDER BY id LIMIT ? OFFSET ?`, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	out := make([]domain.Person, 0, limit)
+	out := make([]domain.Politician, 0, limit)
 	for rows.Next() {
-		var p domain.Person
+		var p domain.Politician
 		if err := rows.Scan(&p.ID, &p.Name, &p.Party); err != nil {
 			return nil, err
 		}
@@ -53,9 +53,9 @@ func (r *PersonRepo) List(ctx context.Context, limit, offset int) ([]domain.Pers
 	return out, rows.Err()
 }
 
-func (r *PersonRepo) Create(ctx context.Context, p domain.Person) error {
+func (r *PoliticianRepo) Create(ctx context.Context, p domain.Politician) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO persons (id, name, party) VALUES (?, ?, ?)`,
+		`INSERT INTO politicians (id, name, party) VALUES (?, ?, ?)`,
 		p.ID, p.Name, p.Party)
 	if err != nil {
 		if isUniqueViolation(err) {

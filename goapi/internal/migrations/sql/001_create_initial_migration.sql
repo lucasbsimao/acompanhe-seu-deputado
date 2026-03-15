@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS politicians (
   id    TEXT PRIMARY KEY,
   name  TEXT NOT NULL,
   uf    CHAR(2) NOT NULL REFERENCES ufs(uf),
-  party_id TEXT REFERENCES parties(id)
+  party_id TEXT REFERENCES parties(id),
+  role   TEXT NOT NULL CHECK (role IN ('CITY_COUNCILOR', 'DEPUTY', 'SENATOR'))
 );
 
 CREATE TABLE IF NOT EXISTS users (
