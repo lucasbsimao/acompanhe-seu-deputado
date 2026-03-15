@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"scripts/deputies"
+	etl "scripts/etl_strategies"
+
 	"time"
 )
 
@@ -11,7 +12,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	err := deputies.RetrieveAllDeputies(ctx)
+	err := etl.RetrieveAllDeputies(ctx)
 	if err != nil {
 		panic(err)
 	}
