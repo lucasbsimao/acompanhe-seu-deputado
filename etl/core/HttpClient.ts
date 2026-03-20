@@ -17,18 +17,18 @@ export class HttpClient {
     });
   }
 
-  async request(url: string, signal?: AbortSignal): Promise<{ data: unknown; headers: Record<string, string> }> {
+  async request(url: string): Promise<{ data: unknown; headers: Record<string, string> }> {
     let attempt = 0;
 
     while (true) {
       try {
-        const response = await this.client.get(url, { signal });
+        const response = await this.client.get(url);
         return {
           data: response.data,
           headers: response.headers as Record<string, string>,
         };
       } catch (err) {
-        const shouldRetry = this.shouldRetry(err, signal);
+        const shouldRetry = this.shouldRetry(err);
         const isMaxRetriesReached = attempt >= this.retryConfig.maxRetries;
 
         if (!shouldRetry || isMaxRetriesReached) {
@@ -36,17 +36,13 @@ export class HttpClient {
         }
 
         const waitTime = this.calculateBackoff(err, attempt);
-        await this.sleep(waitTime, signal);
+        await this.sleep(waitTime);
         attempt++;
       }
     }
   }
 
-  private shouldRetry(err: unknown, signal?: AbortSignal): boolean {
-    if (signal?.aborted) {
-      return false;
-    }
-
+  private shouldRetry(err: unknown): boolean {
     if (axios.isAxiosError(err)) {
       const status = err.response?.status;
 
@@ -86,16 +82,7 @@ export class HttpClient {
     return capped;
   }
 
-  private sleep(ms: number, signal?: AbortSignal): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(resolve, ms);
-
-      if (signal) {
-        signal.addEventListener('abort', () => {
-          clearTimeout(timeout);
-          reject(new Error('Aborted'));
-        });
-      }
-    });
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

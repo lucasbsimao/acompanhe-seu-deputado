@@ -18,7 +18,7 @@ export class DeputiesETL extends PaginationEngine<PoliticianData> {
   constructor() {
     super({
       pageSize: 100,
-      workers: 5,
+      parallelism: 10,
       maxRetries: 3,
       retryWaitMin: 250,
       retryWaitMax: 2000,

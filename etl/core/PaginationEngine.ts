@@ -9,30 +9,25 @@ export interface RetryConfig {
 
 export interface PaginationConfig {
   pageSize?: number;
-  workers?: number;
+  parallelism?: number;
   maxRetries?: number;
   retryWaitMin?: number;
   retryWaitMax?: number;
   fileName: string;
 }
 
-export interface PageResult<T> {
-  page: number;
-  items: T[];
-  error?: Error;
-}
 
 export abstract class PaginationEngine<T> {
   protected httpClient: HttpClient;
   protected streamWriter: JsonArrayStreamWriter<T>;
   protected pageSize: number;
-  protected workers: number;
+  protected parallelism: number;
 
   constructor(config: PaginationConfig) {
     const normalizedConfig = this.normalizeConfig(config);
     
     this.pageSize = normalizedConfig.pageSize;
-    this.workers = normalizedConfig.workers;
+    this.parallelism = normalizedConfig.parallelism;
     
     this.httpClient = new HttpClient(
       {
@@ -49,24 +44,24 @@ export abstract class PaginationEngine<T> {
   abstract decodePage(data: unknown): Promise<T[]>;
   abstract extractTotalCount(headers: Record<string, string>): Promise<number>;
 
-  async execute(signal?: AbortSignal): Promise<void> {
+  async execute(): Promise<void> {
     try {
       await this.streamWriter.open();
 
-      const { items: firstItems, totalPages } = await this.fetchFirstPage(signal);
+      const { items: firstItems, totalPages } = await this.fetchFirstPage();
       await this.streamWriter.writeItems(firstItems);
 
       if (totalPages > 1) {
-        await this.fetchRemainingPages(totalPages, signal);
+        await this.fetchRemainingPages(totalPages);
       }
     } finally {
       await this.streamWriter.close();
     }
   }
 
-  private async fetchFirstPage(signal?: AbortSignal): Promise<{ items: T[]; totalPages: number }> {
+  private async fetchFirstPage(): Promise<{ items: T[]; totalPages: number }> {
     const url = await this.buildUrl(1, this.pageSize);
-    const { data, headers } = await this.httpClient.request(url, signal);
+    const { data, headers } = await this.httpClient.request(url);
 
     const totalCount = await this.extractTotalCount(headers);
     const totalPages = Math.ceil(totalCount / this.pageSize);
@@ -77,21 +72,21 @@ export abstract class PaginationEngine<T> {
     return { items, totalPages };
   }
 
-  private async fetchRemainingPages(totalPages: number, signal?: AbortSignal): Promise<void> {
+  private async fetchRemainingPages(totalPages: number): Promise<void> {
+    const pageNumbers = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
     const pageMap = new Map<number, T[]>();
-    const jobs: number[] = [];
 
-    for (let page = 2; page <= totalPages; page++) {
-      jobs.push(page);
-    }
-
-    const results = await this.processJobsInParallel(jobs, signal);
-
-    for (const result of results) {
-      if (result.error) {
-        throw new Error(`Error fetching page ${result.page}: ${result.error.message}`);
-      }
-      pageMap.set(result.page, result.items);
+    for (let i = 0; i < pageNumbers.length; i += this.parallelism) {
+      const batch = pageNumbers.slice(i, i + this.parallelism);
+      const results = await Promise.all(
+        batch.map(async (page) => {
+          const url = await this.buildUrl(page, this.pageSize);
+          const { data } = await this.httpClient.request(url);
+          const items = await this.decodePage(data);
+          return { page, items };
+        })
+      );
+      results.forEach((r) => pageMap.set(r.page, r.items));
     }
 
     for (let page = 2; page <= totalPages; page++) {
@@ -103,49 +98,13 @@ export abstract class PaginationEngine<T> {
     }
   }
 
-  private async processJobsInParallel(jobs: number[], signal?: AbortSignal): Promise<PageResult<T>[]> {
-    const results: PageResult<T>[] = [];
-    const activeWorkers: Promise<void>[] = [];
-    let jobIndex = 0;
-
-    const worker = async () => {
-      while (jobIndex < jobs.length) {
-        if (signal?.aborted) {
-          throw new Error('Aborted');
-        }
-
-        const page = jobs[jobIndex];
-        jobIndex++;
-
-        try {
-          const url = await this.buildUrl(page, this.pageSize);
-          const { data } = await this.httpClient.request(url, signal);
-          const items = await this.decodePage(data);
-          results.push({ page, items });
-        } catch (error) {
-          results.push({
-            page,
-            items: [],
-            error: error instanceof Error ? error : new Error(String(error)),
-          });
-        }
-      }
-    };
-
-    for (let i = 0; i < this.workers; i++) {
-      activeWorkers.push(worker());
-    }
-
-    await Promise.all(activeWorkers);
-    return results.sort((a, b) => a.page - b.page);
-  }
 
   private normalizeConfig(cfg: PaginationConfig): Required<PaginationConfig> {
     return {
       fileName: cfg.fileName,
       pageSize: cfg.pageSize && cfg.pageSize > 0 ? cfg.pageSize : 100,
-      workers: cfg.workers && cfg.workers > 0 ? cfg.workers : 4,
-      maxRetries: cfg.maxRetries !== undefined && cfg.maxRetries >= 0 ? cfg.maxRetries : 0,
+      parallelism: cfg.parallelism && cfg.parallelism > 0 ? cfg.parallelism : 4,
+      maxRetries: cfg.maxRetries !== undefined && cfg.maxRetries >= 0 ? cfg.maxRetries : 3,
       retryWaitMin: cfg.retryWaitMin && cfg.retryWaitMin > 0 ? cfg.retryWaitMin : 250,
       retryWaitMax: cfg.retryWaitMax && cfg.retryWaitMax > 0 ? cfg.retryWaitMax : 2000,
     };
