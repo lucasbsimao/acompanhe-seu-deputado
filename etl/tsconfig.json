@@ -21,6 +21,6 @@
     "noImplicitReturns": true,
     "types": ["node"]
   },
-  "include": ["*.ts", "core/**/*.ts", "deputies/**/*.ts"],
+  "include": ["*.ts", "core/**/*.ts", "pipelines/**/*.ts"],
   "exclude": ["node_modules", "dist", "**/*.go"]
 }

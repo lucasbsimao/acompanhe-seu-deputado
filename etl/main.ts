@@ -1,4 +1,4 @@
-import { DeputiesETL } from './deputies/DeputiesETL';
+import { DeputiesETL } from './pipelines/DeputiesPipeline';
 
 class Application {
   async run(): Promise<void> {
