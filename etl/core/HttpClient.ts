@@ -1,4 +1,5 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
+import axiosRetry, { exponentialDelay, retryAfter } from 'axios-retry';
 
 export interface RetryConfig {
   maxRetries: number;
@@ -8,81 +9,49 @@ export interface RetryConfig {
 
 export class HttpClient {
   private client: AxiosInstance;
-  private retryConfig: RetryConfig;
 
-  constructor(retryConfig: RetryConfig, timeoutMs: number = 4000) {
-    this.retryConfig = retryConfig;
+  constructor(private readonly retryConfig: RetryConfig, timeoutMs: number = 4000) {
     this.client = axios.create({
       timeout: timeoutMs,
     });
+
+    axiosRetry(this.client, {
+      retries: retryConfig.maxRetries,
+      shouldResetTimeout: true,
+      retryCondition: (error) => this.shouldRetry(error),
+      retryDelay: (retryCount, error) => this.calculateBackoff(retryCount, error),
+    });
   }
 
-  async request(url: string): Promise<{ data: unknown; headers: Record<string, string> }> {
-    let attempt = 0;
-
-    while (true) {
-      try {
-        const response = await this.client.get(url);
-        return {
-          data: response.data,
-          headers: response.headers as Record<string, string>,
-        };
-      } catch (err) {
-        const shouldRetry = this.shouldRetry(err);
-        const isMaxRetriesReached = attempt >= this.retryConfig.maxRetries;
-
-        if (!shouldRetry || isMaxRetriesReached) {
-          throw err;
-        }
-
-        const waitTime = this.calculateBackoff(err, attempt);
-        await this.sleep(waitTime);
-        attempt++;
-      }
-    }
+  async request(url: string, signal?: AbortSignal): Promise<{ data: unknown; headers: Record<string, string> }> {
+    const response = await this.client.get(url, { signal });
+    return {
+      data: response.data,
+      headers: response.headers as Record<string, string>,
+    };
   }
 
-  private shouldRetry(err: unknown): boolean {
-    if (axios.isAxiosError(err)) {
-      const status = err.response?.status;
+  private shouldRetry(error: AxiosError): boolean {
+    const status = error.response?.status;
 
-      if (status === 429 || status === 503) {
-        return true;
-      }
-
-      if (status && status >= 500 && status <= 599) {
-        return true;
-      }
-
-      if (err.code === 'ECONNABORTED' || err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
-        return true;
-      }
-    }
-
-    if (err instanceof Error && err.message.includes('timeout')) {
+    if (status === 429) {
       return true;
     }
 
-    return true;
-  }
-
-  private calculateBackoff(err: unknown, attempt: number): number {
-    if (axios.isAxiosError(err) && err.response) {
-      const retryAfter = err.response.headers['retry-after'];
-      if (retryAfter) {
-        const seconds = parseInt(retryAfter as string, 10);
-        if (!isNaN(seconds) && seconds > 0) {
-          return seconds * 1000;
-        }
-      }
+    if (status !== undefined) {
+      return status >= 500 && status <= 599;
     }
 
-    const exponentialBackoff = this.retryConfig.retryWaitMin * Math.pow(2, attempt);
-    const capped = Math.min(exponentialBackoff, this.retryConfig.retryWaitMax);
-    return capped;
+    return axiosRetry.isNetworkOrIdempotentRequestError(error);
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  private calculateBackoff(retryCount: number, error: AxiosError): number {
+    const serverDelay = retryAfter(error);
+    if (serverDelay > 0) {
+      return serverDelay;
+    }
+
+    const delay = exponentialDelay(retryCount, error, this.retryConfig.retryWaitMin);
+    return Math.min(delay, this.retryConfig.retryWaitMax);
   }
 }

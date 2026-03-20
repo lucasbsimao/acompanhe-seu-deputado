@@ -2,7 +2,10 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "outDir": "./dist",
     "rootDir": ".",
     "strict": true,
@@ -19,8 +22,19 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["*.ts", "core/**/*.ts", "pipelines/**/*.ts"],
-  "exclude": ["node_modules", "dist", "**/*.go"]
+  "include": [
+    "*.ts",
+    "core/**/*.ts",
+    "pipelines/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.go"
+  ]
 }

@@ -13,6 +13,7 @@ export interface PaginationConfig {
   maxRetries?: number;
   retryWaitMin?: number;
   retryWaitMax?: number;
+  timeoutMs?: number;
   fileName: string;
 }
 
@@ -35,7 +36,7 @@ export abstract class PaginationEngine<T> {
         retryWaitMin: normalizedConfig.retryWaitMin,
         retryWaitMax: normalizedConfig.retryWaitMax,
       },
-      4000
+      normalizedConfig.timeoutMs
     );
     this.streamWriter = new JsonArrayStreamWriter(config.fileName);
   }
@@ -107,6 +108,7 @@ export abstract class PaginationEngine<T> {
       maxRetries: cfg.maxRetries !== undefined && cfg.maxRetries >= 0 ? cfg.maxRetries : 3,
       retryWaitMin: cfg.retryWaitMin && cfg.retryWaitMin > 0 ? cfg.retryWaitMin : 250,
       retryWaitMax: cfg.retryWaitMax && cfg.retryWaitMax > 0 ? cfg.retryWaitMax : 2000,
+      timeoutMs: cfg.timeoutMs && cfg.timeoutMs > 0 ? cfg.timeoutMs : 15000,
     };
   }
 }
