@@ -25,7 +25,6 @@ export class DeputiesPipeline extends PaginationEngine<PoliticianData> {
       maxRetries: 3,
       retryWaitMin: 250,
       retryWaitMax: 2000,
-      fileName: 'deputies.json',
     });
     this.repo = new PoliticianRepository(db);
   }

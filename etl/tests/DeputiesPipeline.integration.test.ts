@@ -1,8 +1,5 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 import nock from 'nock';
 import Database from 'better-sqlite3';
 import { DeputiesPipeline } from '../pipelines/DeputiesPipeline';
@@ -13,7 +10,6 @@ function createTestDb(): Database.Database {
 }
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
-const TEST_OUTPUT_DIR = path.join(os.tmpdir(), 'etl-integration-tests');
 
 function createMockDeputy(id: number): any {
   return {
@@ -25,37 +21,17 @@ function createMockDeputy(id: number): any {
   };
 }
 
-function setupTestOutputDir(): void {
-  if (!fs.existsSync(TEST_OUTPUT_DIR)) {
-    fs.mkdirSync(TEST_OUTPUT_DIR, { recursive: true });
-  }
-}
-
-function cleanupTestOutputDir(): void {
-  if (fs.existsSync(TEST_OUTPUT_DIR)) {
-    fs.rmSync(TEST_OUTPUT_DIR, { recursive: true, force: true });
-  }
-}
-
-function readJsonArrayFromFile(filePath: string): any[] {
-  const content = fs.readFileSync(filePath, 'utf8');
-  return JSON.parse(content);
-}
-
 describe('DeputiesETL Integration Tests', () => {
   beforeEach(() => {
-    setupTestOutputDir();
     nock.cleanAll();
   });
 
   afterEach(() => {
-    cleanupTestOutputDir();
     nock.cleanAll();
   });
 
-  it('should fetch and stream deputies data with single page', async () => {
+  it('should fetch and persist deputies data with single page', async () => {
     const deputies = Array.from({ length: 10 }, (_, i) => createMockDeputy(i + 1));
-    const outputFile = path.join(TEST_OUTPUT_DIR, 'deputies-single-page.json');
 
     nock(API_BASE_URL)
       .get('/api/v2/deputados')
@@ -67,24 +43,20 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '10' });
 
-    const etl = new DeputiesPipeline(createTestDb());
-    (etl as any).streamWriter.filePath = outputFile;
+    const db = createTestDb();
+    const etl = new DeputiesPipeline(db);
 
     await etl.execute();
 
-    assert.ok(fs.existsSync(outputFile), 'Output file should be created');
-
-    const result = readJsonArrayFromFile(outputFile);
+    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(id AS INTEGER)').all() as any[];
     assert.strictEqual(result.length, 10, 'Should contain 10 deputies');
-    assert.strictEqual(result[0].id, 1, 'First deputy should have id 1');
-    assert.strictEqual(result[9].id, 10, 'Last deputy should have id 10');
+    assert.strictEqual(result[0].id, '1', 'First deputy should have id 1');
+    assert.strictEqual(result[9].id, '10', 'Last deputy should have id 10');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
 
-  it('should fetch and stream deputies data with multiple pages', async () => {
-    const outputFile = path.join(TEST_OUTPUT_DIR, 'deputies-multi-page.json');
-
+  it('should fetch and persist deputies data with multiple pages', async () => {
     const page1Deputies = Array.from({ length: 100 }, (_, i) => createMockDeputy(i + 1));
     const page2Deputies = Array.from({ length: 100 }, (_, i) => createMockDeputy(i + 101));
     const page3Deputies = Array.from({ length: 50 }, (_, i) => createMockDeputy(i + 201));
@@ -119,25 +91,22 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: page3Deputies });
 
-    const etl = new DeputiesPipeline(createTestDb());
-    (etl as any).streamWriter.filePath = outputFile;
+    const db = createTestDb();
+    const etl = new DeputiesPipeline(db);
 
     await etl.execute();
 
-    assert.ok(fs.existsSync(outputFile), 'Output file should be created');
-
-    const result = readJsonArrayFromFile(outputFile);
+    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(id AS INTEGER)').all() as any[];
     assert.strictEqual(result.length, 250, 'Should contain 250 deputies');
-    assert.strictEqual(result[0].id, 1, 'First deputy should have id 1');
-    assert.strictEqual(result[100].id, 101, 'Deputy at index 100 should have id 101');
-    assert.strictEqual(result[249].id, 250, 'Last deputy should have id 250');
+    assert.strictEqual(result[0].id, '1', 'First deputy should have id 1');
+    assert.strictEqual(result[100].id, '101', 'Deputy at index 100 should have id 101');
+    assert.strictEqual(result[249].id, '250', 'Last deputy should have id 250');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
 
   it('should retry on 500 errors and eventually succeed', async () => {
     const deputies = Array.from({ length: 5 }, (_, i) => createMockDeputy(i + 1));
-    const outputFile = path.join(TEST_OUTPUT_DIR, 'deputies-retry.json');
 
     const scope = nock(API_BASE_URL)
       .get('/api/v2/deputados')
@@ -160,25 +129,22 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '5' });
 
-    const etl = new DeputiesPipeline(createTestDb());
-    (etl as any).streamWriter.filePath = outputFile;
+    const db = createTestDb();
+    const etl = new DeputiesPipeline(db);
 
     await etl.execute();
 
-    assert.ok(fs.existsSync(outputFile), 'Output file should be created');
-
-    const result = readJsonArrayFromFile(outputFile);
+    const result = db.prepare('SELECT * FROM politicians').all() as any[];
     assert.strictEqual(result.length, 5, 'Should contain 5 deputies after retries');
-    
+
     assert.strictEqual(scope.pendingMocks().length, 0, 'All 3 retry mocks should have been called');
   });
 
   it('should retry on 429 rate limit errors', async () => {
     const deputies = Array.from({ length: 5 }, (_, i) => createMockDeputy(i + 1));
-    const outputFile = path.join(TEST_OUTPUT_DIR, 'deputies-rate-limit.json');
 
     const scope = nock(API_BASE_URL);
-    
+
     scope
       .get('/api/v2/deputados')
       .query({
@@ -188,7 +154,7 @@ describe('DeputiesETL Integration Tests', () => {
         itens: '100',
       })
       .reply(429, 'Too Many Requests', { 'Retry-After': '1' });
-    
+
     scope
       .get('/api/v2/deputados')
       .query({
@@ -199,24 +165,20 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '5' });
 
-    const etl = new DeputiesPipeline(createTestDb());
-    (etl as any).streamWriter.filePath = outputFile;
+    const db = createTestDb();
+    const etl = new DeputiesPipeline(db);
 
     await etl.execute();
 
-    assert.ok(fs.existsSync(outputFile), 'Output file should be created');
-
-    const result = readJsonArrayFromFile(outputFile);
+    const result = db.prepare('SELECT * FROM politicians').all() as any[];
     assert.strictEqual(result.length, 5, 'Should contain 5 deputies after rate limit retry');
 
     assert.strictEqual(scope.pendingMocks().length, 0, 'Both endpoint calls (429 and 200) should have been made');
   });
 
   it('should fail after exhausting all retries', async () => {
-    const outputFile = path.join(TEST_OUTPUT_DIR, 'deputies-fail.json');
-
     const scope = nock(API_BASE_URL);
-    
+
     scope
       .get('/api/v2/deputados')
       .query({
@@ -229,7 +191,6 @@ describe('DeputiesETL Integration Tests', () => {
       .reply(500, 'Internal Server Error');
 
     const etl = new DeputiesPipeline(createTestDb());
-    (etl as any).streamWriter.filePath = outputFile;
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -240,12 +201,10 @@ describe('DeputiesETL Integration Tests', () => {
       'Should throw error after exhausting retries'
     );
 
-    assert.strictEqual(scope.pendingMocks().length, 0, 'Both endpoint calls (429 and 200) should have been made');
+    assert.strictEqual(scope.pendingMocks().length, 0, 'All 4 endpoint calls should have been made');
   });
 
   it('should handle missing X-Total-Count header', async () => {
-    const outputFile = path.join(TEST_OUTPUT_DIR, 'deputies-no-header.json');
-
     nock(API_BASE_URL)
       .get('/api/v2/deputados')
       .query({
@@ -257,7 +216,6 @@ describe('DeputiesETL Integration Tests', () => {
       .reply(200, { dados: [] });
 
     const etl = new DeputiesPipeline(createTestDb());
-    (etl as any).streamWriter.filePath = outputFile;
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -273,8 +231,6 @@ describe('DeputiesETL Integration Tests', () => {
   });
 
   it('should handle invalid response format', async () => {
-    const outputFile = path.join(TEST_OUTPUT_DIR, 'deputies-invalid.json');
-
     nock(API_BASE_URL)
       .get('/api/v2/deputados')
       .query({
@@ -286,7 +242,6 @@ describe('DeputiesETL Integration Tests', () => {
       .reply(200, { invalid: 'format' }, { 'x-total-count': '10' });
 
     const etl = new DeputiesPipeline(createTestDb());
-    (etl as any).streamWriter.filePath = outputFile;
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -302,8 +257,6 @@ describe('DeputiesETL Integration Tests', () => {
   });
 
   it('should handle parallel page fetching correctly', async () => {
-    const outputFile = path.join(TEST_OUTPUT_DIR, 'deputies-parallel.json');
-
     nock(API_BASE_URL)
       .get('/api/v2/deputados')
       .query({
@@ -328,49 +281,18 @@ describe('DeputiesETL Integration Tests', () => {
         });
     }
 
-    const etl = new DeputiesPipeline(createTestDb());
-    (etl as any).streamWriter.filePath = outputFile;
+    const db = createTestDb();
+    const etl = new DeputiesPipeline(db);
 
     await etl.execute();
 
-    assert.ok(fs.existsSync(outputFile), 'Output file should be created');
-
-    const result = readJsonArrayFromFile(outputFile);
+    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(id AS INTEGER)').all() as any[];
     assert.strictEqual(result.length, 550, 'Should contain 550 deputies');
 
     for (let i = 0; i < 550; i++) {
-      assert.strictEqual(result[i].id, i + 1, `Deputy at index ${i} should have id ${i + 1}`);
+      assert.strictEqual(result[i].id, String(i + 1), `Deputy at index ${i} should have id ${i + 1}`);
     }
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
-  });
-
-  it('should create valid JSON array format in output file', async () => {
-    const deputies = Array.from({ length: 3 }, (_, i) => createMockDeputy(i + 1));
-    const outputFile = path.join(TEST_OUTPUT_DIR, 'deputies-json-format.json');
-
-    nock(API_BASE_URL)
-      .get('/api/v2/deputados')
-      .query({
-        ordem: 'ASC',
-        ordenarPor: 'nome',
-        pagina: '1',
-        itens: '100',
-      })
-      .reply(200, { dados: deputies }, { 'x-total-count': '3' });
-
-    const etl = new DeputiesPipeline(createTestDb());
-    (etl as any).streamWriter.filePath = outputFile;
-
-    await etl.execute();
-
-    const content = fs.readFileSync(outputFile, 'utf8');
-
-    assert.ok(content.startsWith('['), 'File should start with [');
-    assert.ok(content.endsWith(']'), 'File should end with ]');
-
-    const parsed = JSON.parse(content);
-    assert.ok(Array.isArray(parsed), 'Content should be a valid JSON array');
-    assert.strictEqual(parsed.length, 3, 'Array should contain 3 items');
   });
 });

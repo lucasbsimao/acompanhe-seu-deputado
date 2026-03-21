@@ -1,5 +1,4 @@
 import { HttpClient } from './HttpClient';
-import { JsonArrayStreamWriter } from './JsonArrayStreamWriter';
 
 export interface RetryConfig {
   maxRetries: number;
@@ -14,22 +13,20 @@ export interface PaginationConfig {
   retryWaitMin?: number;
   retryWaitMax?: number;
   timeoutMs?: number;
-  fileName: string;
 }
 
 
 export abstract class PaginationEngine<T> {
   protected httpClient: HttpClient;
-  protected streamWriter: JsonArrayStreamWriter<T>;
   protected pageSize: number;
   protected parallelism: number;
 
   constructor(config: PaginationConfig) {
     const normalizedConfig = this.normalizeConfig(config);
-    
+
     this.pageSize = normalizedConfig.pageSize;
     this.parallelism = normalizedConfig.parallelism;
-    
+
     this.httpClient = new HttpClient(
       {
         maxRetries: normalizedConfig.maxRetries,
@@ -38,7 +35,6 @@ export abstract class PaginationEngine<T> {
       },
       normalizedConfig.timeoutMs
     );
-    this.streamWriter = new JsonArrayStreamWriter(config.fileName);
   }
 
   abstract buildUrl(page: number, pageSize: number): Promise<string>;
@@ -49,18 +45,11 @@ export abstract class PaginationEngine<T> {
   protected async onPageFetched(_items: T[]): Promise<void> {}
 
   async execute(): Promise<void> {
-    try {
-      await this.streamWriter.open();
+    const { items: firstItems, totalPages } = await this.fetchFirstPage();
+    await this.onPageFetched(firstItems);
 
-      const { items: firstItems, totalPages } = await this.fetchFirstPage();
-      await this.streamWriter.writeItems(firstItems);
-      await this.onPageFetched(firstItems);
-
-      if (totalPages > 1) {
-        await this.fetchRemainingPages(totalPages);
-      }
-    } finally {
-      await this.streamWriter.close();
+    if (totalPages > 1) {
+      await this.fetchRemainingPages(totalPages);
     }
   }
 
@@ -98,7 +87,6 @@ export abstract class PaginationEngine<T> {
       const items = pageMap.get(page);
       if (items) {
         console.log(`Fetched page: ${page}, records: ${items.length}`);
-        await this.streamWriter.writeItems(items);
         await this.onPageFetched(items);
       }
     }
@@ -107,7 +95,6 @@ export abstract class PaginationEngine<T> {
 
   private normalizeConfig(cfg: PaginationConfig): Required<PaginationConfig> {
     return {
-      fileName: cfg.fileName,
       pageSize: cfg.pageSize && cfg.pageSize > 0 ? cfg.pageSize : 100,
       parallelism: cfg.parallelism && cfg.parallelism > 0 ? cfg.parallelism : 4,
       maxRetries: cfg.maxRetries !== undefined && cfg.maxRetries >= 0 ? cfg.maxRetries : 3,

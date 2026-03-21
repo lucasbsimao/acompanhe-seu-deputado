@@ -78,3 +78,7 @@ yarn-error.log
 
 # VSCode
 .vscode/*
+
+# App seeds
+android/app/src/main/assets/seed.db
+ios/AcompanheSeuDeputado/seed.db
