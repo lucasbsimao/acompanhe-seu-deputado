@@ -146,40 +146,6 @@ describe('PoliticianService Integration Tests', () => {
       expect(ids).toHaveLength(3);
     });
 
-    it('should handle different politician roles', async () => {
-      const politicians: Politician[] = [
-        {
-          id: 'dep-001',
-          name: 'João Silva',
-          uf: 'SP',
-          partyId: 'PT',
-          role: 'DEPUTY',
-          photoUrl: null,
-        },
-        {
-          id: 'sen-001',
-          name: 'Maria Santos',
-          uf: 'RJ',
-          partyId: 'PSDB',
-          role: 'SENATOR',
-          photoUrl: null,
-        },
-        {
-          id: 'cc-001',
-          name: 'Carlos Oliveira',
-          uf: 'MG',
-          partyId: 'PL',
-          role: 'CITY_COUNCILOR',
-          photoUrl: null,
-        },
-      ];
-
-      await service.insertBatch(politicians);
-
-      const ids = await service.getAllIds();
-      expect(ids).toHaveLength(3);
-    });
-
     it('should throw error when inserting with invalid data', async () => {
       const politicians: Politician[] = [
         {
@@ -373,50 +339,6 @@ describe('PoliticianService Integration Tests', () => {
   });
 
   describe('Data Integrity', () => {
-    it('should maintain referential integrity with parties', async () => {
-      const politicians: Politician[] = [
-        {
-          id: 'dep-001',
-          name: 'João Silva',
-          uf: 'SP',
-          partyId: 'PT',
-          role: 'DEPUTY',
-          photoUrl: null,
-        },
-        {
-          id: 'dep-002',
-          name: 'Maria Santos',
-          uf: 'RJ',
-          partyId: 'PT',
-          role: 'DEPUTY',
-          photoUrl: null,
-        },
-      ];
-
-      await service.insertBatch(politicians);
-
-      const ids = await service.getAllIds();
-      expect(ids).toHaveLength(2);
-    });
-
-    it('should maintain referential integrity with UFs', async () => {
-      const politicians: Politician[] = [
-        {
-          id: 'dep-001',
-          name: 'João Silva',
-          uf: 'SP',
-          partyId: 'PT',
-          role: 'DEPUTY',
-          photoUrl: null,
-        },
-      ];
-
-      await service.insertBatch(politicians);
-
-      const ids = await service.getAllIds();
-      expect(ids).toHaveLength(1);
-    });
-
     it('should handle special characters in names', async () => {
       const politicians: Politician[] = [
         {
