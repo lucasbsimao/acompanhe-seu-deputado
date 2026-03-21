@@ -45,12 +45,16 @@ export abstract class PaginationEngine<T> {
   abstract decodePage(data: unknown): Promise<T[]>;
   abstract extractTotalCount(headers: Record<string, string>): Promise<number>;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected async onPageFetched(_items: T[]): Promise<void> {}
+
   async execute(): Promise<void> {
     try {
       await this.streamWriter.open();
 
       const { items: firstItems, totalPages } = await this.fetchFirstPage();
       await this.streamWriter.writeItems(firstItems);
+      await this.onPageFetched(firstItems);
 
       if (totalPages > 1) {
         await this.fetchRemainingPages(totalPages);
@@ -95,6 +99,7 @@ export abstract class PaginationEngine<T> {
       if (items) {
         console.log(`Fetched page: ${page}, records: ${items.length}`);
         await this.streamWriter.writeItems(items);
+        await this.onPageFetched(items);
       }
     }
   }

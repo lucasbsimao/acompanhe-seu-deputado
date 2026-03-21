@@ -1,4 +1,6 @@
 import { PaginationEngine } from '../core/PaginationEngine';
+import { PoliticianRepository } from '../repositories/PoliticianRepository';
+import type Database from 'better-sqlite3';
 
 interface PoliticianData {
   id: number;
@@ -12,10 +14,11 @@ interface ApiResponse {
   dados: PoliticianData[];
 }
 
-export class DeputiesETL extends PaginationEngine<PoliticianData> {
+export class DeputiesPipeline extends PaginationEngine<PoliticianData> {
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
+  private readonly repo: PoliticianRepository;
 
-  constructor() {
+  constructor(db: Database.Database) {
     super({
       pageSize: 100,
       parallelism: 10,
@@ -24,6 +27,7 @@ export class DeputiesETL extends PaginationEngine<PoliticianData> {
       retryWaitMax: 2000,
       fileName: 'deputies.json',
     });
+    this.repo = new PoliticianRepository(db);
   }
 
   async buildUrl(page: number, pageSize: number): Promise<string> {
@@ -60,5 +64,18 @@ export class DeputiesETL extends PaginationEngine<PoliticianData> {
     }
 
     return totalCount;
+  }
+
+  protected async onPageFetched(items: PoliticianData[]): Promise<void> {
+    this.repo.insertBatch(
+      items.map(d => ({
+        id: String(d.id),
+        name: d.nome,
+        uf: d.siglaUf,
+        partyId: d.siglaPartido,
+        role: 'DEPUTY',
+        photoUrl: d.urlFoto || null,
+      }))
+    );
   }
 }

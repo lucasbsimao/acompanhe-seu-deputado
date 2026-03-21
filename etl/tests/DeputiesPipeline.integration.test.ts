@@ -4,7 +4,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import nock from 'nock';
-import { DeputiesETL } from '../pipelines/DeputiesPipeline';
+import Database from 'better-sqlite3';
+import { DeputiesPipeline } from '../pipelines/DeputiesPipeline';
+import { createSeedDb } from '../db/seedDb';
+
+function createTestDb(): Database.Database {
+  return createSeedDb(':memory:');
+}
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 const TEST_OUTPUT_DIR = path.join(os.tmpdir(), 'etl-integration-tests');
@@ -61,7 +67,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '10' });
 
-    const etl = new DeputiesETL();
+    const etl = new DeputiesPipeline(createTestDb());
     (etl as any).streamWriter.filePath = outputFile;
 
     await etl.execute();
@@ -113,7 +119,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: page3Deputies });
 
-    const etl = new DeputiesETL();
+    const etl = new DeputiesPipeline(createTestDb());
     (etl as any).streamWriter.filePath = outputFile;
 
     await etl.execute();
@@ -154,7 +160,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '5' });
 
-    const etl = new DeputiesETL();
+    const etl = new DeputiesPipeline(createTestDb());
     (etl as any).streamWriter.filePath = outputFile;
 
     await etl.execute();
@@ -193,7 +199,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '5' });
 
-    const etl = new DeputiesETL();
+    const etl = new DeputiesPipeline(createTestDb());
     (etl as any).streamWriter.filePath = outputFile;
 
     await etl.execute();
@@ -222,7 +228,7 @@ describe('DeputiesETL Integration Tests', () => {
       .times(4)
       .reply(500, 'Internal Server Error');
 
-    const etl = new DeputiesETL();
+    const etl = new DeputiesPipeline(createTestDb());
     (etl as any).streamWriter.filePath = outputFile;
 
     await assert.rejects(
@@ -250,7 +256,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: [] });
 
-    const etl = new DeputiesETL();
+    const etl = new DeputiesPipeline(createTestDb());
     (etl as any).streamWriter.filePath = outputFile;
 
     await assert.rejects(
@@ -279,7 +285,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { invalid: 'format' }, { 'x-total-count': '10' });
 
-    const etl = new DeputiesETL();
+    const etl = new DeputiesPipeline(createTestDb());
     (etl as any).streamWriter.filePath = outputFile;
 
     await assert.rejects(
@@ -322,7 +328,7 @@ describe('DeputiesETL Integration Tests', () => {
         });
     }
 
-    const etl = new DeputiesETL();
+    const etl = new DeputiesPipeline(createTestDb());
     (etl as any).streamWriter.filePath = outputFile;
 
     await etl.execute();
@@ -353,7 +359,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '3' });
 
-    const etl = new DeputiesETL();
+    const etl = new DeputiesPipeline(createTestDb());
     (etl as any).streamWriter.filePath = outputFile;
 
     await etl.execute();

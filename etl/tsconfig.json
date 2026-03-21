@@ -7,7 +7,6 @@
       "DOM"
     ],
     "outDir": "./dist",
-    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -29,7 +28,9 @@
   "include": [
     "*.ts",
     "core/**/*.ts",
+    "db/**/*.ts",
     "pipelines/**/*.ts",
+    "repositories/**/*.ts",
     "tests/**/*.ts"
   ],
   "exclude": [
