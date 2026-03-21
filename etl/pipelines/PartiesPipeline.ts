@@ -1,22 +1,21 @@
 import { PaginationEngine } from '../core/PaginationEngine';
-import { PoliticianRepository } from '../repositories/PoliticianRepository';
+import { PartyRepository } from '../repositories/PartyRepository';
 import type Database from 'better-sqlite3';
 
-interface PoliticianData {
+interface PartyData {
   id: number;
+  sigla: string;
   nome: string;
-  siglaPartido: string;
-  siglaUf: string;
-  urlFoto: string;
+  uri: string;
 }
 
 interface ApiResponse {
-  dados: PoliticianData[];
+  dados: PartyData[];
 }
 
-export class DeputiesPipeline extends PaginationEngine<PoliticianData> {
-  private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
-  private readonly repo: PoliticianRepository;
+export class PartiesPipeline extends PaginationEngine<PartyData> {
+  private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/partidos';
+  private readonly repo: PartyRepository;
 
   private normalizeId(id: string): string {
     return id
@@ -33,19 +32,19 @@ export class DeputiesPipeline extends PaginationEngine<PoliticianData> {
       retryWaitMin: 250,
       retryWaitMax: 2000,
     });
-    this.repo = new PoliticianRepository(db);
+    this.repo = new PartyRepository(db);
   }
 
   async buildUrl(page: number, pageSize: number): Promise<string> {
     const url = new URL(this.apiEndpoint);
     url.searchParams.set('ordem', 'ASC');
-    url.searchParams.set('ordenarPor', 'nome');
+    url.searchParams.set('ordenarPor', 'sigla');
     url.searchParams.set('pagina', String(page));
     url.searchParams.set('itens', String(pageSize));
     return url.toString();
   }
 
-  async decodePage(data: unknown): Promise<PoliticianData[]> {
+  async decodePage(data: unknown): Promise<PartyData[]> {
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response data');
     }
@@ -72,15 +71,12 @@ export class DeputiesPipeline extends PaginationEngine<PoliticianData> {
     return totalCount;
   }
 
-  protected async onPageFetched(items: PoliticianData[]): Promise<void> {
+  protected async onPageFetched(items: PartyData[]): Promise<void> {
     this.repo.insertBatch(
       items.map(d => ({
-        id: String(d.id),
+        id: this.normalizeId(d.sigla),
         name: d.nome,
-        uf: d.siglaUf,
-        partyId: this.normalizeId(d.siglaPartido),
-        role: 'DEPUTY',
-        photoUrl: d.urlFoto || null,
+        acronym: d.sigla,
       }))
     );
   }

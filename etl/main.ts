@@ -1,5 +1,6 @@
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
+import { PartiesPipeline } from './pipelines/PartiesPipeline';
 import { DeputiesPipeline } from './pipelines/DeputiesPipeline';
 import { createSeedDb } from './db/seedDb';
 import { copyToAssets } from './db/copyToAssets';
@@ -15,8 +16,11 @@ async function main(): Promise<void> {
   const db = createSeedDb(DB_PATH);
 
   try {
-    const etl = new DeputiesPipeline(db);
-    await etl.execute();
+    const partiesPipeline = new PartiesPipeline(db);
+    await partiesPipeline.execute();
+    
+    const deputiesPipeline = new DeputiesPipeline(db);
+    await deputiesPipeline.execute();
     
     console.log('ETL completed successfully');
     
