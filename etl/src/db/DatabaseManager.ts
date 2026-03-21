@@ -1,7 +1,7 @@
 import { join, basename } from 'path';
 import { existsSync, unlinkSync, copyFileSync, mkdirSync } from 'fs';
 import Database from 'better-sqlite3';
-import { migrations } from '../../app/src/shared/db/migrations';
+import { migrations } from '../../../app/src/shared/db/migrations';
 
 const DB_FILE_NAME = 'seed.db';
 

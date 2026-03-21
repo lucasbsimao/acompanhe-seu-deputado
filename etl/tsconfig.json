@@ -26,11 +26,7 @@
     ]
   },
   "include": [
-    "*.ts",
-    "core/**/*.ts",
-    "db/**/*.ts",
-    "pipelines/**/*.ts",
-    "repositories/**/*.ts",
+    "src/**/*.ts",
     "tests/**/*.ts"
   ],
   "exclude": [

@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import { PartiesPipeline } from '../pipelines/PartiesPipeline';
+import { PartiesPipeline } from '../src/pipelines/PartiesPipeline';
 import { useTestDatabase } from './db/setup';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';

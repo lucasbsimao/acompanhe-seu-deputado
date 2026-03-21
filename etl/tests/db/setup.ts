@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { before, after, beforeEach } from 'node:test';
-import { DatabaseManager } from '../../db/DatabaseManager';
+import { DatabaseManager } from '../../src/db/DatabaseManager';
 
 export interface TestDatabase {
   db: Database.Database;

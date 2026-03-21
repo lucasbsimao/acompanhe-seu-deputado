@@ -2,12 +2,12 @@
   "name": "api-data-retrieval",
   "version": "1.0.0",
   "description": "TypeScript-based ETL for retrieving Brazilian Congress deputy data",
-  "main": "dist/etl/main.js",
+  "main": "dist/src/main.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/etl/main.js",
-    "dev": "ts-node main.ts",
-    "test": "npm run build && node --test dist/etl/tests/**/*.test.js"
+    "start": "npm run build && node dist/src/main.js",
+    "dev": "ts-node src/main.ts",
+    "test": "npm run build && node --test dist/tests/**/*.test.js"
   },
   "dependencies": {
     "axios": "^1.7.7",

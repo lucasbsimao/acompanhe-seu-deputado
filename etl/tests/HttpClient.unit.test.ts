@@ -1,7 +1,7 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import { HttpClient } from '../core/HttpClient';
+import { HttpClient } from '../src/core/HttpClient';
 
 const TEST_BASE_URL = 'https://api.example.com';
 
