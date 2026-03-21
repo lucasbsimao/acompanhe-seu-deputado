@@ -1,35 +1,30 @@
-import { join } from 'path';
-import { existsSync, unlinkSync } from 'fs';
-import { PartiesPipeline } from './pipelines/PartiesPipeline';
-import { DeputiesPipeline } from './pipelines/DeputiesPipeline';
-import { createSeedDb } from './db/seedDb';
-import { copyToAssets } from './db/copyToAssets';
-
-const DB_FILE_NAME = 'seed.db';
-const DB_PATH = join(process.cwd(), DB_FILE_NAME);
+import { PipelineOrchestrator } from './core/PipelineOrchestrator';
+import { DatabaseManager } from './db/DatabaseManager';
+import { CliRunner } from './cli/CliRunner';
 
 async function main(): Promise<void> {
-  if (existsSync(DB_PATH)) {
-    unlinkSync(DB_PATH);
-  }
-
-  const db = createSeedDb(DB_PATH);
-
+  const cli = new CliRunner();
+  const dbManager = new DatabaseManager();
   try {
-    const partiesPipeline = new PartiesPipeline(db);
-    await partiesPipeline.execute();
-    
-    const deputiesPipeline = new DeputiesPipeline(db);
-    await deputiesPipeline.execute();
-    
-    console.log('ETL completed successfully');
-    
-    copyToAssets(DB_PATH);
-  }
-  catch (error) {
+    const options = cli.parseArguments(process.argv.slice(2));
+    const db = dbManager.initialize(options.forceDownload);
+
+    const orchestrator = new PipelineOrchestrator(db);
+
+    const pipelines = await orchestrator.discoverPipelines();
+    const selection = await cli.selectPipeline(pipelines);
+  
+    if (selection.executeAll) {
+      await orchestrator.executeAll(pipelines, options.forceDownload);
+    } else if (selection.selectedPipeline) {
+      await orchestrator.executeSelected(pipelines, selection.selectedPipeline, options.forceDownload);
+    }
+
+    dbManager.deploy();
+  } catch (error) {
     console.error('Error during ETL:', error);
   } finally {
-    db.close();
+    dbManager.close();
   }
 }
 

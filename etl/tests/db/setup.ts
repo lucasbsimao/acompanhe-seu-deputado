@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { before, after, beforeEach } from 'node:test';
-import { createSeedDb } from '../../db/seedDb';
+import { DatabaseManager } from '../../db/DatabaseManager';
 
 export interface TestDatabase {
   db: Database.Database;
@@ -34,7 +34,8 @@ export function useTestDatabase() {
 }
 
 export function createTestDatabase(): TestDatabase {
-  const db = createSeedDb(':memory:');
+  const dbManager = new DatabaseManager(":memory:");
+  const db = dbManager.initialize();
   db.pragma('busy_timeout = 5000');
 
   return {

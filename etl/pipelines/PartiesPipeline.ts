@@ -1,4 +1,4 @@
-import { PaginationEngine } from '../core/PaginationEngine';
+import { BasePipeline } from '../core/BasePipeline';
 import { PartyRepository } from '../repositories/PartyRepository';
 import type Database from 'better-sqlite3';
 
@@ -13,7 +13,7 @@ interface ApiResponse {
   dados: PartyData[];
 }
 
-export class PartiesPipeline extends PaginationEngine<PartyData> {
+export class PartiesPipeline extends BasePipeline<PartyData> {
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/partidos';
   private readonly repo: PartyRepository;
 
@@ -69,6 +69,10 @@ export class PartiesPipeline extends PaginationEngine<PartyData> {
     }
 
     return totalCount;
+  }
+
+  async shouldDownload(): Promise<boolean> {
+    return this.repo.count() === 0;
   }
 
   protected async onPageFetched(items: PartyData[]): Promise<void> {

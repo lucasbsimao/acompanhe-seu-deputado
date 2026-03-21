@@ -13,6 +13,7 @@ export class PoliticianRepository {
   private readonly insertParty: Database.Statement;
   private readonly insertPolitician: Database.Statement;
   private readonly insertAll: (rows: PoliticianRow[]) => void;
+  private readonly countByRoleQuery: Database.Statement;
 
   constructor(db: Database.Database) {
     this.insertParty = db.prepare(
@@ -21,6 +22,7 @@ export class PoliticianRepository {
     this.insertPolitician = db.prepare(
       'INSERT OR REPLACE INTO politicians (id, name, uf, party_id, role, photo_url) VALUES (?, ?, ?, ?, ?, ?)'
     );
+    this.countByRoleQuery = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ?');
     this.insertAll = db.transaction((rows: PoliticianRow[]) => {
       for (const r of rows) {
         this.insertParty.run(r.partyId, r.partyId, r.partyId);
@@ -31,5 +33,10 @@ export class PoliticianRepository {
 
   insertBatch(rows: PoliticianRow[]): void {
     this.insertAll(rows);
+  }
+
+  countByRole(role: string): number {
+    const result = this.countByRoleQuery.get(role) as { count: number };
+    return result.count;
   }
 }

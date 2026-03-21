@@ -1,4 +1,4 @@
-import { PaginationEngine } from '../core/PaginationEngine';
+import { BasePipeline } from '../core/BasePipeline';
 import { PoliticianRepository } from '../repositories/PoliticianRepository';
 import type Database from 'better-sqlite3';
 
@@ -14,7 +14,7 @@ interface ApiResponse {
   dados: PoliticianData[];
 }
 
-export class DeputiesPipeline extends PaginationEngine<PoliticianData> {
+export class DeputiesPipeline extends BasePipeline<PoliticianData> {
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
   private readonly repo: PoliticianRepository;
 
@@ -70,6 +70,10 @@ export class DeputiesPipeline extends PaginationEngine<PoliticianData> {
     }
 
     return totalCount;
+  }
+
+  async shouldDownload(): Promise<boolean> {
+    return this.repo.countByRole('DEPUTY') === 0;
   }
 
   protected async onPageFetched(items: PoliticianData[]): Promise<void> {

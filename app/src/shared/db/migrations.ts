@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS users_parties_followed (
   },
   {
     version: '002_fill_ufs',
-    sql: `INSERT INTO ufs (uf, name) VALUES
+    sql: `INSERT OR IGNORE INTO ufs (uf, name) VALUES
   ('AC', 'Acre'),
   ('AL', 'Alagoas'),
   ('AP', 'Amapá'),
