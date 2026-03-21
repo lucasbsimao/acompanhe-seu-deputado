@@ -6,8 +6,13 @@ declare module 'react-native-sqlite-storage' {
     };
   };
 
+  export type SQLiteTransaction = {
+    executeSql(sql: string, params?: any[]): void;
+  };
+
   export type SQLiteDatabase = {
     executeSql(sql: string, params?: any[]): Promise<[ResultSet]>;
+    transaction(fn: (tx: SQLiteTransaction) => void): Promise<void>;
   };
 
   export type SQLiteOpenDatabaseParams = {
