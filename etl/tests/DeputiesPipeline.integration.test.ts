@@ -1,13 +1,8 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import Database from 'better-sqlite3';
 import { DeputiesPipeline } from '../pipelines/DeputiesPipeline';
-import { createSeedDb } from '../db/seedDb';
-
-function createTestDb(): Database.Database {
-  return createSeedDb(':memory:');
-}
+import { useTestDatabase } from './db/setup';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 
@@ -22,6 +17,8 @@ function createMockDeputy(id: number): any {
 }
 
 describe('DeputiesETL Integration Tests', () => {
+  const { getDb } = useTestDatabase();
+
   beforeEach(() => {
     nock.cleanAll();
   });
@@ -43,7 +40,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '10' });
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new DeputiesPipeline(db);
 
     await etl.execute();
@@ -91,7 +88,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: page3Deputies });
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new DeputiesPipeline(db);
 
     await etl.execute();
@@ -129,7 +126,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '5' });
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new DeputiesPipeline(db);
 
     await etl.execute();
@@ -165,7 +162,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '5' });
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new DeputiesPipeline(db);
 
     await etl.execute();
@@ -190,7 +187,7 @@ describe('DeputiesETL Integration Tests', () => {
       .times(4)
       .reply(500, 'Internal Server Error');
 
-    const etl = new DeputiesPipeline(createTestDb());
+    const etl = new DeputiesPipeline(getDb().db);
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -215,7 +212,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: [] });
 
-    const etl = new DeputiesPipeline(createTestDb());
+    const etl = new DeputiesPipeline(getDb().db);
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -241,7 +238,7 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { invalid: 'format' }, { 'x-total-count': '10' });
 
-    const etl = new DeputiesPipeline(createTestDb());
+    const etl = new DeputiesPipeline(getDb().db);
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -281,7 +278,7 @@ describe('DeputiesETL Integration Tests', () => {
         });
     }
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new DeputiesPipeline(db);
 
     await etl.execute();

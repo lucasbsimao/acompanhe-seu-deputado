@@ -1,13 +1,8 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import Database from 'better-sqlite3';
 import { PartiesPipeline } from '../pipelines/PartiesPipeline';
-import { createSeedDb } from '../db/seedDb';
-
-function createTestDb(): Database.Database {
-  return createSeedDb(':memory:');
-}
+import { useTestDatabase } from './db/setup';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 
@@ -21,6 +16,8 @@ function createMockParty(id: number): any {
 }
 
 describe('PartiesETL Integration Tests', () => {
+  const { getDb } = useTestDatabase();
+
   beforeEach(() => {
     nock.cleanAll();
   });
@@ -42,7 +39,7 @@ describe('PartiesETL Integration Tests', () => {
       })
       .reply(200, { dados: parties }, { 'x-total-count': '10' });
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new PartiesPipeline(db);
 
     await etl.execute();
@@ -90,7 +87,7 @@ describe('PartiesETL Integration Tests', () => {
       })
       .reply(200, { dados: page3Parties });
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new PartiesPipeline(db);
 
     await etl.execute();
@@ -130,7 +127,7 @@ describe('PartiesETL Integration Tests', () => {
       })
       .reply(200, { dados: parties }, { 'x-total-count': '2' });
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new PartiesPipeline(db);
 
     await etl.execute();
@@ -169,7 +166,7 @@ describe('PartiesETL Integration Tests', () => {
       })
       .reply(200, { dados: parties }, { 'x-total-count': '5' });
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new PartiesPipeline(db);
 
     await etl.execute();
@@ -205,7 +202,7 @@ describe('PartiesETL Integration Tests', () => {
       })
       .reply(200, { dados: parties }, { 'x-total-count': '5' });
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new PartiesPipeline(db);
 
     await etl.execute();
@@ -230,7 +227,7 @@ describe('PartiesETL Integration Tests', () => {
       .times(4)
       .reply(500, 'Internal Server Error');
 
-    const etl = new PartiesPipeline(createTestDb());
+    const etl = new PartiesPipeline(getDb().db);
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -255,7 +252,7 @@ describe('PartiesETL Integration Tests', () => {
       })
       .reply(200, { dados: [] });
 
-    const etl = new PartiesPipeline(createTestDb());
+    const etl = new PartiesPipeline(getDb().db);
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -281,7 +278,7 @@ describe('PartiesETL Integration Tests', () => {
       })
       .reply(200, { invalid: 'format' }, { 'x-total-count': '10' });
 
-    const etl = new PartiesPipeline(createTestDb());
+    const etl = new PartiesPipeline(getDb().db);
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -321,7 +318,7 @@ describe('PartiesETL Integration Tests', () => {
         });
     }
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new PartiesPipeline(db);
 
     await etl.execute();
@@ -352,7 +349,7 @@ describe('PartiesETL Integration Tests', () => {
       })
       .reply(200, { dados: parties }, { 'x-total-count': '1' });
 
-    const db = createTestDb();
+    const db = getDb().db;
     const etl = new PartiesPipeline(db);
 
     await etl.execute();
