@@ -6,5 +6,8 @@
     "retryWaitMin": 250,
     "retryWaitMax": 2000,
     "timeoutMs": 30000
+  },
+  "expenses": {
+    "yearsToFetch": 4
   }
 }

@@ -3,6 +3,7 @@ import { ExpensesRepository } from '../repositories/ExpensesRepository';
 import type Database from 'better-sqlite3';
 import { normalizeNumericText } from '../util/normalization.util';
 import { convertToCents } from '../util/convertion.util';
+import defaultConfig from '../config/defaults.json';
 
 interface ExpenseData {
   ano: number;
@@ -49,7 +50,7 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
   async buildUrl(page: number, pageSize: number): Promise<string> {
     const url = new URL(`${this.apiEndpoint}/${this.currentDeputyId}/despesas`);
     const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 4 }, (_, i) => currentYear - i).join(',');
+    const years = Array.from({ length: defaultConfig.expenses.yearsToFetch }, (_, i) => currentYear - i).join(',');
     
     url.searchParams.set('ordem', 'ASC');
     url.searchParams.set('ano', years);
@@ -114,16 +115,19 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
       .prepare("SELECT id FROM politicians WHERE role = 'DEPUTY'")
       .all()
       .map((row: any) => row.id);
-    console.log(`Found ${allDeputyIds.length} deputies to process`);
+    const total = allDeputyIds.length;
 
     for (let deputyIndex = 0; deputyIndex < allDeputyIds.length; deputyIndex++) {
       this.currentDeputyId = allDeputyIds[deputyIndex];
-      
-      console.log(`\nProcessing deputy ${deputyIndex + 1}/${allDeputyIds.length}: ${this.currentDeputyId}`);
+
+      process.stdout.write('\x1B[2J\x1B[H');
+      process.stdout.write(`Found ${total} deputies to process\n`);
+      process.stdout.write(`Processing deputy ${deputyIndex + 1}/${total}: ${this.currentDeputyId}\n`);
 
       await super.execute(forceDownload);
     }
 
-    console.log('\nAll deputies processed successfully');
+    process.stdout.write('\x1B[2J\x1B[H');
+    console.log(`All ${total} deputies processed successfully`);
   }
 }
