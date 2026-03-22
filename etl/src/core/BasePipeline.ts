@@ -1,4 +1,5 @@
 import { HttpClient } from './HttpClient';
+import defaultConfig from '../config/defaults.json';
 
 export interface RetryConfig {
   maxRetries: number;
@@ -41,12 +42,7 @@ export abstract class BasePipeline<T> {
   abstract decodePage(data: unknown): Promise<T[]>;
   abstract extractTotalCount(headers: Record<string, string>): Promise<number>;
   abstract shouldDownload(): Promise<boolean>;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected async onPageFetched(_items: T[]): Promise<void> {}
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async promptForOptions(_isAutomated: boolean): Promise<void> {}
+  abstract onPageFetched(_items: T[]): Promise<void>;
 
   async execute(forceDownload = false): Promise<void> {
     if (!forceDownload && !(await this.shouldDownload())) {
@@ -104,12 +100,12 @@ export abstract class BasePipeline<T> {
 
   private normalizeConfig(cfg: PaginationConfig): Required<PaginationConfig> {
     return {
-      pageSize: cfg.pageSize && cfg.pageSize > 0 ? cfg.pageSize : 100,
-      parallelism: cfg.parallelism && cfg.parallelism > 0 ? cfg.parallelism : 4,
-      maxRetries: cfg.maxRetries !== undefined && cfg.maxRetries >= 0 ? cfg.maxRetries : 3,
-      retryWaitMin: cfg.retryWaitMin && cfg.retryWaitMin > 0 ? cfg.retryWaitMin : 250,
-      retryWaitMax: cfg.retryWaitMax && cfg.retryWaitMax > 0 ? cfg.retryWaitMax : 2000,
-      timeoutMs: cfg.timeoutMs && cfg.timeoutMs > 0 ? cfg.timeoutMs : 15000,
+      pageSize: cfg.pageSize && cfg.pageSize > 0 ? cfg.pageSize : defaultConfig.pagination.pageSize,
+      parallelism: cfg.parallelism && cfg.parallelism > 0 ? cfg.parallelism : defaultConfig.pagination.parallelism,
+      maxRetries: cfg.maxRetries !== undefined && cfg.maxRetries >= 0 ? cfg.maxRetries : defaultConfig.pagination.maxRetries,
+      retryWaitMin: cfg.retryWaitMin && cfg.retryWaitMin > 0 ? cfg.retryWaitMin : defaultConfig.pagination.retryWaitMin,
+      retryWaitMax: cfg.retryWaitMax && cfg.retryWaitMax > 0 ? cfg.retryWaitMax : defaultConfig.pagination.retryWaitMax,
+      timeoutMs: cfg.timeoutMs && cfg.timeoutMs > 0 ? cfg.timeoutMs : defaultConfig.pagination.timeoutMs,
     };
   }
 }

@@ -1,1 +1,4 @@
 dist
+
+seed.db-wal
+seed.db-shm

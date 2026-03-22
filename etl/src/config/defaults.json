@@ -1,0 +1,10 @@
+{
+  "pagination": {
+    "pageSize": 100,
+    "parallelism": 4,
+    "maxRetries": 3,
+    "retryWaitMin": 250,
+    "retryWaitMax": 2000,
+    "timeoutMs": 30000
+  }
+}

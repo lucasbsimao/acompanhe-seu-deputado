@@ -6,17 +6,16 @@ import { join } from 'path';
 export class PipelineOrchestrator {
   constructor(private readonly db: Database.Database) {}
 
-  async executeOne(pipelineClassName: string, forceDownload: boolean, isAutomated = false): Promise<void> {
+  async executeOne(pipelineClassName: string, forceDownload: boolean): Promise<void> {
     const PipelineClass = await this.loadPipelineClass(pipelineClassName);
     const pipeline = new PipelineClass(this.db);
-    await pipeline.promptForOptions(isAutomated);
     await pipeline.execute(forceDownload);
   }
 
   async executeAll(pipelines: PipelineInfo[], forceDownload: boolean): Promise<void> {
     for (const pipeline of pipelines) {
       console.log(`Executing ${pipeline.displayName}...`);
-      await this.executeOne(pipeline.className, forceDownload, true);
+      await this.executeOne(pipeline.className, forceDownload);
     }
     console.log('All pipelines completed successfully');
   }
@@ -32,7 +31,7 @@ export class PipelineOrchestrator {
     }
 
     console.log(`Executing ${selectedPipeline.displayName}...`);
-    await this.executeOne(selectedPipeline.className, forceDownload, false);
+    await this.executeOne(selectedPipeline.className, forceDownload);
     console.log(`${selectedPipeline.displayName} completed successfully`);
   }
 

@@ -8,7 +8,7 @@ export const migration003: Migration = {
   tipo_despesa TEXT NOT NULL,
   cod_documento TEXT NOT NULL,
   cod_tipo_documento INTEGER NOT NULL,
-  data_documento INTEGER NOT NULL,
+  data_documento TEXT NOT NULL,
   num_documento TEXT NOT NULL,
   url_documento TEXT,
   nome_fornecedor TEXT NOT NULL,

@@ -1,9 +1,8 @@
 import { BasePipeline } from '../core/BasePipeline';
 import { ExpensesRepository } from '../repositories/ExpensesRepository';
 import type Database from 'better-sqlite3';
-import prompts from 'prompts';
 import { normalizeNumericText } from '../util/normalization.util';
-import { dateToTimestamp, convertToCents } from '../util/convertion.util';
+import { convertToCents } from '../util/convertion.util';
 
 interface ExpenseData {
   ano: number;
@@ -33,12 +32,9 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
   private readonly repo: ExpensesRepository;
   private readonly db: Database.Database;
-  private readonly targetDeputyId?: string;
   private currentDeputyId: string = '';
-  private allDeputyIds: string[] = [];
-  private deputyIndex: number = 0;
 
-  constructor(db: Database.Database, deputyId?: string) {
+  constructor(db: Database.Database) {
     super({
       pageSize: 100,
       parallelism: 5,
@@ -48,12 +44,15 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
     });
     this.repo = new ExpensesRepository(db);
     this.db = db;
-    this.targetDeputyId = deputyId;
   }
 
   async buildUrl(page: number, pageSize: number): Promise<string> {
     const url = new URL(`${this.apiEndpoint}/${this.currentDeputyId}/despesas`);
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 4 }, (_, i) => currentYear - i).join(',');
+    
     url.searchParams.set('ordem', 'ASC');
+    url.searchParams.set('ano', years);
     url.searchParams.set('ordenarPor', 'ano');
     url.searchParams.set('pagina', String(page));
     url.searchParams.set('itens', String(pageSize));
@@ -91,44 +90,7 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
     return !this.repo.hasExpensesForDeputy(this.currentDeputyId);
   }
 
-  async promptForOptions(isAutomated: boolean): Promise<void> {
-    if (isAutomated) {
-      return;
-    }
-
-    const response = await prompts({
-      type: 'select',
-      name: 'mode',
-      message: 'Download expenses for:',
-      choices: [
-        { title: 'All deputies', value: 'all' },
-        { title: 'Specific deputy ID', value: 'specific' },
-      ],
-    });
-
-    if (!response.mode) {
-      console.log('No option selected');
-      process.exit(0);
-    }
-
-    if (response.mode === 'specific') {
-      const deputyResponse = await prompts({
-        type: 'text',
-        name: 'deputyId',
-        message: 'Enter deputy ID:',
-        validate: (value) => (value.trim() ? true : 'Deputy ID is required'),
-      });
-
-      if (!deputyResponse.deputyId) {
-        console.log('No deputy ID provided');
-        process.exit(0);
-      }
-
-      (this as any).targetDeputyId = deputyResponse.deputyId.trim();
-    }
-  }
-
-  protected async onPageFetched(items: ExpenseData[]): Promise<void> {
+  async onPageFetched(items: ExpenseData[]): Promise<void> {
     this.repo.insertBatch(
       items.map(e => ({
         id: `${this.currentDeputyId}_${e.codDocumento}`,
@@ -136,7 +98,7 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
         tipoDespesa: normalizeNumericText(e.tipoDespesa),
         codDocumento: e.codDocumento,
         codTipoDocumento: e.codTipoDocumento,
-        dataDocumento: dateToTimestamp(e.dataDocumento),
+        dataDocumento: e.dataDocumento,
         numDocumento: e.numDocumento,
         urlDocumento: e.urlDocumento || null,
         nomeFornecedor: e.nomeFornecedor,
@@ -148,31 +110,20 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
   }
 
   async execute(forceDownload = false): Promise<void> {
-    if (this.targetDeputyId) {
-      this.allDeputyIds = [this.targetDeputyId];
-      console.log(`Processing single deputy: ${this.targetDeputyId}`);
-    } else {
-      this.allDeputyIds = this.db
-        .prepare("SELECT id FROM politicians WHERE role = 'DEPUTY'")
-        .all()
-        .map((row: any) => row.id);
-      console.log(`Found ${this.allDeputyIds.length} deputies to process`);
-    }
+    const allDeputyIds = this.db
+      .prepare("SELECT id FROM politicians WHERE role = 'DEPUTY'")
+      .all()
+      .map((row: any) => row.id);
+    console.log(`Found ${allDeputyIds.length} deputies to process`);
 
-    for (this.deputyIndex = 0; this.deputyIndex < this.allDeputyIds.length; this.deputyIndex++) {
-      this.currentDeputyId = this.allDeputyIds[this.deputyIndex];
+    for (let deputyIndex = 0; deputyIndex < allDeputyIds.length; deputyIndex++) {
+      this.currentDeputyId = allDeputyIds[deputyIndex];
       
-      if (!this.targetDeputyId) {
-        console.log(`\nProcessing deputy ${this.deputyIndex + 1}/${this.allDeputyIds.length}: ${this.currentDeputyId}`);
-      }
+      console.log(`\nProcessing deputy ${deputyIndex + 1}/${allDeputyIds.length}: ${this.currentDeputyId}`);
 
       await super.execute(forceDownload);
     }
 
-    if (this.targetDeputyId) {
-      console.log(`\nDeputy ${this.targetDeputyId} processed successfully`);
-    } else {
-      console.log('\nAll deputies processed successfully');
-    }
+    console.log('\nAll deputies processed successfully');
   }
 }

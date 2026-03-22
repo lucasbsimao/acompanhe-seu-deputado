@@ -69,7 +69,7 @@ export class PartiesPipeline extends BasePipeline<PartyData> {
     return this.repo.count() === 0;
   }
 
-  protected async onPageFetched(items: PartyData[]): Promise<void> {
+  async onPageFetched(items: PartyData[]): Promise<void> {
     this.repo.insertBatch(
       items.map(d => ({
         id: normalizeId(d.sigla),

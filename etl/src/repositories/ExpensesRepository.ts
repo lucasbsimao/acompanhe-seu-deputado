@@ -6,7 +6,7 @@ export interface ExpenseRow {
   tipoDespesa: string;
   codDocumento: string;
   codTipoDocumento: number;
-  dataDocumento: number;
+  dataDocumento: string;
   numDocumento: string;
   urlDocumento: string | null;
   nomeFornecedor: string;

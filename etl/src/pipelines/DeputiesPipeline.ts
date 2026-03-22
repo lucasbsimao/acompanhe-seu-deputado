@@ -70,7 +70,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
     return this.repo.countByRole('DEPUTY') === 0;
   }
 
-  protected async onPageFetched(items: PoliticianData[]): Promise<void> {
+  async onPageFetched(items: PoliticianData[]): Promise<void> {
     this.repo.insertBatch(
       items.map(d => ({
         id: String(d.id),
