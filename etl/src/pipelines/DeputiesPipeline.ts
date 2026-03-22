@@ -1,6 +1,7 @@
 import { BasePipeline } from '../core/BasePipeline';
 import { PoliticianRepository } from '../repositories/PoliticianRepository';
 import type Database from 'better-sqlite3';
+import { normalizeId } from '../util/normalization.util';
 
 interface PoliticianData {
   id: number;
@@ -17,13 +18,6 @@ interface ApiResponse {
 export class DeputiesPipeline extends BasePipeline<PoliticianData> {
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
   private readonly repo: PoliticianRepository;
-
-  private normalizeId(id: string): string {
-    return id
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-  }
 
   constructor(db: Database.Database) {
     super({
@@ -82,7 +76,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
         id: String(d.id),
         name: d.nome,
         uf: d.siglaUf,
-        partyId: this.normalizeId(d.siglaPartido),
+        partyId: normalizeId(d.siglaPartido),
         role: 'DEPUTY',
         photoUrl: d.urlFoto || null,
       }))

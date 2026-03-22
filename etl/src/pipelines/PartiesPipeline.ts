@@ -1,6 +1,7 @@
 import { BasePipeline } from '../core/BasePipeline';
 import { PartyRepository } from '../repositories/PartyRepository';
 import type Database from 'better-sqlite3';
+import { normalizeId } from '../util/normalization.util';
 
 interface PartyData {
   id: number;
@@ -16,13 +17,6 @@ interface ApiResponse {
 export class PartiesPipeline extends BasePipeline<PartyData> {
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/partidos';
   private readonly repo: PartyRepository;
-
-  private normalizeId(id: string): string {
-    return id
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-  }
 
   constructor(db: Database.Database) {
     super({
@@ -78,7 +72,7 @@ export class PartiesPipeline extends BasePipeline<PartyData> {
   protected async onPageFetched(items: PartyData[]): Promise<void> {
     this.repo.insertBatch(
       items.map(d => ({
-        id: this.normalizeId(d.sigla),
+        id: normalizeId(d.sigla),
         name: d.nome,
         acronym: d.sigla,
       }))

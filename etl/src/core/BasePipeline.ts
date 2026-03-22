@@ -45,6 +45,9 @@ export abstract class BasePipeline<T> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected async onPageFetched(_items: T[]): Promise<void> {}
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async promptForOptions(_isAutomated: boolean): Promise<void> {}
+
   async execute(forceDownload = false): Promise<void> {
     if (!forceDownload && !(await this.shouldDownload())) {
       console.log('Data already exists, skipping download. Use --force-download to override.');

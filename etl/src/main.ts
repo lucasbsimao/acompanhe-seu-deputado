@@ -2,9 +2,24 @@ import { PipelineOrchestrator } from './core/PipelineOrchestrator';
 import { DatabaseManager } from './db/DatabaseManager';
 import { CliRunner } from './cli/CliRunner';
 
+const dbManager = new DatabaseManager();
+
+function setupSignalHandlers(): void {
+  const cleanup = (signal: string) => {
+    console.log(`\n${signal} received. Closing database connection...`);
+    dbManager.close();
+    console.log('Database closed successfully');
+    process.exit(0);
+  };
+
+  process.on('SIGINT', () => cleanup('SIGINT'));
+  process.on('SIGTERM', () => cleanup('SIGTERM'));
+}
+
 async function main(): Promise<void> {
+  setupSignalHandlers();
+  
   const cli = new CliRunner();
-  const dbManager = new DatabaseManager();
   try {
     const options = cli.parseArguments(process.argv.slice(2));
     const db = dbManager.initialize(options.forceDownload);
@@ -30,5 +45,6 @@ async function main(): Promise<void> {
 
 main().catch((error) => {
   console.error('Unhandled error:', error);
+  dbManager.close();
   process.exit(1);
 });
