@@ -1,4 +1,5 @@
 dist
 
 seed.db-wal
-seed.db-shmseed.db
+seed.db-shm
+seed.db
