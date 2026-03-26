@@ -16,13 +16,20 @@ export class DatabaseManager {
   private readonly dbPath: string;
 
   constructor(workingDirectory: string = process.cwd()) {
-    this.dbPath = join(workingDirectory, DB_FILE_NAME);
+    this.dbPath = workingDirectory === ':memory:' ? ':memory:' : join(workingDirectory, DB_FILE_NAME);
   }
 
   initialize(cleanStart = false): Database.Database {
     if (cleanStart) {
       this.cleanup();
     }
+    
+    // Create directory if it doesn't exist (skip for :memory: databases)
+    if (this.dbPath !== ':memory:') {
+      const dir = join(this.dbPath, '..');
+      mkdirSync(dir, { recursive: true });
+    }
+    
     this.db = new Database(this.dbPath);
     this.db.pragma('foreign_keys = ON');
     this.db.pragma('journal_mode = WAL');

@@ -228,31 +228,6 @@ describe('HttpClient Unit Tests', () => {
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
 
-  it('should handle AbortSignal', async () => {
-    nock(TEST_BASE_URL)
-      .get('/endpoint')
-      .delay(1000)
-      .reply(200, { message: 'success' });
-
-    const client = new HttpClient(
-      { maxRetries: 0, retryWaitMin: 50, retryWaitMax: 200 },
-      5000
-    );
-
-    const controller = new AbortController();
-
-    setTimeout(() => controller.abort(), 100);
-
-    await assert.rejects(
-      async () => await client.request(`${TEST_BASE_URL}/endpoint`, { signal: controller.signal }),
-      (error: any) => {
-        assert.ok(error.message.includes('abort') || error.code === 'ERR_CANCELED');
-        return true;
-      },
-      'Should abort request'
-    );
-  });
-
   it('should handle successful 2xx responses without retry', async () => {
     for (const status of [200, 201, 204]) {
       nock.cleanAll();

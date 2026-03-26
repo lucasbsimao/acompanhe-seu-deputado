@@ -16,7 +16,7 @@ export function useTestDatabase() {
   });
 
   after(() => {
-    if (testDb.db.open) {
+    if (testDb && testDb.db.open) {
       testDb.close();
     }
   });
@@ -43,6 +43,8 @@ export function createTestDatabase(): TestDatabase {
     close: () => db.close(),
     clearData: () => {
       if (db.open) {
+        db.exec('DELETE FROM expenses');
+        db.exec('DELETE FROM emendas_parlamentares');
         db.exec('DELETE FROM politicians');
         db.exec('DELETE FROM parties');
       }

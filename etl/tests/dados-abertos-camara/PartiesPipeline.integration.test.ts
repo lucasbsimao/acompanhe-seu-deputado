@@ -370,7 +370,7 @@ describe('PartiesETL Integration Tests', () => {
       .reply(200, { dados: [{ ...parties[0], nome: 'Updated Party Name' }] }, { 'x-total-count': '1' });
 
     const etl2 = new PartiesPipeline(db);
-    await etl2.execute();
+    await etl2.execute(true);
 
     result = db.prepare('SELECT * FROM parties WHERE id = ?').all('pt') as any[];
     assert.strictEqual(result.length, 1, 'Should still contain 1 party');

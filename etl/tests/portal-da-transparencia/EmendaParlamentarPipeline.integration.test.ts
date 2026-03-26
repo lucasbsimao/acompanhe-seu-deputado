@@ -43,18 +43,12 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
   it('should fetch and persist emendas from a single page', async () => {
     const emendas = [createMockEmenda('202400000001'), createMockEmenda('202400000002')];
 
+    // 2 emendas < pageSize (100), so pipeline stops after page 1 without fetching page 2
     nock(API_BASE_URL)
       .get('/api-de-dados/emendas')
       .query({ pagina: '1', tamanhoPagina: '100' })
       .matchHeader('chave-api-dados', FAKE_API_KEY)
       .reply(200, emendas);
-
-    // Second page is empty — signals end of data
-    nock(API_BASE_URL)
-      .get('/api-de-dados/emendas')
-      .query({ pagina: '2', tamanhoPagina: '100' })
-      .matchHeader('chave-api-dados', FAKE_API_KEY)
-      .reply(200, []);
 
     const pipeline = new EmendaParlamentarPipeline(getDb().db);
     await pipeline.execute();
@@ -123,17 +117,12 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     const newEmenda = createMockEmenda('NEW00000001');
 
+    // 1 emenda < pageSize (100), so pipeline stops after page 1
     nock(API_BASE_URL)
       .get('/api-de-dados/emendas')
       .query({ pagina: '1', tamanhoPagina: '100' })
       .matchHeader('chave-api-dados', FAKE_API_KEY)
       .reply(200, [newEmenda]);
-
-    nock(API_BASE_URL)
-      .get('/api-de-dados/emendas')
-      .query({ pagina: '2', tamanhoPagina: '100' })
-      .matchHeader('chave-api-dados', FAKE_API_KEY)
-      .reply(200, []);
 
     const pipeline = new EmendaParlamentarPipeline(getDb().db);
     await pipeline.execute(true); // forceDownload = true
@@ -154,15 +143,11 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
       .times(3)
       .reply(500, 'Internal Server Error');
 
+    // 1 emenda < pageSize (100), so pipeline stops after page 1 success
     nock(API_BASE_URL)
       .get('/api-de-dados/emendas')
       .query({ pagina: '1', tamanhoPagina: '100' })
       .reply(200, [emenda]);
-
-    nock(API_BASE_URL)
-      .get('/api-de-dados/emendas')
-      .query({ pagina: '2', tamanhoPagina: '100' })
-      .reply(200, []);
 
     const pipeline = new EmendaParlamentarPipeline(getDb().db);
     await pipeline.execute();
