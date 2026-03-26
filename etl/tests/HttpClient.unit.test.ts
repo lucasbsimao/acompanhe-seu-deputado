@@ -244,7 +244,7 @@ describe('HttpClient Unit Tests', () => {
     setTimeout(() => controller.abort(), 100);
 
     await assert.rejects(
-      async () => await client.request(`${TEST_BASE_URL}/endpoint`, controller.signal),
+      async () => await client.request(`${TEST_BASE_URL}/endpoint`, { signal: controller.signal }),
       (error: any) => {
         assert.ok(error.message.includes('abort') || error.code === 'ERR_CANCELED');
         return true;

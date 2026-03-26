@@ -1,8 +1,8 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import { DeputiesPipeline } from '../src/pipelines/DeputiesPipeline';
-import { useTestDatabase } from './db/setup';
+import { DeputiesPipeline } from '../../src/pipelines/dados-abertos-camara/DeputiesPipeline';
+import { useTestDatabase } from '../db/setup';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 
