@@ -1,5 +1,5 @@
-import { HttpClient } from './HttpClient';
-import defaultConfig from '../config/defaults.json';
+import { HttpClient } from '../../core/HttpClient';
+import defaultConfig from '../../config/defaults.json';
 
 export interface RetryConfig {
   maxRetries: number;

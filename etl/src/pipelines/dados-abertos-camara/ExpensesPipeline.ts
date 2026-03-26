@@ -1,9 +1,9 @@
-import { BasePipeline } from '../core/BasePipeline';
-import { ExpensesRepository } from '../repositories/ExpensesRepository';
+import { BasePipeline } from './BasePipeline';
+import { ExpensesRepository } from '../../repositories/ExpensesRepository';
 import type Database from 'better-sqlite3';
-import { normalizeNumericText } from '../util/normalization.util';
-import { convertToCents } from '../util/convertion.util';
-import defaultConfig from '../config/defaults.json';
+import { normalizeNumericText } from '../../util/normalization.util';
+import { convertToCents } from '../../util/convertion.util';
+import defaultConfig from '../../config/defaults.json';
 
 interface ExpenseData {
   ano: number;
@@ -51,7 +51,7 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
     const url = new URL(`${this.apiEndpoint}/${this.currentDeputyId}/despesas`);
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: defaultConfig.expenses.yearsToFetch }, (_, i) => currentYear - i).join(',');
-    
+
     url.searchParams.set('ordem', 'ASC');
     url.searchParams.set('ano', years);
     url.searchParams.set('ordenarPor', 'ano');
