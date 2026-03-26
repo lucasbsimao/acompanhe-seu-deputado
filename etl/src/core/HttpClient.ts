@@ -23,8 +23,13 @@ export class HttpClient {
     });
   }
 
-  async request(url: string, signal?: AbortSignal): Promise<{ data: unknown; headers: Record<string, string> }> {
-    const response = await this.client.get(url, { signal });
+  async request(
+    url: string,
+    options?: { headers?: Record<string, string> }
+  ): Promise<{ data: unknown; headers: Record<string, string> }> {
+    const response = await this.client.get(url, {
+      headers: options?.headers,
+    });
     return {
       data: response.data,
       headers: response.headers as Record<string, string>,
