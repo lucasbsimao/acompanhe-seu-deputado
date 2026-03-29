@@ -1,5 +1,6 @@
 import prompts from 'prompts';
 import { PipelineInfo } from '../types/Pipeline';
+import { UserCancelledError } from '../core/errors';
 
 
 export interface CliOptions {
@@ -40,6 +41,10 @@ export class CliRunner {
       name: 'pipeline',
       message: 'Select a pipeline to execute',
       choices,
+    }, {
+      onCancel: () => {
+        throw new UserCancelledError();
+      }
     });
 
     if (!response.pipeline) {

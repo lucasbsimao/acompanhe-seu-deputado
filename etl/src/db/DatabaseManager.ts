@@ -64,6 +64,11 @@ export class DatabaseManager {
 
   close(): void {
     if (this.db) {
+      try {
+        this.db.pragma('wal_checkpoint(TRUNCATE)');
+      } catch (error) {
+        console.error('Error during WAL checkpoint:', error);
+      }
       this.db.close();
       this.db = null;
     }
