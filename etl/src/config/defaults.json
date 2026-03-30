@@ -9,5 +9,12 @@
   },
   "expenses": {
     "yearsToFetch": 4
+  },
+  "amendments": {
+    "yearsToFetch": 4,
+    "types": [
+      "Emenda Individual - Transferências com Finalidade Definida",
+      "Emenda Individual - Transferências Especiais"
+    ]
   }
 }

@@ -56,7 +56,7 @@ export abstract class BasePipeline<T> {
 
       if (items.length === 0) break;
 
-      console.log(`Fetched page ${page}, records: ${items.length}`);
+      process.stdout.write('. ');
       await this.onPageFetched(items);
 
       page++;
