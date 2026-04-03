@@ -2,6 +2,7 @@ import { BasePipeline } from './BasePipeline';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
+import { PoliticianRole } from '../../types/PoliticianRole';
 
 interface PoliticianData {
   id: number;
@@ -67,7 +68,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
   }
 
   async shouldDownload(): Promise<boolean> {
-    return this.repo.countByRole('DEPUTY') === 0;
+    return this.repo.countByRole(PoliticianRole.DEPUTY) === 0;
   }
 
   async onPageFetched(items: PoliticianData[]): Promise<void> {
@@ -77,7 +78,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
         name: d.nome,
         uf: d.siglaUf,
         partyId: normalizeId(d.siglaPartido),
-        role: 'DEPUTY',
+        role: PoliticianRole.DEPUTY,
         photoUrl: d.urlFoto || null,
       }))
     );

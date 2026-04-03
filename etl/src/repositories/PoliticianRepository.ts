@@ -1,11 +1,12 @@
 import type Database from 'better-sqlite3';
+import { PoliticianRole } from '../types/PoliticianRole';
 
 export interface PoliticianRow {
   id: string;
   name: string;
   uf: string;
   partyId: string;
-  role: string;
+  role: PoliticianRole;
   photoUrl: string | null;
 }
 
