@@ -6,6 +6,8 @@ import { useTestDatabase } from '../db/setup';
 
 const API_BASE_URL = 'https://api.portaldatransparencia.gov.br';
 const FAKE_API_KEY = 'test-api-key-123';
+const TEST_YEAR = String(new Date().getFullYear());
+const TEST_TYPE = 'Emenda Individual - Transferências com Finalidade Definida';
 
 function createMockEmenda(codigo: string, ano = 2024): any {
   return {
@@ -46,9 +48,12 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
     // 2 emendas < pageSize (100), so pipeline stops after page 1 without fetching page 2
     nock(API_BASE_URL)
       .get('/api-de-dados/emendas')
-      .query({ pagina: '1', tamanhoPagina: '100' })
+      .query({ pagina: '1', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
       .matchHeader('chave-api-dados', FAKE_API_KEY)
       .reply(200, emendas);
+
+    // Absorb the remaining year×type combos the pipeline loops through
+    nock(API_BASE_URL).persist().get('/api-de-dados/emendas').query(true).reply(200, []);
 
     const pipeline = new EmendaParlamentarPipeline(getDb().db);
     await pipeline.execute();
@@ -73,15 +78,18 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     nock(API_BASE_URL)
       .get('/api-de-dados/emendas')
-      .query({ pagina: '1', tamanhoPagina: '100' })
+      .query({ pagina: '1', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
       .matchHeader('chave-api-dados', FAKE_API_KEY)
       .reply(200, page1);
 
     nock(API_BASE_URL)
       .get('/api-de-dados/emendas')
-      .query({ pagina: '2', tamanhoPagina: '100' })
+      .query({ pagina: '2', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
       .matchHeader('chave-api-dados', FAKE_API_KEY)
       .reply(200, page2);
+
+    // Absorb the remaining year×type combos
+    nock(API_BASE_URL).persist().get('/api-de-dados/emendas').query(true).reply(200, []);
 
     const pipeline = new EmendaParlamentarPipeline(getDb().db);
     await pipeline.execute();
@@ -120,9 +128,12 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
     // 1 emenda < pageSize (100), so pipeline stops after page 1
     nock(API_BASE_URL)
       .get('/api-de-dados/emendas')
-      .query({ pagina: '1', tamanhoPagina: '100' })
+      .query({ pagina: '1', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
       .matchHeader('chave-api-dados', FAKE_API_KEY)
       .reply(200, [newEmenda]);
+
+    // Absorb the remaining year×type combos
+    nock(API_BASE_URL).persist().get('/api-de-dados/emendas').query(true).reply(200, []);
 
     const pipeline = new EmendaParlamentarPipeline(getDb().db);
     await pipeline.execute(true); // forceDownload = true
@@ -139,15 +150,18 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     nock(API_BASE_URL)
       .get('/api-de-dados/emendas')
-      .query({ pagina: '1', tamanhoPagina: '100' })
+      .query({ pagina: '1', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
       .times(3)
       .reply(500, 'Internal Server Error');
 
     // 1 emenda < pageSize (100), so pipeline stops after page 1 success
     nock(API_BASE_URL)
       .get('/api-de-dados/emendas')
-      .query({ pagina: '1', tamanhoPagina: '100' })
+      .query({ pagina: '1', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
       .reply(200, [emenda]);
+
+    // Absorb the remaining year×type combos
+    nock(API_BASE_URL).persist().get('/api-de-dados/emendas').query(true).reply(200, []);
 
     const pipeline = new EmendaParlamentarPipeline(getDb().db);
     await pipeline.execute();
@@ -172,9 +186,10 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
   it('should throw when API returns non-array response', async () => {
     nock(API_BASE_URL)
       .get('/api-de-dados/emendas')
-      .query({ pagina: '1', tamanhoPagina: '100' })
+      .query({ pagina: '1', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
       .reply(200, { error: 'unexpected format' });
 
+    // Pipeline throws before reaching other combos — no catch-all needed
     const pipeline = new EmendaParlamentarPipeline(getDb().db);
 
     await assert.rejects(
