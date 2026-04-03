@@ -11,8 +11,8 @@ export class PoliticianLookupService {
 
   private loadPoliticians(db: Database.Database): void {
     const politicians = db
-      .prepare('SELECT id, name FROM politicians WHERE role = ?')
-      .all('DEPUTY') as Array<{ id: string; name: string }>;
+      .prepare('SELECT id, name FROM politicians')
+      .all() as Array<{ id: string; name: string }>;
 
     for (const politician of politicians) {
       const normalizedName = normalizeNameForMatching(politician.name);
