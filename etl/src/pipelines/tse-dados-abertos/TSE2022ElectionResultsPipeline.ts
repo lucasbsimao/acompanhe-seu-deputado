@@ -2,6 +2,8 @@ import type Database from 'better-sqlite3';
 import { FileDownloader } from '../../core/FileDownloader';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianRole } from '../../types/PoliticianRole';
+import { TSECargo } from '../../types/TSECargo';
+import { TSEElectionResultStatus } from '../../types/TSEElectionResultStatus';
 import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
 import { normalizeId } from '../../util/normalization.util';
 import { parse } from 'csv-parse/sync';
@@ -74,11 +76,16 @@ export class TSE2022ElectionResultsPipeline {
   }
 
   private filterElected(candidates: TSECandidate[]): TSECandidate[] {
-    return candidates.filter(c => 
-      (c.DS_CARGO === 'DEPUTADO FEDERAL' || c.DS_CARGO === 'SENADOR') &&
-      (c.DS_SIT_TOT_TURNO === 'ELEITO POR QP' || 
-       c.DS_SIT_TOT_TURNO === 'ELEITO POR MÉDIA' || 
-       c.DS_SIT_TOT_TURNO === 'SUPLENTE')
+    const validCargos = [TSECargo.DEPUTADO_FEDERAL, TSECargo.SENADOR];
+    const validStatuses = [
+      TSEElectionResultStatus.ELEITO_POR_QP,
+      TSEElectionResultStatus.ELEITO_POR_MEDIA,
+      TSEElectionResultStatus.SUPLENTE,
+    ];
+
+    return candidates.filter(
+      c => validCargos.includes(c.DS_CARGO as TSECargo) &&
+           validStatuses.includes(c.DS_SIT_TOT_TURNO as TSEElectionResultStatus)
     );
   }
 
@@ -91,9 +98,9 @@ export class TSE2022ElectionResultsPipeline {
         name: c.NM_URNA_CANDIDATO,
         uf: c.SG_UF,
         partyId: normalizeId(c.SG_PARTIDO),
-        role: c.DS_CARGO === 'DEPUTADO FEDERAL' ? PoliticianRole.DEPUTY : PoliticianRole.SENATOR,
+        role: c.DS_CARGO === TSECargo.DEPUTADO_FEDERAL ? PoliticianRole.DEPUTY : PoliticianRole.SENATOR,
         photoUrl: null,
-        electedAs: c.DS_SIT_TOT_TURNO as 'ELEITO POR QP' | 'ELEITO POR MÉDIA' | 'SUPLENTE',
+        electedAs: TSEElectionResultStatus.fromValue(c.DS_SIT_TOT_TURNO),
       }));
     
     this.repo.insertBatch(rows);

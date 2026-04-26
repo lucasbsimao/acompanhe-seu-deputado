@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import { PoliticianRole } from '../types/PoliticianRole';
+import type { TSEElectionResultStatusKey } from '../types/TSEElectionResultStatus';
 
 export interface PoliticianRow {
   cpf: string;
@@ -9,7 +10,7 @@ export interface PoliticianRow {
   partyId: string;
   role: PoliticianRole;
   photoUrl: string | null;
-  electedAs?: 'ELEITO POR QP' | 'ELEITO POR MÉDIA' | 'SUPLENTE' | null;
+  electedAs?: TSEElectionResultStatusKey | null;
 }
 
 export class PoliticianRepository {

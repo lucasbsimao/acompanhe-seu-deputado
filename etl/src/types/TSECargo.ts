@@ -1,0 +1,4 @@
+export enum TSECargo {
+  DEPUTADO_FEDERAL = 'DEPUTADO FEDERAL',
+  SENADOR = 'SENADOR',
+}
