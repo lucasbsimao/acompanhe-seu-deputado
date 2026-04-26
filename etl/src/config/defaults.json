@@ -7,6 +7,9 @@
     "retryWaitMax": 2000,
     "timeoutMs": 30000
   },
+  "deputies": {
+    "legislaturasToFetch": 3
+  },
   "expenses": {
     "yearsToFetch": 4
   },
