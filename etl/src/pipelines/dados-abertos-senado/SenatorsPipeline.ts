@@ -2,6 +2,7 @@ import { BasePipeline } from './BasePipeline';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
+import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
 import { PoliticianRole } from '../../types/PoliticianRole';
 
 interface SenatorIdentification {
@@ -14,6 +15,23 @@ interface SenatorIdentification {
 
 interface SenatorData {
   IdentificacaoParlamentar: SenatorIdentification;
+}
+
+interface SenatorDetail {
+  DetalheParlamentar: {
+    Parlamentar: {
+      IdentificacaoParlamentar: {
+        CodigoParlamentar: string;
+        NomeParlamentar: string;
+        SiglaPartidoParlamentar: string;
+        UfParlamentar: string;
+        UrlFotoParlamentar?: string;
+      };
+      DadosBasicosParlamentar: {
+        Cpf: string;
+      };
+    };
+  };
 }
 
 interface SenatorsResponse {
@@ -63,15 +81,26 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
   }
 
   async onPageFetched(items: SenatorData[]): Promise<void> {
-    this.repo.insertBatch(
-      items.map(s => ({
-        id: String(s.IdentificacaoParlamentar.CodigoParlamentar),
-        name: s.IdentificacaoParlamentar.NomeParlamentar,
-        uf: s.IdentificacaoParlamentar.UfParlamentar,
-        partyId: normalizeId(s.IdentificacaoParlamentar.SiglaPartidoParlamentar),
-        role: PoliticianRole.SENATOR,
-        photoUrl: s.IdentificacaoParlamentar.UrlFotoParlamentar || null,
-      }))
+    const detailedSenators = await Promise.all(
+      items.map(async (s) => {
+        const codigo = s.IdentificacaoParlamentar.CodigoParlamentar;
+        const detailUrl = `https://legis.senado.leg.br/dadosabertos/senador/${codigo}`;
+        const { data } = await this.httpClient.request(detailUrl);
+        const detail = data as SenatorDetail;
+        const cpf = detail.DetalheParlamentar.Parlamentar.DadosBasicosParlamentar.Cpf;
+        
+        return {
+          cpf: normalizeCPF(cpf),
+          sourceApiId: codigo,
+          name: s.IdentificacaoParlamentar.NomeParlamentar,
+          uf: s.IdentificacaoParlamentar.UfParlamentar,
+          partyId: normalizeId(s.IdentificacaoParlamentar.SiglaPartidoParlamentar),
+          role: PoliticianRole.SENATOR,
+          photoUrl: s.IdentificacaoParlamentar.UrlFotoParlamentar || null,
+        };
+      })
     );
+    
+    this.repo.insertBatch(detailedSenators.filter(s => isValidCPF(s.cpf)));
   }
 }

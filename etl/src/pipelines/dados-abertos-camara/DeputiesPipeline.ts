@@ -2,6 +2,7 @@ import { BasePipeline } from './BasePipeline';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
+import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
 import { PoliticianRole } from '../../types/PoliticianRole';
 
 interface PoliticianData {
@@ -10,6 +11,17 @@ interface PoliticianData {
   siglaPartido: string;
   siglaUf: string;
   urlFoto: string;
+}
+
+interface DeputyDetail {
+  dados: {
+    id: number;
+    nomeCivil: string;
+    cpf: string;
+    siglaPartido: string;
+    siglaUf: string;
+    urlFoto: string;
+  };
 }
 
 interface ApiResponse {
@@ -72,15 +84,23 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
   }
 
   async onPageFetched(items: PoliticianData[]): Promise<void> {
-    this.repo.insertBatch(
-      items.map(d => ({
-        id: String(d.id),
-        name: d.nome,
-        uf: d.siglaUf,
-        partyId: normalizeId(d.siglaPartido),
-        role: PoliticianRole.DEPUTY,
-        photoUrl: d.urlFoto || null,
-      }))
+    const detailedDeputies = await Promise.all(
+      items.map(async (d) => {
+        const detailUrl = `https://dadosabertos.camara.leg.br/api/v2/deputados/${d.id}`;
+        const { data } = await this.httpClient.request(detailUrl);
+        const detail = data as DeputyDetail;
+        return {
+          cpf: normalizeCPF(detail.dados.cpf),
+          sourceApiId: String(d.id),
+          name: d.nome,
+          uf: d.siglaUf,
+          partyId: normalizeId(d.siglaPartido),
+          role: PoliticianRole.DEPUTY,
+          photoUrl: d.urlFoto || null,
+        };
+      })
     );
+    
+    this.repo.insertBatch(detailedDeputies.filter(d => isValidCPF(d.cpf)));
   }
 }

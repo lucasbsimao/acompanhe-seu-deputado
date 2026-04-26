@@ -4,7 +4,7 @@ export const migration003: Migration = {
   version: '003_create_expenses_table',
   sql: `CREATE TABLE IF NOT EXISTS expenses (
   id TEXT PRIMARY KEY,
-  deputy_id TEXT NOT NULL REFERENCES politicians(id),
+  deputy_id TEXT NOT NULL REFERENCES politicians(cpf),
   tipo_despesa TEXT NOT NULL,
   cod_documento TEXT NOT NULL,
   cod_tipo_documento INTEGER NOT NULL,

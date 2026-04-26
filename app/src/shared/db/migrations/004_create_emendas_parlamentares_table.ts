@@ -7,7 +7,7 @@ export const migration004: Migration = {
       codigo_emenda    TEXT PRIMARY KEY,
       ano              INTEGER NOT NULL,
       tipo_emenda      TEXT,
-      politician_id    TEXT REFERENCES politicians(id),
+      politician_id    TEXT REFERENCES politicians(cpf),
       numero_emenda    TEXT,
       localidade_gasto TEXT,
       funcao           TEXT,
