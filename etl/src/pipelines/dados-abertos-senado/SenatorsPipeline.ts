@@ -90,6 +90,7 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
         const cpf = detail.DetalheParlamentar.Parlamentar.DadosBasicosParlamentar.Cpf;
         
         return {
+          //ESSA PARTE NÃO É NECESSÁRIA, JÁ PREENCHIDO PELO PIPELINE TSE
           cpf: normalizeCPF(cpf),
           sourceApiId: codigo,
           name: s.IdentificacaoParlamentar.NomeParlamentar,

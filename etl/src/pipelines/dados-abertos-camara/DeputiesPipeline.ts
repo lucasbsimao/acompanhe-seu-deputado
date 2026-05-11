@@ -77,6 +77,8 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
     url.searchParams.set('pagina', String(page));
     url.searchParams.set('itens', String(pageSize));
     if (this.currentLegislaturaId !== null) {
+      // Plain /deputados only returns currently active deputies; filtering by idLegislatura
+      // includes everyone who ever held a seat in that term (ministers on leave, resignees, suplentes).
       url.searchParams.set('idLegislatura', String(this.currentLegislaturaId));
     }
     return url.toString();
@@ -121,6 +123,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
         const { data } = await this.httpClient.request(detailUrl);
         const detail = data as DeputyDetail;
         return {
+          //ESSA PARTE NÃO É NECESSÁRIA, JÁ PREENCHIDO PELO PIPELINE TSE
           cpf: normalizeCPF(detail.dados.cpf),
           sourceApiId: String(d.id),
           name: d.nome,
@@ -135,6 +138,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
     this.repo.insertBatch(detailedDeputies.filter(d => isValidCPF(d.cpf)));
   }
 
+  // Deputy IDs are non-consecutive; gaps return 404. Enumerating by legislature is the only reliable approach.
   private async fetchLegislaturaIds(): Promise<number[]> {
     const url = new URL(this.legislaturasEndpoint);
     url.searchParams.set('ordem', 'DESC');
