@@ -23,6 +23,8 @@ interface ApiEmenda {
 }
 
 export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
+  static readonly dependencies: readonly string[] = ['DeputiesPipeline', 'SenatorsPipeline'];
+
   private readonly apiEndpoint = 'https://api.portaldatransparencia.gov.br/api-de-dados/emendas';
   private readonly repo: EmendaRepository;
   private readonly lookupService: PoliticianLookupService;

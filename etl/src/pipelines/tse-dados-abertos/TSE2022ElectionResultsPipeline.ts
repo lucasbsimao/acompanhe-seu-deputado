@@ -20,6 +20,8 @@ interface TSECandidate {
 }
 
 export class TSE2022ElectionResultsPipeline {
+  static readonly dependencies: readonly string[] = [];
+
   private readonly downloadUrl = 'https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2022.zip';
   private readonly tempDir = join(process.cwd(), 'temp_tse_2022');
   private readonly zipPath = join(this.tempDir, 'consulta_cand_2022.zip');

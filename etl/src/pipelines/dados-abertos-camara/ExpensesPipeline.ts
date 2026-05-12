@@ -30,6 +30,8 @@ interface ApiResponse {
 }
 
 export class ExpensesPipeline extends BasePipeline<ExpenseData> {
+  static readonly dependencies: readonly string[] = ['DeputiesPipeline'];
+
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
   private readonly repo: ExpensesRepository;
   private readonly db: Database.Database;

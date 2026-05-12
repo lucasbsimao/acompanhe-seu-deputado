@@ -34,6 +34,8 @@ interface LegislaturaResponse {
 }
 
 export class DeputiesPipeline extends BasePipeline<PoliticianData> {
+  static readonly dependencies: readonly string[] = ['TSE2022ElectionResultsPipeline', 'PartiesPipeline'];
+
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
   private readonly legislaturasEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/legislaturas';
   private readonly repo: PoliticianRepository;

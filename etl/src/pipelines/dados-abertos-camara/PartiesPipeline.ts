@@ -15,6 +15,8 @@ interface ApiResponse {
 }
 
 export class PartiesPipeline extends BasePipeline<PartyData> {
+  static readonly dependencies: readonly string[] = [];
+
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/partidos';
   private readonly repo: PartyRepository;
 

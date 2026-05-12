@@ -43,6 +43,8 @@ interface SenatorsResponse {
 }
 
 export class SenatorsPipeline extends BasePipeline<SenatorData> {
+  static readonly dependencies: readonly string[] = ['TSE2022ElectionResultsPipeline'];
+
   private readonly apiEndpoint = 'https://legis.senado.leg.br/dadosabertos/senador/lista/atual?participacao=T&v=4';
   private readonly repo: PoliticianRepository;
 
