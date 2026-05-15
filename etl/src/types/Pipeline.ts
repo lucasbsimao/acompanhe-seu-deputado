@@ -14,9 +14,6 @@ export interface IPipelineClass extends IPipelineStatics {
   new (db: Database.Database): IPipeline;
 }
 
-// Alias kept for backward compatibility with existing usages
-export type PipelineConstructor = IPipelineClass;
-
 export interface PipelineInfo {
   name: string;
   displayName: string;

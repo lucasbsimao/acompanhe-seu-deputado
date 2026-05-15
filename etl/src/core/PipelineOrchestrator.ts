@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { PipelineInfo, PipelineConstructor } from '../types/Pipeline';
+import { PipelineInfo, IPipelineClass } from '../types/Pipeline';
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
@@ -84,7 +84,7 @@ export class PipelineOrchestrator {
     return results;
   }
 
-  async loadPipelineClass(importPath: string): Promise<PipelineConstructor> {
+  async loadPipelineClass(importPath: string): Promise<IPipelineClass> {
     const module = await import(`../pipelines/${importPath}`);
     const className = importPath.split('/').pop()!;
     return module[className];
