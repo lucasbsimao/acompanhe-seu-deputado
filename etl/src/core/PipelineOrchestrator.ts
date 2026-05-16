@@ -66,10 +66,10 @@ export class PipelineOrchestrator {
         const displayName = this.camelCaseToSpaced(className.replace('Pipeline', '')) + ' Pipeline';
         const importPath = `${subdir}/${className}`;
         const PipelineClass = await this.loadPipelineClass(importPath);
-        if (PipelineClass.dependencies === undefined) {
-          throw new Error(`Pipeline ${className} is missing static 'dependencies' declaration`);
-        }
-        const dependencies = PipelineClass.dependencies;
+
+        PipelineOrchestrator.assertValidPipelineClass(PipelineClass, className);
+
+        const dependencies = PipelineClass.dependencies.map((dep) => (dep as unknown as Function).name);
         results.push({
           name: className,
           displayName,
@@ -164,6 +164,20 @@ export class PipelineOrchestrator {
     }
 
     return result;
+  }
+
+  /**
+   * Runtime guard: `loadPipelineClass` casts the dynamic import result to {@link IPipelineClass} without
+   * verification, so a pipeline that omits required members would silently pass TypeScript's checks but fail here.
+   */
+  private static assertValidPipelineClass(PipelineClass: IPipelineClass, className: string): void {
+    if (
+      !Array.isArray(PipelineClass.dependencies) ||
+      typeof PipelineClass !== 'function' ||
+      typeof PipelineClass.prototype?.execute !== 'function'
+    ) {
+      throw new Error(`Pipeline ${className} does not implement IPipelineClass`);
+    }
   }
 
   private camelCaseToSpaced(camelCase: string): string {

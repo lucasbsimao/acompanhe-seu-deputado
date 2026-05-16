@@ -1,4 +1,7 @@
 import { BasePipeline } from './BasePipeline';
+import { DeputiesPipeline } from '../dados-abertos-camara/DeputiesPipeline';
+import { SenatorsPipeline } from '../dados-abertos-senado/SenatorsPipeline';
+import { IPipelineDepChain } from '../../types/Pipeline';
 import { EmendaRepository, EmendaRecord } from '../../repositories/EmendaRepository';
 import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import type Database from 'better-sqlite3';
@@ -23,7 +26,7 @@ interface ApiEmenda {
 }
 
 export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
-  static readonly dependencies: readonly string[] = ['DeputiesPipeline', 'SenatorsPipeline'];
+  static readonly dependencies: readonly IPipelineDepChain[] = [DeputiesPipeline, SenatorsPipeline];
 
   private readonly apiEndpoint = 'https://api.portaldatransparencia.gov.br/api-de-dados/emendas';
   private readonly repo: EmendaRepository;

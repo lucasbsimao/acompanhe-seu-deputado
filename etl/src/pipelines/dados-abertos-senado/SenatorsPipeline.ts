@@ -1,4 +1,6 @@
 import { BasePipeline } from './BasePipeline';
+import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
+import { IPipelineDepChain } from '../../types/Pipeline';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
@@ -43,7 +45,7 @@ interface SenatorsResponse {
 }
 
 export class SenatorsPipeline extends BasePipeline<SenatorData> {
-  static readonly dependencies: readonly string[] = ['TSE2022ElectionResultsPipeline'];
+  static readonly dependencies: readonly IPipelineDepChain[] = [TSE2022ElectionResultsPipeline];
 
   private readonly apiEndpoint = 'https://legis.senado.leg.br/dadosabertos/senador/lista/atual?participacao=T&v=4';
   private readonly repo: PoliticianRepository;

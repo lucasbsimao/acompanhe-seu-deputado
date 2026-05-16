@@ -9,6 +9,7 @@ import { normalizeId } from '../../util/normalization.util';
 import { parse } from 'csv-parse/sync';
 import { readFileSync, readdirSync, unlinkSync, rmdirSync } from 'fs';
 import { join } from 'path';
+import { IPipelineDepChain } from '../../types/Pipeline';
 
 interface TSECandidate {
   DS_CARGO: string;
@@ -20,7 +21,7 @@ interface TSECandidate {
 }
 
 export class TSE2022ElectionResultsPipeline {
-  static readonly dependencies: readonly string[] = [];
+  static readonly dependencies: readonly IPipelineDepChain[] = [];
 
   private readonly downloadUrl = 'https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2022.zip';
   private readonly tempDir = join(process.cwd(), 'temp_tse_2022');

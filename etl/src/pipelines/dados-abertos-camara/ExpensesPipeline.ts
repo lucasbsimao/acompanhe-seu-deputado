@@ -1,4 +1,6 @@
 import { BasePipeline } from './BasePipeline';
+import { DeputiesPipeline } from './DeputiesPipeline';
+import { IPipelineDepChain } from '../../types/Pipeline';
 import { ExpensesRepository } from '../../repositories/ExpensesRepository';
 import type Database from 'better-sqlite3';
 import { normalizeNumericText } from '../../util/normalization.util';
@@ -30,7 +32,7 @@ interface ApiResponse {
 }
 
 export class ExpensesPipeline extends BasePipeline<ExpenseData> {
-  static readonly dependencies: readonly string[] = ['DeputiesPipeline'];
+  static readonly dependencies: readonly IPipelineDepChain[] = [DeputiesPipeline];
 
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
   private readonly repo: ExpensesRepository;

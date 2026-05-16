@@ -5,6 +5,9 @@ import { normalizeId } from '../../util/normalization.util';
 import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
 import { PoliticianRole } from '../../types/PoliticianRole';
 import defaultConfig from '../../config/defaults.json';
+import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
+import { IPipelineDepChain } from '../../types/Pipeline';
+import { PartiesPipeline } from './PartiesPipeline';
 
 interface PoliticianData {
   id: number;
@@ -34,7 +37,7 @@ interface LegislaturaResponse {
 }
 
 export class DeputiesPipeline extends BasePipeline<PoliticianData> {
-  static readonly dependencies: readonly string[] = ['TSE2022ElectionResultsPipeline', 'PartiesPipeline'];
+  static readonly dependencies: readonly IPipelineDepChain[] = [TSE2022ElectionResultsPipeline, PartiesPipeline];
 
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
   private readonly legislaturasEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/legislaturas';
