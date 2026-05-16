@@ -139,7 +139,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
       })
     );
 
-    this.repo.insertBatch(detailedDeputies.filter(d => isValidCPF(d.cpf)));
+    this.repo.updateBatch(detailedDeputies.filter(d => isValidCPF(d.cpf)));
   }
 
   // Deputy IDs are non-consecutive; gaps return 404. Enumerating by legislature is the only reliable approach.

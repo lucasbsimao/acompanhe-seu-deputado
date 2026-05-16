@@ -51,6 +51,19 @@ function createMockDeputyDetail(id: number): any {
   };
 }
 
+function seedTSEDeputyRows(db: import('better-sqlite3').Database, count: number): void {
+  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
+  const insert = db.prepare(
+    "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO POR QP')"
+  );
+  const insertAll = db.transaction((n: number) => {
+    for (let i = 1; i <= n; i++) {
+      insert.run(makeCPF(i), `TSE Deputy ${i}`);
+    }
+  });
+  insertAll(count);
+}
+
 describe('DeputiesETL Integration Tests', () => {
   const { getDb } = useTestDatabase();
 
@@ -89,14 +102,16 @@ describe('DeputiesETL Integration Tests', () => {
       .reply(200, { dados: deputies }, { 'x-total-count': '10' });
 
     const db = getDb().db;
+    seedTSEDeputyRows(db, 10);
     const etl = new DeputiesPipeline(db, 1);
 
-    await etl.execute();
+    await etl.execute(true);
 
     const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as any[];
     assert.strictEqual(result.length, 10, 'Should contain 10 deputies');
     assert.strictEqual(result[0].source_api_id, '1', 'First deputy should have source_api_id 1');
     assert.strictEqual(result[9].source_api_id, '10', 'Last deputy should have source_api_id 10');
+    assert.strictEqual(result[0].elected_as, 'ELEITO POR QP', 'elected_as from TSE should be preserved');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -105,6 +120,7 @@ describe('DeputiesETL Integration Tests', () => {
     const page1Deputies = Array.from({ length: 100 }, (_, i) => createMockDeputy(i + 1));
     const page2Deputies = Array.from({ length: 100 }, (_, i) => createMockDeputy(i + 101));
     const page3Deputies = Array.from({ length: 50 }, (_, i) => createMockDeputy(i + 201));
+    seedTSEDeputyRows(getDb().db, 250);
 
     nock(API_BASE_URL)
       .get('/api/v2/deputados')
@@ -142,7 +158,7 @@ describe('DeputiesETL Integration Tests', () => {
     const db = getDb().db;
     const etl = new DeputiesPipeline(db, 1);
 
-    await etl.execute();
+    await etl.execute(true);
 
     const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as any[];
     assert.strictEqual(result.length, 250, 'Should contain 250 deputies');
@@ -155,6 +171,7 @@ describe('DeputiesETL Integration Tests', () => {
 
   it('should retry on 500 errors and eventually succeed', async () => {
     const deputies = Array.from({ length: 5 }, (_, i) => createMockDeputy(i + 1));
+    seedTSEDeputyRows(getDb().db, 5);
 
     const scope = nock(API_BASE_URL)
       .get('/api/v2/deputados')
@@ -182,7 +199,7 @@ describe('DeputiesETL Integration Tests', () => {
     const db = getDb().db;
     const etl = new DeputiesPipeline(db, 1);
 
-    await etl.execute();
+    await etl.execute(true);
 
     const result = db.prepare('SELECT * FROM politicians').all() as any[];
     assert.strictEqual(result.length, 5, 'Should contain 5 deputies after retries');
@@ -192,6 +209,8 @@ describe('DeputiesETL Integration Tests', () => {
 
   it('should retry on 429 rate limit errors', async () => {
     const deputies = Array.from({ length: 5 }, (_, i) => createMockDeputy(i + 1));
+    const db = getDb().db;
+    seedTSEDeputyRows(db, 5);
 
     const scope = nock(API_BASE_URL);
 
@@ -217,10 +236,9 @@ describe('DeputiesETL Integration Tests', () => {
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '5' });
 
-    const db = getDb().db;
     const etl = new DeputiesPipeline(db, 1);
 
-    await etl.execute();
+    await etl.execute(true);
 
     const result = db.prepare('SELECT * FROM politicians').all() as any[];
     assert.strictEqual(result.length, 5, 'Should contain 5 deputies after rate limit retry');
@@ -312,6 +330,8 @@ describe('DeputiesETL Integration Tests', () => {
   });
 
   it('should handle parallel page fetching correctly', async () => {
+    seedTSEDeputyRows(getDb().db, 550);
+
     nock(API_BASE_URL)
       .get('/api/v2/deputados')
       .query({
@@ -341,7 +361,7 @@ describe('DeputiesETL Integration Tests', () => {
     const db = getDb().db;
     const etl = new DeputiesPipeline(db, 1);
 
-    await etl.execute();
+    await etl.execute(true);
 
     const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as any[];
     assert.strictEqual(result.length, 550, 'Should contain 550 deputies');

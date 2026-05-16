@@ -105,6 +105,6 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
       })
     );
     
-    this.repo.insertBatch(detailedSenators.filter(s => isValidCPF(s.cpf)));
+    this.repo.updateBatch(detailedSenators.filter(s => isValidCPF(s.cpf)));
   }
 }

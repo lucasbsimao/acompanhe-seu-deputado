@@ -17,7 +17,9 @@ export class PoliticianRepository {
   private readonly db: Database.Database;
   private readonly insertParty: Database.Statement;
   private readonly insertPolitician: Database.Statement;
+  private readonly updatePolitician: Database.Statement;
   private readonly insertAll: (rows: PoliticianRow[]) => void;
+  private readonly updateAll: (rows: PoliticianRow[]) => void;
   private readonly countByRoleQuery: Database.Statement;
 
   constructor(db: Database.Database) {
@@ -28,6 +30,9 @@ export class PoliticianRepository {
     this.insertPolitician = db.prepare(
       'INSERT OR REPLACE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
+    this.updatePolitician = db.prepare(
+      'UPDATE politicians SET source_api_id = ?, name = ?, uf = ?, party_id = ?, photo_url = ? WHERE cpf = ?'
+    );
     this.countByRoleQuery = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ?');
     this.insertAll = db.transaction((rows: PoliticianRow[]) => {
       for (const r of rows) {
@@ -35,10 +40,20 @@ export class PoliticianRepository {
         this.insertPolitician.run(r.cpf, r.sourceApiId, r.name, r.uf, r.partyId, r.role, r.photoUrl, r.electedAs || null);
       }
     });
+    this.updateAll = db.transaction((rows: PoliticianRow[]) => {
+      for (const r of rows) {
+        this.insertParty.run(r.partyId, r.partyId, r.partyId);
+        this.updatePolitician.run(r.sourceApiId, r.name, r.uf, r.partyId, r.photoUrl, r.cpf);
+      }
+    });
   }
 
   insertBatch(rows: PoliticianRow[]): void {
     this.insertAll(rows);
+  }
+
+  updateBatch(rows: PoliticianRow[]): void {
+    this.updateAll(rows);
   }
 
   countByRole(role: string): number {
