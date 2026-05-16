@@ -7,6 +7,7 @@
     "android": "npx react-native run-android",
     "ios": "cd ios && pod install && cd .. && react-native run-ios",
     "test": "jest",
+    "test:all": "jest && npm test --prefix etl",
     "test:unit": "jest --testPathPattern='(?<!integration)\\.test\\.tsx?$'",
     "test:integration": "jest --testPathPattern='\\.integration\\.test\\.tsx?$'"
   },

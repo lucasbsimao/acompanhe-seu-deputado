@@ -28,11 +28,56 @@ function createMockResponse(senators: any[]): any {
   };
 }
 
+function makeCPF(id: number): string {
+  const base = String(id).padStart(9, '0');
+  const digits = base.split('').map(Number);
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += digits[i] * (10 - i);
+  }
+  let d1 = 11 - (sum % 11);
+  if (d1 >= 10) d1 = 0;
+  digits.push(d1);
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += digits[i] * (11 - i);
+  }
+  let d2 = 11 - (sum % 11);
+  if (d2 >= 10) d2 = 0;
+  digits.push(d2);
+  return digits.join('');
+}
+
+function createMockSenatorDetail(codigo: string): any {
+  return {
+    DetalheParlamentar: {
+      Parlamentar: {
+        IdentificacaoParlamentar: {
+          CodigoParlamentar: codigo,
+          NomeParlamentar: `Senator ${codigo}`,
+          SiglaPartidoParlamentar: 'PT',
+          UfParlamentar: 'SP',
+        },
+        DadosBasicosParlamentar: {
+          Cpf: makeCPF(Number(codigo)),
+        },
+      },
+    },
+  };
+}
+
 describe('SenatorsPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
 
   beforeEach(() => {
     nock.cleanAll();
+    nock(API_BASE_URL)
+      .get(/\/dadosabertos\/senador\/\d+$/)
+      .reply(200, function(uri: string) {
+        const codigo = uri.split('/').pop()!;
+        return createMockSenatorDetail(codigo);
+      })
+      .persist();
   });
 
   afterEach(() => {
@@ -53,11 +98,11 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute();
 
-    const result = db.prepare('SELECT * FROM politicians WHERE role = ? ORDER BY CAST(id AS INTEGER)').all('SENATOR') as any[];
+    const result = db.prepare('SELECT * FROM politicians WHERE role = ? ORDER BY CAST(source_api_id AS INTEGER)').all('SENATOR') as any[];
     assert.strictEqual(result.length, 10, 'Should contain 10 senators');
-    assert.strictEqual(result[0].id, '1', 'First senator should have id 1');
+    assert.strictEqual(result[0].source_api_id, '1', 'First senator should have source_api_id 1');
     assert.strictEqual(result[0].role, 'SENATOR', 'Role should be SENATOR');
-    assert.strictEqual(result[9].id, '10', 'Last senator should have id 10');
+    assert.strictEqual(result[9].source_api_id, '10', 'Last senator should have source_api_id 10');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -84,7 +129,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as any[];
     assert.strictEqual(result.length, 1, 'Should contain 1 senator');
-    assert.strictEqual(result[0].id, '1', 'Senator should have id 1');
+    assert.strictEqual(result[0].source_api_id, '1', 'Senator should have source_api_id 1');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -122,7 +167,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute();
 
-    const result = db.prepare('SELECT * FROM politicians WHERE role = ? ORDER BY id').all('SENATOR') as any[];
+    const result = db.prepare('SELECT * FROM politicians WHERE role = ? ORDER BY source_api_id').all('SENATOR') as any[];
     assert.strictEqual(result.length, 2, 'Should contain 2 senators');
     assert.strictEqual(result[0].party_id, 'pt', 'PT should be normalized to pt');
     assert.strictEqual(result[1].party_id, 'psdb', 'PSDB should be normalized to psdb');
@@ -399,7 +444,7 @@ describe('SenatorsPipeline Integration Tests', () => {
     await pipeline.execute();
 
     const result = db.prepare('SELECT * FROM politicians WHERE role = ?').get('SENATOR') as any;
-    assert.strictEqual(result.id, '5672', 'ID should be mapped correctly');
+    assert.strictEqual(result.source_api_id, '5672', 'Source API ID should be mapped correctly');
     assert.strictEqual(result.name, 'Alan Rick', 'Name should be mapped correctly');
     assert.strictEqual(result.uf, 'AC', 'UF should be mapped correctly');
     assert.strictEqual(result.party_id, 'republicanos', 'Party ID should be normalized correctly');

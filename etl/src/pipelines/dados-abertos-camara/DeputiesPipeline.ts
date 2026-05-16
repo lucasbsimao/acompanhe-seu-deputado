@@ -125,7 +125,6 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
         const { data } = await this.httpClient.request(detailUrl);
         const detail = data as DeputyDetail;
         return {
-          //ESSA PARTE NÃO É NECESSÁRIA, JÁ PREENCHIDO PELO PIPELINE TSE
           cpf: normalizeCPF(detail.dados.cpf),
           sourceApiId: String(d.id),
           name: d.nome,

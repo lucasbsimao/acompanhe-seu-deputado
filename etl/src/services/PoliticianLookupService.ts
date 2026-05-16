@@ -11,7 +11,7 @@ export class PoliticianLookupService {
 
   private loadPoliticians(db: Database.Database): void {
     const politicians = db
-      .prepare('SELECT id, name FROM politicians')
+      .prepare('SELECT cpf AS id, name FROM politicians')
       .all() as Array<{ id: string; name: string }>;
 
     for (const politician of politicians) {

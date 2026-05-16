@@ -16,11 +16,58 @@ function createMockDeputy(id: number): any {
   };
 }
 
+const LEGIS_ID = 57;
+
+function makeCPF(id: number): string {
+  const base = String(id).padStart(9, '0');
+  const digits = base.split('').map(Number);
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += digits[i] * (10 - i);
+  }
+  let d1 = 11 - (sum % 11);
+  if (d1 >= 10) d1 = 0;
+  digits.push(d1);
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += digits[i] * (11 - i);
+  }
+  let d2 = 11 - (sum % 11);
+  if (d2 >= 10) d2 = 0;
+  digits.push(d2);
+  return digits.join('');
+}
+
+function createMockDeputyDetail(id: number): any {
+  return {
+    dados: {
+      id,
+      cpf: makeCPF(id),
+      nomeCivil: `Deputy ${id}`,
+      siglaPartido: 'PT',
+      siglaUf: 'SP',
+      urlFoto: `https://example.com/photo${id}.jpg`,
+    },
+  };
+}
+
 describe('DeputiesETL Integration Tests', () => {
   const { getDb } = useTestDatabase();
 
   beforeEach(() => {
     nock.cleanAll();
+    nock(API_BASE_URL)
+      .get('/api/v2/legislaturas')
+      .query({ ordem: 'DESC', ordenarPor: 'id', itens: '1' })
+      .reply(200, { dados: [{ id: LEGIS_ID }] })
+      .persist();
+    nock(API_BASE_URL)
+      .get(/\/api\/v2\/deputados\/\d+$/)
+      .reply(200, function(uri: string) {
+        const id = Number(uri.split('/').pop()!);
+        return createMockDeputyDetail(id);
+      })
+      .persist();
   });
 
   afterEach(() => {
@@ -34,21 +81,22 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '1',
         itens: '100',
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '10' });
 
     const db = getDb().db;
-    const etl = new DeputiesPipeline(db);
+    const etl = new DeputiesPipeline(db, 1);
 
     await etl.execute();
 
-    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(id AS INTEGER)').all() as any[];
+    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as any[];
     assert.strictEqual(result.length, 10, 'Should contain 10 deputies');
-    assert.strictEqual(result[0].id, '1', 'First deputy should have id 1');
-    assert.strictEqual(result[9].id, '10', 'Last deputy should have id 10');
+    assert.strictEqual(result[0].source_api_id, '1', 'First deputy should have source_api_id 1');
+    assert.strictEqual(result[9].source_api_id, '10', 'Last deputy should have source_api_id 10');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -62,7 +110,8 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '1',
         itens: '100',
       })
@@ -72,7 +121,8 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '2',
         itens: '100',
       })
@@ -82,22 +132,23 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '3',
         itens: '100',
       })
       .reply(200, { dados: page3Deputies });
 
     const db = getDb().db;
-    const etl = new DeputiesPipeline(db);
+    const etl = new DeputiesPipeline(db, 1);
 
     await etl.execute();
 
-    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(id AS INTEGER)').all() as any[];
+    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as any[];
     assert.strictEqual(result.length, 250, 'Should contain 250 deputies');
-    assert.strictEqual(result[0].id, '1', 'First deputy should have id 1');
-    assert.strictEqual(result[100].id, '101', 'Deputy at index 100 should have id 101');
-    assert.strictEqual(result[249].id, '250', 'Last deputy should have id 250');
+    assert.strictEqual(result[0].source_api_id, '1', 'First deputy should have source_api_id 1');
+    assert.strictEqual(result[100].source_api_id, '101', 'Deputy at index 100 should have source_api_id 101');
+    assert.strictEqual(result[249].source_api_id, '250', 'Last deputy should have source_api_id 250');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -109,7 +160,8 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '1',
         itens: '100',
       })
@@ -120,14 +172,15 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '1',
         itens: '100',
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '5' });
 
     const db = getDb().db;
-    const etl = new DeputiesPipeline(db);
+    const etl = new DeputiesPipeline(db, 1);
 
     await etl.execute();
 
@@ -146,7 +199,8 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '1',
         itens: '100',
       })
@@ -156,14 +210,15 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '1',
         itens: '100',
       })
       .reply(200, { dados: deputies }, { 'x-total-count': '5' });
 
     const db = getDb().db;
-    const etl = new DeputiesPipeline(db);
+    const etl = new DeputiesPipeline(db, 1);
 
     await etl.execute();
 
@@ -180,14 +235,15 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '1',
         itens: '100',
       })
       .times(4)
       .reply(500, 'Internal Server Error');
 
-    const etl = new DeputiesPipeline(getDb().db);
+    const etl = new DeputiesPipeline(getDb().db, 1);
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -206,13 +262,14 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '1',
         itens: '100',
       })
       .reply(200, { dados: [] });
 
-    const etl = new DeputiesPipeline(getDb().db);
+    const etl = new DeputiesPipeline(getDb().db, 1);
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -232,13 +289,14 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '1',
         itens: '100',
       })
       .reply(200, { invalid: 'format' }, { 'x-total-count': '10' });
 
-    const etl = new DeputiesPipeline(getDb().db);
+    const etl = new DeputiesPipeline(getDb().db, 1);
 
     await assert.rejects(
       async () => await etl.execute(),
@@ -258,7 +316,8 @@ describe('DeputiesETL Integration Tests', () => {
       .get('/api/v2/deputados')
       .query({
         ordem: 'ASC',
-        ordenarPor: 'nome',
+        ordenarPor: 'id',
+        idLegislatura: String(LEGIS_ID),
         pagina: '1',
         itens: '100',
       })
@@ -269,7 +328,8 @@ describe('DeputiesETL Integration Tests', () => {
         .get('/api/v2/deputados')
         .query({
           ordem: 'ASC',
-          ordenarPor: 'nome',
+          ordenarPor: 'id',
+          idLegislatura: String(LEGIS_ID),
           pagina: String(page),
           itens: '100',
         })
@@ -279,15 +339,15 @@ describe('DeputiesETL Integration Tests', () => {
     }
 
     const db = getDb().db;
-    const etl = new DeputiesPipeline(db);
+    const etl = new DeputiesPipeline(db, 1);
 
     await etl.execute();
 
-    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(id AS INTEGER)').all() as any[];
+    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as any[];
     assert.strictEqual(result.length, 550, 'Should contain 550 deputies');
 
     for (let i = 0; i < 550; i++) {
-      assert.strictEqual(result[i].id, String(i + 1), `Deputy at index ${i} should have id ${i + 1}`);
+      assert.strictEqual(result[i].source_api_id, String(i + 1), `Deputy at index ${i} should have source_api_id ${i + 1}`);
     }
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');

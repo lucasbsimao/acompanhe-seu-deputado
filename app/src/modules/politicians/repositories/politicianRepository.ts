@@ -29,7 +29,7 @@ export class PoliticianRepository {
 
       for (const p of politicians) {
         tx.executeSql(
-          'INSERT INTO politicians (id, name, uf, party_id, role, photo_url) VALUES (?, ?, ?, ?, ?, ?)',
+          'INSERT INTO politicians (cpf, name, uf, party_id, role, photo_url) VALUES (?, ?, ?, ?, ?, ?)',
           [p.id, p.name, p.uf, p.partyId, p.role, p.photoUrl ?? null]
         );
       }
@@ -37,10 +37,10 @@ export class PoliticianRepository {
   }
 
   async findAllIds(): Promise<string[]> {
-    const [result] = await this.db.executeSql('SELECT id FROM politicians ORDER BY id');
+    const [result] = await this.db.executeSql('SELECT cpf FROM politicians ORDER BY cpf');
     const ids: string[] = [];
     for (let i = 0; i < result.rows.length; i += 1) {
-      ids.push(result.rows.item(i).id as string);
+      ids.push((result.rows.item(i) as { cpf: string }).cpf);
     }
     return ids;
   }
