@@ -201,8 +201,8 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
     );
   });
 
-  it('should leave politician_id null when autor is not found in lookup', async () => {
-    // No politician seeded — lookup should return null
+  it('should not persist emenda when autor is not found in lookup', async () => {
+    // No politician seeded — lookup returns null, pipeline skips the record
     const emenda = createMockEmenda('202400000001', 2024, 'DEPUTADO DESCONHECIDO');
 
     nock(API_BASE_URL)
@@ -218,9 +218,9 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
     await pipeline.execute();
 
     const row = getDb().db
-      .prepare('SELECT politician_id FROM emendas_parlamentares WHERE codigo_emenda = ?')
-      .get('202400000001') as any;
-    assert.strictEqual(row.politician_id, null);
+      .prepare('SELECT COUNT(*) as cnt FROM emendas_parlamentares')
+      .get() as any;
+    assert.strictEqual(row.cnt, 0, 'Unmatched emenda should not be persisted');
     assert.ok(nock.isDone());
   });
 

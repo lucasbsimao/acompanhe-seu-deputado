@@ -69,6 +69,7 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
         if (unmatchedCount <= 5) {
           console.warn(`Could not match autor: ${e.autor}`);
         }
+        continue;
       }
 
       records.push({
