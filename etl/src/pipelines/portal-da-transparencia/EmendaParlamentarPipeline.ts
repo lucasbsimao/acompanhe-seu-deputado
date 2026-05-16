@@ -76,7 +76,7 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
         codigoEmenda: e.codigoEmenda,
         ano: e.ano,
         tipoEmenda: e.tipoEmenda ?? null,
-        politicianId: politicianCpf,
+        politicianCpf: politicianCpf,
         numeroEmenda: e.numeroEmenda ?? null,
         localidadeDoGasto: e.localidadeDoGasto ?? null,
         funcao: e.funcao ?? null,

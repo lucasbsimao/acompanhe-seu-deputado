@@ -73,9 +73,9 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
       .all() as any[];
     assert.strictEqual(rows.length, 2);
     assert.strictEqual(rows[0].codigo_emenda, '202400000001');
-    assert.strictEqual(rows[0].politician_id, '12345678901');
+    assert.strictEqual(rows[0].politician_cpf, '12345678901');
     assert.strictEqual(rows[1].codigo_emenda, '202400000002');
-    assert.strictEqual(rows[1].politician_id, '12345678901');
+    assert.strictEqual(rows[1].politician_cpf, '12345678901');
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
 
@@ -224,7 +224,7 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
     assert.ok(nock.isDone());
   });
 
-  it('should resolve politician_id via normalized name matching (accents stripped)', async () => {
+  it('should resolve politician_cpf via normalized name matching (accents stripped)', async () => {
     // DB stores name with accents; API returns the same name with accents — both normalize identically
     seedPolitician(getDb().db, '99988877700', 'Deputado João Silva');
     const emenda = createMockEmenda('202400000099', 2024, 'Deputado João Silva');
@@ -241,13 +241,13 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
     await pipeline.execute();
 
     const row = getDb().db
-      .prepare('SELECT politician_id FROM emendas_parlamentares WHERE codigo_emenda = ?')
+      .prepare('SELECT politician_cpf FROM emendas_parlamentares WHERE codigo_emenda = ?')
       .get('202400000099') as any;
-    assert.strictEqual(row.politician_id, '99988877700');
+    assert.strictEqual(row.politician_cpf, '99988877700');
     assert.ok(nock.isDone());
   });
 
-  it('should resolve politician_id when API autor is uppercase and DB name has mixed case', async () => {
+  it('should resolve politician_cpf when API autor is uppercase and DB name has mixed case', async () => {
     // DB name is mixed-case; API sends all-caps — normalizeNameForMatching uppercases both
     seedPolitician(getDb().db, '11122233344', 'Maria Oliveira');
     const emenda = createMockEmenda('202400000088', 2024, 'MARIA OLIVEIRA');
@@ -264,9 +264,9 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
     await pipeline.execute();
 
     const row = getDb().db
-      .prepare('SELECT politician_id FROM emendas_parlamentares WHERE codigo_emenda = ?')
+      .prepare('SELECT politician_cpf FROM emendas_parlamentares WHERE codigo_emenda = ?')
       .get('202400000088') as any;
-    assert.strictEqual(row.politician_id, '11122233344');
+    assert.strictEqual(row.politician_cpf, '11122233344');
     assert.ok(nock.isDone());
   });
 
