@@ -62,9 +62,9 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
     let unmatchedCount = 0;
 
     for (const e of items) {
-      const politicianId = this.lookupService.findByNormalizedName(e.autor);
+      const politicianCpf = this.lookupService.findCpfByNormalizedName(e.autor);
       
-      if (e.autor && !politicianId) {
+      if (e.autor && !politicianCpf) {
         unmatchedCount++;
         if (unmatchedCount <= 5) {
           console.warn(`Could not match autor: ${e.autor}`);
@@ -75,7 +75,7 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
         codigoEmenda: e.codigoEmenda,
         ano: e.ano,
         tipoEmenda: e.tipoEmenda ?? null,
-        politicianId: politicianId,
+        politicianId: politicianCpf,
         numeroEmenda: e.numeroEmenda ?? null,
         localidadeDoGasto: e.localidadeDoGasto ?? null,
         funcao: e.funcao ?? null,

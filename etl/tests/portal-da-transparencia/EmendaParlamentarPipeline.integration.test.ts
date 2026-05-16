@@ -9,13 +9,13 @@ const FAKE_API_KEY = 'test-api-key-123';
 const TEST_YEAR = String(new Date().getFullYear());
 const TEST_TYPE = 'Emenda Individual - Transferências com Finalidade Definida';
 
-function createMockEmenda(codigo: string, ano = 2024): any {
+function createMockEmenda(codigo: string, ano = 2024, autor = 'DEPUTADO TESTE'): any {
   return {
     codigoEmenda: codigo,
     ano,
     tipoEmenda: 'Emenda Individual - Transferências com Finalidade Definida',
-    autor: 'DEPUTADO TESTE',
-    nomeAutor: 'DEPUTADO TESTE',
+    autor,
+    nomeAutor: autor,
     numeroEmenda: '0001',
     localidadeDoGasto: 'Nacional',
     funcao: 'Saúde',
@@ -27,6 +27,14 @@ function createMockEmenda(codigo: string, ano = 2024): any {
     valorRestoCancelado: '0,00',
     valorRestoPago: '0,00',
   };
+}
+
+function seedPolitician(db: any, cpf: string, name: string) {
+  db.exec(`INSERT OR IGNORE INTO parties (id, name, acronym) VALUES ('PT', 'PARTIDO DOS TRABALHADORES', 'PT')`);
+  db.exec(`
+    INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
+    VALUES ('${cpf}', 'api-${cpf}', '${name}', 'SP', 'PT', 'DEPUTY', null, null)
+  `);
 }
 
 describe('EmendaParlamentarPipeline Integration Tests', () => {
@@ -43,6 +51,8 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
   });
 
   it('should fetch and persist emendas from a single page', async () => {
+    seedPolitician(getDb().db, '12345678901', 'Deputado Teste');
+
     const emendas = [createMockEmenda('202400000001'), createMockEmenda('202400000002')];
 
     // 2 emendas < pageSize (100), so pipeline stops after page 1 without fetching page 2
@@ -63,11 +73,15 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
       .all() as any[];
     assert.strictEqual(rows.length, 2);
     assert.strictEqual(rows[0].codigo_emenda, '202400000001');
+    assert.strictEqual(rows[0].politician_id, '12345678901');
     assert.strictEqual(rows[1].codigo_emenda, '202400000002');
+    assert.strictEqual(rows[1].politician_id, '12345678901');
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
 
   it('should stop fetching when a page returns fewer records than pageSize', async () => {
+    seedPolitician(getDb().db, '12345678901', 'Deputado Teste');
+
     // First page is full (pageSize=100), second is partial — no third request needed
     const page1 = Array.from({ length: 100 }, (_, i) =>
       createMockEmenda(`2024${String(i + 1).padStart(8, '0')}`)
@@ -119,6 +133,8 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
   });
 
   it('should force download even when emendas exist', async () => {
+    seedPolitician(getDb().db, '12345678901', 'Deputado Teste');
+
     getDb().db.exec(`
       INSERT INTO emendas_parlamentares (codigo_emenda, ano) VALUES ('EXISTING001', 2024)
     `);
@@ -146,6 +162,8 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
   });
 
   it('should retry on 500 errors and eventually succeed', async () => {
+    seedPolitician(getDb().db, '12345678901', 'Deputado Teste');
+
     const emenda = createMockEmenda('202400000001');
 
     nock(API_BASE_URL)
@@ -181,6 +199,96 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
       /PORTAL_TRANSPARENCIA_API_KEY/,
       'Should throw on missing API key'
     );
+  });
+
+  it('should leave politician_id null when autor is not found in lookup', async () => {
+    // No politician seeded — lookup should return null
+    const emenda = createMockEmenda('202400000001', 2024, 'DEPUTADO DESCONHECIDO');
+
+    nock(API_BASE_URL)
+      .get('/api-de-dados/emendas')
+      .query({ pagina: '1', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
+      .matchHeader('chave-api-dados', FAKE_API_KEY)
+      .reply(200, [emenda]);
+
+    // Absorb the remaining year×type combos
+    nock(API_BASE_URL).persist().get('/api-de-dados/emendas').query(true).reply(200, []);
+
+    const pipeline = new EmendaParlamentarPipeline(getDb().db);
+    await pipeline.execute();
+
+    const row = getDb().db
+      .prepare('SELECT politician_id FROM emendas_parlamentares WHERE codigo_emenda = ?')
+      .get('202400000001') as any;
+    assert.strictEqual(row.politician_id, null);
+    assert.ok(nock.isDone());
+  });
+
+  it('should resolve politician_id via normalized name matching (accents stripped)', async () => {
+    // DB stores name with accents; API returns the same name with accents — both normalize identically
+    seedPolitician(getDb().db, '99988877700', 'Deputado João Silva');
+    const emenda = createMockEmenda('202400000099', 2024, 'Deputado João Silva');
+
+    nock(API_BASE_URL)
+      .get('/api-de-dados/emendas')
+      .query({ pagina: '1', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
+      .matchHeader('chave-api-dados', FAKE_API_KEY)
+      .reply(200, [emenda]);
+
+    nock(API_BASE_URL).persist().get('/api-de-dados/emendas').query(true).reply(200, []);
+
+    const pipeline = new EmendaParlamentarPipeline(getDb().db);
+    await pipeline.execute();
+
+    const row = getDb().db
+      .prepare('SELECT politician_id FROM emendas_parlamentares WHERE codigo_emenda = ?')
+      .get('202400000099') as any;
+    assert.strictEqual(row.politician_id, '99988877700');
+    assert.ok(nock.isDone());
+  });
+
+  it('should resolve politician_id when API autor is uppercase and DB name has mixed case', async () => {
+    // DB name is mixed-case; API sends all-caps — normalizeNameForMatching uppercases both
+    seedPolitician(getDb().db, '11122233344', 'Maria Oliveira');
+    const emenda = createMockEmenda('202400000088', 2024, 'MARIA OLIVEIRA');
+
+    nock(API_BASE_URL)
+      .get('/api-de-dados/emendas')
+      .query({ pagina: '1', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
+      .matchHeader('chave-api-dados', FAKE_API_KEY)
+      .reply(200, [emenda]);
+
+    nock(API_BASE_URL).persist().get('/api-de-dados/emendas').query(true).reply(200, []);
+
+    const pipeline = new EmendaParlamentarPipeline(getDb().db);
+    await pipeline.execute();
+
+    const row = getDb().db
+      .prepare('SELECT politician_id FROM emendas_parlamentares WHERE codigo_emenda = ?')
+      .get('202400000088') as any;
+    assert.strictEqual(row.politician_id, '11122233344');
+    assert.ok(nock.isDone());
+  });
+
+  it('should leave politician_id null when emenda autor field is empty string', async () => {
+    const emenda = createMockEmenda('202400000077', 2024, '');
+
+    nock(API_BASE_URL)
+      .get('/api-de-dados/emendas')
+      .query({ pagina: '1', tamanhoPagina: '100', ano: TEST_YEAR, tipoEmenda: TEST_TYPE })
+      .matchHeader('chave-api-dados', FAKE_API_KEY)
+      .reply(200, [emenda]);
+
+    nock(API_BASE_URL).persist().get('/api-de-dados/emendas').query(true).reply(200, []);
+
+    const pipeline = new EmendaParlamentarPipeline(getDb().db);
+    await pipeline.execute();
+
+    const row = getDb().db
+      .prepare('SELECT politician_id FROM emendas_parlamentares WHERE codigo_emenda = ?')
+      .get('202400000077') as any;
+    assert.strictEqual(row.politician_id, null);
+    assert.ok(nock.isDone());
   });
 
   it('should throw when API returns non-array response', async () => {
