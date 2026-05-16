@@ -64,7 +64,7 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
     for (const e of items) {
       const politicianCpf = this.lookupService.findCpfByNormalizedName(e.autor);
       
-      if (e.autor && !politicianCpf) {
+      if (!politicianCpf) {
         unmatchedCount++;
         if (unmatchedCount <= 5) {
           console.warn(`Could not match autor: ${e.autor}`);

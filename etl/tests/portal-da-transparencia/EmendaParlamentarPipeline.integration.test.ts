@@ -270,7 +270,7 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
     assert.ok(nock.isDone());
   });
 
-  it('should leave politician_id null when emenda autor field is empty string', async () => {
+  it('should not persist emenda when autor field is empty string', async () => {
     const emenda = createMockEmenda('202400000077', 2024, '');
 
     nock(API_BASE_URL)
@@ -285,9 +285,9 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
     await pipeline.execute();
 
     const row = getDb().db
-      .prepare('SELECT politician_id FROM emendas_parlamentares WHERE codigo_emenda = ?')
-      .get('202400000077') as any;
-    assert.strictEqual(row.politician_id, null);
+      .prepare('SELECT COUNT(*) as cnt FROM emendas_parlamentares')
+      .get() as any;
+    assert.strictEqual(row.cnt, 0, 'Empty-author emenda should not be persisted');
     assert.ok(nock.isDone());
   });
 
