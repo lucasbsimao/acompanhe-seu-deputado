@@ -3,6 +3,7 @@ import { DeputiesPipeline } from '../dados-abertos-camara/DeputiesPipeline';
 import { SenatorsPipeline } from '../dados-abertos-senado/SenatorsPipeline';
 import { IPipelineDepChain } from '../../types/Pipeline';
 import { EmendaRepository, EmendaRecord } from '../../repositories/EmendaRepository';
+import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import type Database from 'better-sqlite3';
 import defaultConfig from '../../config/defaults.json';
@@ -37,7 +38,8 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
   constructor(db: Database.Database) {
     super({ pageSize: 100, maxRetries: 3, retryWaitMin: 250, retryWaitMax: 2000 });
     this.repo = new EmendaRepository(db);
-    this.lookupService = new PoliticianLookupService(db);
+    const politicianRepository = new PoliticianRepository(db);
+    this.lookupService = new PoliticianLookupService(politicianRepository);
   }
 
   async buildUrl(page: number, pageSize: number): Promise<string> {

@@ -14,12 +14,14 @@ export interface PoliticianRow {
 }
 
 export class PoliticianRepository {
+  private readonly db: Database.Database;
   private readonly insertParty: Database.Statement;
   private readonly insertPolitician: Database.Statement;
   private readonly insertAll: (rows: PoliticianRow[]) => void;
   private readonly countByRoleQuery: Database.Statement;
 
   constructor(db: Database.Database) {
+    this.db = db;
     this.insertParty = db.prepare(
       'INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)'
     );
@@ -42,5 +44,10 @@ export class PoliticianRepository {
   countByRole(role: string): number {
     const result = this.countByRoleQuery.get(role) as { count: number };
     return result.count;
+  }
+
+  getAllForLookup(): Array<{ cpf: string; name: string }> {
+    const query = this.db.prepare('SELECT cpf, name FROM politicians');
+    return query.all() as Array<{ cpf: string; name: string }>;
   }
 }

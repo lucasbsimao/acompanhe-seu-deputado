@@ -1,18 +1,18 @@
-import type Database from 'better-sqlite3';
+import { PoliticianRepository } from '../repositories/PoliticianRepository';
 import { normalizeNameForMatching } from '../util/normalization.util';
 
 export class PoliticianLookupService {
   private readonly nameToCpfMap: Map<string, string>;
+  private readonly politicianRepository: PoliticianRepository;
 
-  constructor(db: Database.Database) {
+  constructor(politicianRepository: PoliticianRepository) {
+    this.politicianRepository = politicianRepository;
     this.nameToCpfMap = new Map();
-    this.loadPoliticians(db);
+    this.loadPoliticians();
   }
 
-  private loadPoliticians(db: Database.Database): void {
-    const politicians = db
-      .prepare('SELECT cpf, name FROM politicians')
-      .all() as Array<{ cpf: string; name: string }>;
+  private loadPoliticians(): void {
+    const politicians = this.politicianRepository.getAllForLookup();
 
     for (const politician of politicians) {
       const normalizedName = normalizeNameForMatching(politician.name);
