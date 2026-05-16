@@ -1,11 +1,97 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'node:test';
+import { describe, it, mock, afterEach } from 'node:test';
 import { PipelineOrchestrator } from '../../src/core/PipelineOrchestrator';
 import { PipelineInfo } from '../../src/types/Pipeline';
 
 function makeInfo(className: string, dependencies: string[]): PipelineInfo {
-  return { name: className, displayName: className, className, filePath: '', importPath: '', dependencies };
+  return { name: className, displayName: className, className, filePath: '', importPath: className, dependencies };
 }
+
+function makeFakeClass(log: { importPath: string; forceDownload: boolean }[], importPath: string) {
+  return class {
+    constructor(_db: unknown) {}
+    static readonly dependencies: readonly string[] = [];
+    async execute(forceDownload: boolean) {
+      log.push({ importPath, forceDownload });
+    }
+  };
+}
+
+describe('PipelineOrchestrator.executeAll', () => {
+  afterEach(() => mock.reset());
+
+  // Graph: D ← B ← A → C ← D  (diamond), then E depends on A
+  //        D has no deps; B and C both depend on D; A depends on B+C; E depends on A
+  it('runs a diamond + chain graph in dependency order and passes forceDownload to each', async () => {
+    const orchestrator = new PipelineOrchestrator(null as any);
+    const log: { importPath: string; forceDownload: boolean }[] = [];
+
+    mock.method(orchestrator, 'loadPipelineClass', async (importPath: string) =>
+      makeFakeClass(log, importPath)
+    );
+
+    const d = makeInfo('D', []);
+    const b = makeInfo('B', ['D']);
+    const c = makeInfo('C', ['D']);
+    const a = makeInfo('A', ['B', 'C']);
+    const e = makeInfo('E', ['A']);
+    await orchestrator.executeAll([e, a, b, c, d], true);
+
+    const names = log.map((entry) => entry.importPath);
+    assert.strictEqual(names.length, 5);
+    assert.ok(names.indexOf('D') < names.indexOf('B'), 'D before B');
+    assert.ok(names.indexOf('D') < names.indexOf('C'), 'D before C');
+    assert.ok(names.indexOf('B') < names.indexOf('A'), 'B before A');
+    assert.ok(names.indexOf('C') < names.indexOf('A'), 'C before A');
+    assert.ok(names.indexOf('A') < names.indexOf('E'), 'A before E');
+    assert.ok(log.every((entry) => entry.forceDownload === true));
+  });
+});
+
+describe('PipelineOrchestrator.executeSelected', () => {
+  afterEach(() => mock.reset());
+
+  // Graph: D ← B ← A → C ← D  (diamond A depends on B+C, both depend on D); F is unrelated
+  // Select A: must run D, B, C (forceDownload=false) then A (forceDownload=true); F must not run
+  it('runs only target + transitive deps; deps use forceDownload=false, target uses given flag', async () => {
+    const orchestrator = new PipelineOrchestrator(null as any);
+    const log: { importPath: string; forceDownload: boolean }[] = [];
+
+    mock.method(orchestrator, 'loadPipelineClass', async (importPath: string) =>
+      makeFakeClass(log, importPath)
+    );
+
+    const d = makeInfo('D', []);
+    const b = makeInfo('B', ['D']);
+    const c = makeInfo('C', ['D']);
+    const a = makeInfo('A', ['B', 'C']);
+    const f = makeInfo('F', []); // unrelated — must not run
+
+    await orchestrator.executeSelected([a, b, c, d, f], 'A', true);
+
+    const names = log.map((entry) => entry.importPath);
+    assert.ok(!names.includes('F'), 'F must not run');
+    assert.strictEqual(names.length, 4);
+    assert.ok(names.indexOf('D') < names.indexOf('B'), 'D before B');
+    assert.ok(names.indexOf('D') < names.indexOf('C'), 'D before C');
+    assert.ok(names.indexOf('B') < names.indexOf('A'), 'B before A');
+    assert.ok(names.indexOf('C') < names.indexOf('A'), 'C before A');
+    assert.ok(
+      log.filter((e) => e.importPath !== 'A').every((e) => e.forceDownload === false),
+      'deps run with forceDownload=false'
+    );
+    assert.strictEqual(log.find((e) => e.importPath === 'A')!.forceDownload, true);
+  });
+
+  it('throws when selected class name is not found', async () => {
+    const orchestrator = new PipelineOrchestrator(null as any);
+
+    await assert.rejects(
+      () => orchestrator.executeSelected([makeInfo('A', [])], 'NonExistent', false),
+      /Pipeline NonExistent not found/
+    );
+  });
+});
 
 describe('PipelineOrchestrator.resolveExecutionOrder', () => {
   it('linear chain: A→B→C sorts as [C, B, A]', () => {
