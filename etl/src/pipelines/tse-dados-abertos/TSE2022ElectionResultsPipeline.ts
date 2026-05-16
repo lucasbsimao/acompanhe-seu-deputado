@@ -3,7 +3,7 @@ import { FileDownloader } from '../../core/FileDownloader';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianRole } from '../../types/PoliticianRole';
 import { TSECargo } from '../../types/TSECargo';
-import { TSEElectionResultStatus } from '../../types/TSEElectionResultStatus';
+import { TSEElectionResultStatus, type TSEElectionResultStatusKey } from '../../types/TSEElectionResultStatus';
 import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
 import { normalizeId } from '../../util/normalization.util';
 import { parse } from 'csv-parse/sync';
@@ -103,7 +103,7 @@ export class TSE2022ElectionResultsPipeline {
         partyId: normalizeId(c.SG_PARTIDO),
         role: c.DS_CARGO === TSECargo.DEPUTADO_FEDERAL ? PoliticianRole.DEPUTY : PoliticianRole.SENATOR,
         photoUrl: null,
-        electedAs: TSEElectionResultStatus.fromValue(c.DS_SIT_TOT_TURNO),
+        electedAs: TSEElectionResultStatus.fromValue(c.DS_SIT_TOT_TURNO) as TSEElectionResultStatusKey,
       }));
     
     this.repo.insertBatch(rows);

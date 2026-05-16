@@ -69,7 +69,7 @@ function createMockSenatorDetail(codigo: string): any {
 function seedTSESenatorRows(db: import('better-sqlite3').Database, count: number): void {
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   const insert = db.prepare(
-    "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO POR QP')"
+    "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')"
   );
   const insertAll = db.transaction((n: number) => {
     for (let i = 1; i <= n; i++) {
@@ -82,7 +82,7 @@ function seedTSESenatorRows(db: import('better-sqlite3').Database, count: number
 function seedTSESenatorById(db: import('better-sqlite3').Database, id: number): void {
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   db.prepare(
-    "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO POR QP')"
+    "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')"
   ).run(makeCPF(id), `TSE Senator ${id}`);
 }
 
@@ -124,7 +124,7 @@ describe('SenatorsPipeline Integration Tests', () => {
     assert.strictEqual(result[0].source_api_id, '1', 'First senator should have source_api_id 1');
     assert.strictEqual(result[0].role, 'SENATOR', 'Role should be SENATOR');
     assert.strictEqual(result[9].source_api_id, '10', 'Last senator should have source_api_id 10');
-    assert.strictEqual(result[0].elected_as, 'ELEITO POR QP', 'elected_as from TSE should be preserved');
+    assert.strictEqual(result[0].elected_as, 'ELEITO_POR_QP', 'elected_as from TSE should be preserved');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
