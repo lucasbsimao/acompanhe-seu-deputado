@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS politicians (
   party_id TEXT REFERENCES parties(id),
   role TEXT NOT NULL CHECK (role IN ('CITY_COUNCILOR', 'DEPUTY', 'SENATOR')),
   photo_url TEXT,
-  elected_as TEXT CHECK (elected_as IN ('ELEITO_POR_QP', 'ELEITO_POR_MEDIA', 'SUPLENTE'))
+  elected_as TEXT CHECK (elected_as IN ('ELEITO', 'ELEITO_POR_QP', 'ELEITO_POR_MEDIA', 'SUPLENTE'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_politicians_uf ON politicians(uf);

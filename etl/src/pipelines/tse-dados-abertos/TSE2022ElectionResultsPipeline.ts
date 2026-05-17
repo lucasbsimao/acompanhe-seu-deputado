@@ -81,6 +81,7 @@ export class TSE2022ElectionResultsPipeline {
   private filterElected(candidates: TSECandidate[]): TSECandidate[] {
     const validCargos = [TSECargo.DEPUTADO_FEDERAL, TSECargo.SENADOR];
     const validStatuses = [
+      TSEElectionResultStatus.ELEITO,
       TSEElectionResultStatus.ELEITO_POR_QP,
       TSEElectionResultStatus.ELEITO_POR_MEDIA,
       TSEElectionResultStatus.SUPLENTE,

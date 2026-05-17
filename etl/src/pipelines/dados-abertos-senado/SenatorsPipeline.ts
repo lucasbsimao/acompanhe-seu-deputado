@@ -2,14 +2,15 @@ import { BasePipeline } from './BasePipeline';
 import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
 import { IPipelineDepChain } from '../../types/Pipeline';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
+import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
-import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
 import { PoliticianRole } from '../../types/PoliticianRole';
 
 interface SenatorIdentification {
   CodigoParlamentar: string;
   NomeParlamentar: string;
+  NomeCompletoParlamentar?: string;
   SiglaPartidoParlamentar: string;
   UfParlamentar: string;
   UrlFotoParlamentar?: string;
@@ -17,23 +18,6 @@ interface SenatorIdentification {
 
 interface SenatorData {
   IdentificacaoParlamentar: SenatorIdentification;
-}
-
-interface SenatorDetail {
-  DetalheParlamentar: {
-    Parlamentar: {
-      IdentificacaoParlamentar: {
-        CodigoParlamentar: string;
-        NomeParlamentar: string;
-        SiglaPartidoParlamentar: string;
-        UfParlamentar: string;
-        UrlFotoParlamentar?: string;
-      };
-      DadosBasicosParlamentar: {
-        Cpf: string;
-      };
-    };
-  };
 }
 
 interface SenatorsResponse {
@@ -49,6 +33,7 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
 
   private readonly apiEndpoint = 'https://legis.senado.leg.br/dadosabertos/senador/lista/atual?participacao=T&v=4';
   private readonly repo: PoliticianRepository;
+  private readonly lookupService: PoliticianLookupService;
 
   constructor(db: Database.Database) {
     super({
@@ -57,6 +42,7 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
       retryWaitMax: 2000,
     });
     this.repo = new PoliticianRepository(db);
+    this.lookupService = new PoliticianLookupService(this.repo);
   }
 
   async buildUrl(): Promise<string> {
@@ -85,26 +71,29 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
   }
 
   async onPageFetched(items: SenatorData[]): Promise<void> {
-    const detailedSenators = await Promise.all(
-      items.map(async (s) => {
-        const codigo = s.IdentificacaoParlamentar.CodigoParlamentar;
-        const detailUrl = `https://legis.senado.leg.br/dadosabertos/senador/${codigo}`;
-        const { data } = await this.httpClient.request(detailUrl);
-        const detail = data as SenatorDetail;
-        const cpf = detail.DetalheParlamentar.Parlamentar.DadosBasicosParlamentar.Cpf;
-        
+    const matchedSenators = items
+      .map((s) => {
+        const id = s.IdentificacaoParlamentar;
+        const cpf = this.lookupService.findCpfByNormalizedName(id.NomeParlamentar)
+          || this.lookupService.findCpfByNormalizedName(id.NomeCompletoParlamentar || null);
+
+        if (!cpf) {
+          console.warn(`Could not match senator: ${id.NomeParlamentar} (${id.NomeCompletoParlamentar})`);
+          return null;
+        }
+
         return {
-          cpf: normalizeCPF(cpf),
-          sourceApiId: codigo,
-          name: s.IdentificacaoParlamentar.NomeParlamentar,
-          uf: s.IdentificacaoParlamentar.UfParlamentar,
-          partyId: normalizeId(s.IdentificacaoParlamentar.SiglaPartidoParlamentar),
+          cpf,
+          sourceApiId: id.CodigoParlamentar,
+          name: id.NomeParlamentar,
+          uf: id.UfParlamentar,
+          partyId: normalizeId(id.SiglaPartidoParlamentar),
           role: PoliticianRole.SENATOR,
-          photoUrl: s.IdentificacaoParlamentar.UrlFotoParlamentar || null,
+          photoUrl: id.UrlFotoParlamentar || null,
         };
       })
-    );
-    
-    this.repo.updateBatch(detailedSenators.filter(s => isValidCPF(s.cpf)));
+      .filter((s): s is NonNullable<typeof s> => s !== null);
+
+    this.repo.updateBatch(matchedSenators);
   }
 }

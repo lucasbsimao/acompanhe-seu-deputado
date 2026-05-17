@@ -48,24 +48,6 @@ function makeCPF(id: number): string {
   return digits.join('');
 }
 
-function createMockSenatorDetail(codigo: string): any {
-  return {
-    DetalheParlamentar: {
-      Parlamentar: {
-        IdentificacaoParlamentar: {
-          CodigoParlamentar: codigo,
-          NomeParlamentar: `Senator ${codigo}`,
-          SiglaPartidoParlamentar: 'PT',
-          UfParlamentar: 'SP',
-        },
-        DadosBasicosParlamentar: {
-          Cpf: makeCPF(Number(codigo)),
-        },
-      },
-    },
-  };
-}
-
 function seedTSESenatorRows(db: import('better-sqlite3').Database, count: number): void {
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   const insert = db.prepare(
@@ -73,17 +55,17 @@ function seedTSESenatorRows(db: import('better-sqlite3').Database, count: number
   );
   const insertAll = db.transaction((n: number) => {
     for (let i = 1; i <= n; i++) {
-      insert.run(makeCPF(i), `TSE Senator ${i}`);
+      insert.run(makeCPF(i), `Senator ${i}`);
     }
   });
   insertAll(count);
 }
 
-function seedTSESenatorById(db: import('better-sqlite3').Database, id: number): void {
+function seedTSESenatorByName(db: import('better-sqlite3').Database, id: number, name: string): void {
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   db.prepare(
     "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')"
-  ).run(makeCPF(id), `TSE Senator ${id}`);
+  ).run(makeCPF(id), name);
 }
 
 describe('SenatorsPipeline Integration Tests', () => {
@@ -91,13 +73,6 @@ describe('SenatorsPipeline Integration Tests', () => {
 
   beforeEach(() => {
     nock.cleanAll();
-    nock(API_BASE_URL)
-      .get(/\/dadosabertos\/senador\/\d+$/)
-      .reply(200, function(uri: string) {
-        const codigo = uri.split('/').pop()!;
-        return createMockSenatorDetail(codigo);
-      })
-      .persist();
   });
 
   afterEach(() => {
@@ -145,7 +120,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .reply(200, response);
 
     const db = getDb().db;
-    seedTSESenatorById(db, 1);
+    seedTSESenatorByName(db, 1, 'Senator 1');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -186,7 +161,8 @@ describe('SenatorsPipeline Integration Tests', () => {
       .reply(200, response);
 
     const db = getDb().db;
-    seedTSESenatorRows(db, 2);
+    seedTSESenatorByName(db, 1, 'Senator One');
+    seedTSESenatorByName(db, 2, 'Senator Two');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -205,6 +181,7 @@ describe('SenatorsPipeline Integration Tests', () => {
         IdentificacaoParlamentar: {
           CodigoParlamentar: '1',
           NomeParlamentar: 'Senator One',
+          NomeCompletoParlamentar: 'Senator One Full Name',
           SiglaPartidoParlamentar: 'PT',
           UfParlamentar: 'SP',
         },
@@ -218,7 +195,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .reply(200, response);
 
     const db = getDb().db;
-    seedTSESenatorById(db, 1);
+    seedTSESenatorByName(db, 1, 'Senator One');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -250,7 +227,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .reply(200, response);
 
     const db = getDb().db;
-    seedTSESenatorById(db, 5672);
+    seedTSESenatorByName(db, 5672, 'Alan Rick');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -442,7 +419,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .reply(200, response);
 
     const db = getDb().db;
-    seedTSESenatorById(db, 5672);
+    seedTSESenatorByName(db, 5672, 'Alan Rick');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
