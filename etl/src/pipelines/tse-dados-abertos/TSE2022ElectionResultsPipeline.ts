@@ -34,7 +34,19 @@ export class TSE2022ElectionResultsPipeline {
     this.repo = new PoliticianRepository(db);
   }
 
-  async execute(_forceDownload = false): Promise<void> {
+  async shouldDownload(): Promise<boolean> {
+    return (
+      this.repo.countByRole(PoliticianRole.DEPUTY) === 0 &&
+      this.repo.countByRole(PoliticianRole.SENATOR) === 0
+    );
+  }
+
+  async execute(forceDownload = false): Promise<void> {
+    if (!forceDownload && !(await this.shouldDownload())) {
+      console.log('Data already exists, skipping download. Use --force-download to override.');
+      return;
+    }
+
     try {
       console.log('Starting TSE 2022 Election Results Pipeline...');
       
