@@ -122,8 +122,16 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
       .all(PoliticianRole.DEPUTY) as { apiId: string; cpf: string }[];
     const total = allDeputies.length;
 
+    let skippedNoApiId = 0;
+
     for (let deputyIndex = 0; deputyIndex < allDeputies.length; deputyIndex++) {
       const deputy = allDeputies[deputyIndex];
+
+      if (!deputy.apiId) {
+        skippedNoApiId++;
+        continue;
+      }
+
       this.currentApiId = deputy.apiId;
       this.currentCpf = deputy.cpf;
 
@@ -136,5 +144,8 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
 
     process.stdout.write('\x1B[2J\x1B[H');
     console.log(`All ${total} deputies processed successfully`);
+    if (skippedNoApiId > 0) {
+      console.log(`${skippedNoApiId} deputies skipped (expenses not fetched) due to missing API ID (deputy likely did not assume office during this legislature)`);
+    }
   }
 }
