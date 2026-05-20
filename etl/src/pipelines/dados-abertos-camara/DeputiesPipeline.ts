@@ -117,7 +117,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
   }
 
   async shouldDownload(): Promise<boolean> {
-    return this.repo.countByRole(PoliticianRole.DEPUTY) === 0;
+    return this.repo.countByRoleWithSourceApiId(PoliticianRole.DEPUTY) === 0;
   }
 
   async onPageFetched(items: PoliticianData[]): Promise<void> {

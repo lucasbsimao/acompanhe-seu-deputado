@@ -21,6 +21,7 @@ export class PoliticianRepository {
   private readonly insertAll: (rows: PoliticianRow[]) => void;
   private readonly updateAll: (rows: PoliticianRow[]) => void;
   private readonly countByRoleQuery: Database.Statement;
+  private readonly countByRoleWithSourceApiIdQuery: Database.Statement;
 
   constructor(db: Database.Database) {
     this.db = db;
@@ -34,6 +35,7 @@ export class PoliticianRepository {
       'UPDATE politicians SET source_api_id = ?, name = ?, uf = ?, party_id = ?, photo_url = ? WHERE cpf = ?'
     );
     this.countByRoleQuery = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ?');
+    this.countByRoleWithSourceApiIdQuery = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ? AND source_api_id IS NOT NULL');
     this.insertAll = db.transaction((rows: PoliticianRow[]) => {
       for (const r of rows) {
         this.insertParty.run(r.partyId, r.partyId, r.partyId);
@@ -58,6 +60,11 @@ export class PoliticianRepository {
 
   countByRole(role: string): number {
     const result = this.countByRoleQuery.get(role) as { count: number };
+    return result.count;
+  }
+
+  countByRoleWithSourceApiId(role: string): number {
+    const result = this.countByRoleWithSourceApiIdQuery.get(role) as { count: number };
     return result.count;
   }
 

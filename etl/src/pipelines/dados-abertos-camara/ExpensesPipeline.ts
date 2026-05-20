@@ -2,6 +2,7 @@ import { BasePipeline } from './BasePipeline';
 import { DeputiesPipeline } from './DeputiesPipeline';
 import { IPipelineDepChain } from '../../types/Pipeline';
 import { ExpensesRepository } from '../../repositories/ExpensesRepository';
+import { PoliticianRole } from '../../types/PoliticianRole';
 import type Database from 'better-sqlite3';
 import { normalizeNumericText } from '../../util/normalization.util';
 import { convertToCents } from '../../util/convertion.util';
@@ -116,8 +117,8 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
 
   async execute(forceDownload = false): Promise<void> {
     const allDeputyIds = this.db
-      .prepare("SELECT id FROM politicians WHERE role = 'DEPUTY'")
-      .all()
+      .prepare('SELECT source_api_id as id FROM politicians WHERE role = ?')
+      .all(PoliticianRole.DEPUTY)
       .map((row: any) => row.id);
     const total = allDeputyIds.length;
 
