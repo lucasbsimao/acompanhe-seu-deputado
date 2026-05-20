@@ -4,7 +4,7 @@ import { IPipelineDepChain } from '../../types/Pipeline';
 import { ExpensesRepository } from '../../repositories/ExpensesRepository';
 import { PoliticianRole } from '../../types/PoliticianRole';
 import type Database from 'better-sqlite3';
-import { normalizeNumericText } from '../../util/normalization.util';
+import { normalizeNumericText, normalizeLabel } from '../../util/normalization.util';
 import { convertToCents } from '../../util/convertion.util';
 import defaultConfig from '../../config/defaults.json';
 
@@ -102,7 +102,7 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
       items.map(e => ({
         id: `${this.currentCpf}_${e.codDocumento}`,
         deputyId: this.currentCpf,
-        tipoDespesa: normalizeNumericText(e.tipoDespesa),
+        tipoDespesa: normalizeLabel(e.tipoDespesa),
         codDocumento: e.codDocumento,
         codTipoDocumento: e.codTipoDocumento,
         dataDocumento: e.dataDocumento,
