@@ -38,7 +38,8 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
   private readonly repo: ExpensesRepository;
   private readonly db: Database.Database;
-  private currentDeputyId: string = '';
+  private currentApiId: string = '';
+  private currentCpf: string = '';
 
   constructor(db: Database.Database) {
     super({
@@ -53,7 +54,7 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
   }
 
   async buildUrl(page: number, pageSize: number): Promise<string> {
-    const url = new URL(`${this.apiEndpoint}/${this.currentDeputyId}/despesas`);
+    const url = new URL(`${this.apiEndpoint}/${this.currentApiId}/despesas`);
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: defaultConfig.expenses.yearsToFetch }, (_, i) => currentYear - i).join(',');
 
@@ -93,14 +94,14 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
   }
 
   async shouldDownload(): Promise<boolean> {
-    return !this.repo.hasExpensesForDeputy(this.currentDeputyId);
+    return !this.repo.hasExpensesForDeputy(this.currentCpf);
   }
 
   async onPageFetched(items: ExpenseData[]): Promise<void> {
     this.repo.insertBatch(
       items.map(e => ({
-        id: `${this.currentDeputyId}_${e.codDocumento}`,
-        deputyId: this.currentDeputyId,
+        id: `${this.currentCpf}_${e.codDocumento}`,
+        deputyId: this.currentCpf,
         tipoDespesa: normalizeNumericText(e.tipoDespesa),
         codDocumento: e.codDocumento,
         codTipoDocumento: e.codTipoDocumento,
@@ -116,18 +117,19 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
   }
 
   async execute(forceDownload = false): Promise<void> {
-    const allDeputyIds = this.db
-      .prepare('SELECT source_api_id as id FROM politicians WHERE role = ?')
-      .all(PoliticianRole.DEPUTY)
-      .map((row: any) => row.id);
-    const total = allDeputyIds.length;
+    const allDeputies = this.db
+      .prepare('SELECT source_api_id as apiId, cpf FROM politicians WHERE role = ?')
+      .all(PoliticianRole.DEPUTY) as { apiId: string; cpf: string }[];
+    const total = allDeputies.length;
 
-    for (let deputyIndex = 0; deputyIndex < allDeputyIds.length; deputyIndex++) {
-      this.currentDeputyId = allDeputyIds[deputyIndex];
+    for (let deputyIndex = 0; deputyIndex < allDeputies.length; deputyIndex++) {
+      const deputy = allDeputies[deputyIndex];
+      this.currentApiId = deputy.apiId;
+      this.currentCpf = deputy.cpf;
 
       process.stdout.write('\x1B[2J\x1B[H');
       process.stdout.write(`Found ${total} deputies to process\n`);
-      process.stdout.write(`Processing deputy ${deputyIndex + 1}/${total}: ${this.currentDeputyId}\n`);
+      process.stdout.write(`Processing deputy ${deputyIndex + 1}/${total}: ${this.currentApiId}\n`);
 
       await super.execute(forceDownload);
     }
