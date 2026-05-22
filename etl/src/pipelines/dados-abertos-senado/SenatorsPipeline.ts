@@ -1,5 +1,8 @@
 import { BasePipeline } from './BasePipeline';
+import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
+import { IPipelineDepChain } from '../../types/Pipeline';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
+import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
 import { PoliticianRole } from '../../types/PoliticianRole';
@@ -7,6 +10,7 @@ import { PoliticianRole } from '../../types/PoliticianRole';
 interface SenatorIdentification {
   CodigoParlamentar: string;
   NomeParlamentar: string;
+  NomeCompletoParlamentar?: string;
   SiglaPartidoParlamentar: string;
   UfParlamentar: string;
   UrlFotoParlamentar?: string;
@@ -25,8 +29,11 @@ interface SenatorsResponse {
 }
 
 export class SenatorsPipeline extends BasePipeline<SenatorData> {
+  static readonly dependencies: readonly IPipelineDepChain[] = [TSE2022ElectionResultsPipeline];
+
   private readonly apiEndpoint = 'https://legis.senado.leg.br/dadosabertos/senador/lista/atual?participacao=T&v=4';
   private readonly repo: PoliticianRepository;
+  private readonly lookupService: PoliticianLookupService;
 
   constructor(db: Database.Database) {
     super({
@@ -35,6 +42,7 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
       retryWaitMax: 2000,
     });
     this.repo = new PoliticianRepository(db);
+    this.lookupService = new PoliticianLookupService(this.repo);
   }
 
   async buildUrl(): Promise<string> {
@@ -59,19 +67,33 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
   }
 
   async shouldDownload(): Promise<boolean> {
-    return this.repo.countByRole(PoliticianRole.SENATOR) === 0;
+    return this.repo.countByRoleWithSourceApiId(PoliticianRole.SENATOR) === 0;
   }
 
   async onPageFetched(items: SenatorData[]): Promise<void> {
-    this.repo.insertBatch(
-      items.map(s => ({
-        id: String(s.IdentificacaoParlamentar.CodigoParlamentar),
-        name: s.IdentificacaoParlamentar.NomeParlamentar,
-        uf: s.IdentificacaoParlamentar.UfParlamentar,
-        partyId: normalizeId(s.IdentificacaoParlamentar.SiglaPartidoParlamentar),
-        role: PoliticianRole.SENATOR,
-        photoUrl: s.IdentificacaoParlamentar.UrlFotoParlamentar || null,
-      }))
-    );
+    const matchedSenators = items
+      .map((s) => {
+        const id = s.IdentificacaoParlamentar;
+        const cpf = this.lookupService.findCpfByNormalizedName(id.NomeParlamentar)
+          || this.lookupService.findCpfByNormalizedName(id.NomeCompletoParlamentar || null);
+
+        if (!cpf) {
+          console.warn(`Could not match senator: ${id.NomeParlamentar} (${id.NomeCompletoParlamentar})`);
+          return null;
+        }
+
+        return {
+          cpf,
+          sourceApiId: id.CodigoParlamentar,
+          name: id.NomeParlamentar,
+          uf: id.UfParlamentar,
+          partyId: normalizeId(id.SiglaPartidoParlamentar),
+          role: PoliticianRole.SENATOR,
+          photoUrl: id.UrlFotoParlamentar || null,
+        };
+      })
+      .filter((s): s is NonNullable<typeof s> => s !== null);
+
+    this.repo.updateBatch(matchedSenators);
   }
 }

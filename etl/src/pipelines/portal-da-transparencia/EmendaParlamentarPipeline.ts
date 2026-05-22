@@ -1,5 +1,9 @@
 import { BasePipeline } from './BasePipeline';
+import { DeputiesPipeline } from '../dados-abertos-camara/DeputiesPipeline';
+import { SenatorsPipeline } from '../dados-abertos-senado/SenatorsPipeline';
+import { IPipelineDepChain } from '../../types/Pipeline';
 import { EmendaRepository, EmendaRecord } from '../../repositories/EmendaRepository';
+import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import type Database from 'better-sqlite3';
 import defaultConfig from '../../config/defaults.json';
@@ -23,6 +27,8 @@ interface ApiEmenda {
 }
 
 export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
+  static readonly dependencies: readonly IPipelineDepChain[] = [DeputiesPipeline, SenatorsPipeline];
+
   private readonly apiEndpoint = 'https://api.portaldatransparencia.gov.br/api-de-dados/emendas';
   private readonly repo: EmendaRepository;
   private readonly lookupService: PoliticianLookupService;
@@ -32,7 +38,8 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
   constructor(db: Database.Database) {
     super({ pageSize: 100, maxRetries: 3, retryWaitMin: 250, retryWaitMax: 2000 });
     this.repo = new EmendaRepository(db);
-    this.lookupService = new PoliticianLookupService(db);
+    const politicianRepository = new PoliticianRepository(db);
+    this.lookupService = new PoliticianLookupService(politicianRepository);
   }
 
   async buildUrl(page: number, pageSize: number): Promise<string> {
@@ -60,20 +67,21 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
     let unmatchedCount = 0;
 
     for (const e of items) {
-      const politicianId = this.lookupService.findByNormalizedName(e.autor);
+      const politicianCpf = this.lookupService.findCpfByNormalizedName(e.autor);
       
-      if (e.autor && !politicianId) {
+      if (!politicianCpf) {
         unmatchedCount++;
         if (unmatchedCount <= 5) {
           console.warn(`Could not match autor: ${e.autor}`);
         }
+        continue;
       }
 
       records.push({
         codigoEmenda: e.codigoEmenda,
         ano: e.ano,
         tipoEmenda: e.tipoEmenda ?? null,
-        politicianId: politicianId,
+        politicianCpf: politicianCpf,
         numeroEmenda: e.numeroEmenda ?? null,
         localidadeDoGasto: e.localidadeDoGasto ?? null,
         funcao: e.funcao ?? null,

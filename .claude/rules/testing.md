@@ -45,6 +45,15 @@ Delete child tables before parent tables to respect FK constraints:
 - `politicians` before `parties` (politicians.party_id → parties.id)
 - Never delete from `ufs` — it is pre-seeded by migrations and shared across tests
 
+## Production code boundaries
+
+Never modify production code solely to make it easier to test. Specifically:
+- Do not add public accessors or change method visibility to expose internals.
+- Do not add constructor parameters, flags, or hooks that exist only to support test inspection.
+- Do not extract private logic into protected/public methods just to override them in tests.
+
+If a behaviour is hard to test, fix the test approach (better mocks, test doubles, asserting on observable outputs) — not the production code.
+
 ## Mocking
 
 - Only mock external HTTP APIs (use `nock` in ETL, Jest mocks in app).

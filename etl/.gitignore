@@ -2,4 +2,5 @@ dist
 
 seed.db-wal
 seed.db-shm
-seed.db
+seed.db*
+:memory:

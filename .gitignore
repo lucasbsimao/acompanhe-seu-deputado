@@ -82,3 +82,5 @@ yarn-error.log
 # App seeds
 android/app/src/main/assets/seed.db
 ios/AcompanheSeuDeputado/seed.db
+
+.windsurf

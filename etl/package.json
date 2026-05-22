@@ -10,12 +10,15 @@
     "test": "npm run build && node --test 'dist/etl/tests/**/*.test.js'"
   },
   "dependencies": {
+    "adm-zip": "^0.5.10",
     "axios": "^1.7.7",
     "axios-retry": "^4.5.0",
     "better-sqlite3": "^12.8.0",
+    "csv-parse": "^5.5.3",
     "prompts": "^2.4.2"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.14.9",
     "@types/prompts": "^2.4.9",

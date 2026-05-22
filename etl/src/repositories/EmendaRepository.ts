@@ -4,7 +4,7 @@ export interface EmendaRecord {
   codigoEmenda: string;
   ano: number;
   tipoEmenda: string | null;
-  politicianId: string | null;
+  politicianCpf: string | null;
   numeroEmenda: string | null;
   localidadeDoGasto: string | null;
   funcao: string | null;
@@ -23,12 +23,12 @@ export class EmendaRepository {
   constructor(private readonly db: Database.Database) {
     this.insertStmt = db.prepare(`
       INSERT OR REPLACE INTO emendas_parlamentares (
-        codigo_emenda, ano, tipo_emenda, politician_id, numero_emenda,
+        codigo_emenda, ano, tipo_emenda, politician_cpf, numero_emenda,
         localidade_gasto, funcao, subfuncao,
         valor_empenhado, valor_liquidado, valor_pago,
         valor_resto_inscrito, valor_resto_cancelado, valor_resto_pago
       ) VALUES (
-        @codigoEmenda, @ano, @tipoEmenda, @politicianId, @numeroEmenda,
+        @codigoEmenda, @ano, @tipoEmenda, @politicianCpf, @numeroEmenda,
         @localidadeDoGasto, @funcao, @subfuncao,
         @valorEmpenhado, @valorLiquidado, @valorPago,
         @valorRestoInscrito, @valorRestoCancelado, @valorRestoPago

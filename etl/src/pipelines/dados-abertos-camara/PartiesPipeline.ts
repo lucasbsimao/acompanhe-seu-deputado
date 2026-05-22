@@ -2,6 +2,7 @@ import { BasePipeline } from './BasePipeline';
 import { PartyRepository } from '../../repositories/PartyRepository';
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
+import { IPipelineDepChain } from '../../types/Pipeline';
 
 interface PartyData {
   id: number;
@@ -15,6 +16,8 @@ interface ApiResponse {
 }
 
 export class PartiesPipeline extends BasePipeline<PartyData> {
+  static readonly dependencies: readonly IPipelineDepChain[] = [];
+
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/partidos';
   private readonly repo: PartyRepository;
 
