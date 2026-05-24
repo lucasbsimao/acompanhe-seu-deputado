@@ -2,14 +2,14 @@ import { Database } from 'better-sqlite3';
 
 export interface Vendor {
   cnpj: string;
-  razao_social: string;
-  cnae_principal?: string;
+  legal_name: string;
+  primary_cnae?: string;
   uf?: string;
   municipio?: string;
-  data_abertura?: string;
-  situacao_cadastral?: string;
-  data_situacao_cadastral?: string;
-  porte?: string;
+  opening_date?: string;
+  registration_status?: string;
+  registration_status_date?: string;
+  company_size?: string;
 }
 
 export interface VendorPartner {
@@ -27,8 +27,8 @@ export class VendorRepository {
 
     const stmt = this.db.prepare(`
       INSERT OR IGNORE INTO vendors (
-        cnpj, razao_social, cnae_principal, uf, municipio,
-        data_abertura, situacao_cadastral, data_situacao_cadastral, porte
+        cnpj, legal_name, primary_cnae, uf, municipio,
+        opening_date, registration_status, registration_status_date, company_size
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
@@ -36,14 +36,14 @@ export class VendorRepository {
       for (const vendor of vendors) {
         stmt.run(
           vendor.cnpj,
-          vendor.razao_social,
-          vendor.cnae_principal || null,
+          vendor.legal_name,
+          vendor.primary_cnae || null,
           vendor.uf || null,
           vendor.municipio || null,
-          vendor.data_abertura || null,
-          vendor.situacao_cadastral || null,
-          vendor.data_situacao_cadastral || null,
-          vendor.porte || null
+          vendor.opening_date || null,
+          vendor.registration_status || null,
+          vendor.registration_status_date || null,
+          vendor.company_size || null
         );
       }
     });

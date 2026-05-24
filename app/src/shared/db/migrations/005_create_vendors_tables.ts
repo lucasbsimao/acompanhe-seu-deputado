@@ -6,14 +6,14 @@ export const migration005: Migration = {
     -- Create vendors table
     CREATE TABLE IF NOT EXISTS vendors (
       cnpj TEXT PRIMARY KEY,
-      razao_social TEXT NOT NULL,
-      cnae_principal TEXT,
+      legal_name TEXT NOT NULL,
+      primary_cnae TEXT,
       uf TEXT,
       municipio TEXT,
-      data_abertura TEXT,
-      situacao_cadastral TEXT,
-      data_situacao_cadastral TEXT,
-      porte TEXT
+      opening_date TEXT,
+      registration_status TEXT,
+      registration_status_date TEXT,
+      company_size TEXT
     );
 
     -- Create vendor_partners table
@@ -29,8 +29,8 @@ export const migration005: Migration = {
     -- Create indexes for better query performance
     CREATE INDEX IF NOT EXISTS idx_vendors_uf ON vendors(uf);
     CREATE INDEX IF NOT EXISTS idx_vendors_municipio ON vendors(municipio);
-    CREATE INDEX IF NOT EXISTS idx_vendors_cnae_principal ON vendors(cnae_principal);
-    CREATE INDEX IF NOT EXISTS idx_vendors_situacao_cadastral ON vendors(situacao_cadastral);
+    CREATE INDEX IF NOT EXISTS idx_vendors_primary_cnae ON vendors(primary_cnae);
+    CREATE INDEX IF NOT EXISTS idx_vendors_registration_status ON vendors(registration_status);
     CREATE INDEX IF NOT EXISTS idx_vendor_partners_cnpj ON vendor_partners(cnpj);
     CREATE INDEX IF NOT EXISTS idx_vendor_partners_partner_cpf_cnpj ON vendor_partners(partner_cpf_cnpj);
   `,
