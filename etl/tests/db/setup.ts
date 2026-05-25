@@ -43,6 +43,8 @@ export function createTestDatabase(): TestDatabase {
     close: () => db.close(),
     clearData: () => {
       if (db.open) {
+        db.exec('DELETE FROM vendor_partners');
+        db.exec('DELETE FROM vendors');
         db.exec('DELETE FROM expenses');
         db.exec('DELETE FROM emendas_parlamentares');
         db.exec('DELETE FROM politicians');
