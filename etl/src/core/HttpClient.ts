@@ -1,4 +1,5 @@
-import axios, { AxiosError, AxiosInstance } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
+import type { Readable } from 'stream';
 import axiosRetry, { exponentialDelay, retryAfter } from 'axios-retry';
 
 export interface RetryConfig {
@@ -34,6 +35,16 @@ export class HttpClient {
       data: response.data,
       headers: response.headers as Record<string, string>,
     };
+  }
+
+  async requestStream(
+    url: string,
+    options?: { auth?: { username: string; password: string } }
+  ): Promise<AxiosResponse<Readable>> {
+    return this.client.get<Readable>(url, {
+      responseType: 'stream',
+      auth: options?.auth,
+    });
   }
 
   private shouldRetry(error: AxiosError): boolean {
