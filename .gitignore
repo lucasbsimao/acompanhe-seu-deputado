@@ -84,3 +84,4 @@ android/app/src/main/assets/seed.db
 ios/AcompanheSeuDeputado/seed.db
 
 .windsurf
+*.bak

@@ -19,5 +19,11 @@
       "Emenda Individual - Transferências com Finalidade Definida",
       "Emenda Individual - Transferências Especiais"
     ]
+  },
+  "receitaFederal": {
+    "webdavBase": "https://arquivos.receitafederal.gov.br/public.php/webdav",
+    "shareToken": "YggdBLfdninEJX9",
+    "fileCount": 10,
+    "referenceYearMonth": "2026-05"
   }
 }

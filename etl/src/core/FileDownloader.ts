@@ -1,22 +1,24 @@
-import axios from 'axios';
 import { createWriteStream, mkdirSync, existsSync } from 'fs';
 import { pipeline } from 'stream/promises';
-import AdmZip from 'adm-zip';
+import { execFileSync } from 'child_process';
 import { join } from 'path';
+import { HttpClient } from './HttpClient';
+
+export interface BasicAuthOptions {
+  username: string;
+  password: string;
+}
 
 export class FileDownloader {
-  async downloadFile(url: string, destPath: string): Promise<void> {
+  constructor(private readonly httpClient: HttpClient) {}
+
+  async downloadFile(url: string, destPath: string, auth?: BasicAuthOptions): Promise<void> {
     const dir = join(destPath, '..');
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
 
-    const response = await axios({
-      method: 'GET',
-      url,
-      responseType: 'stream',
-      timeout: 60000,
-    });
+    const response = await this.httpClient.requestStream(url, auth ? { auth } : undefined);
 
     await pipeline(response.data, createWriteStream(destPath));
     console.log(`Downloaded: ${destPath}`);
@@ -27,8 +29,7 @@ export class FileDownloader {
       mkdirSync(extractPath, { recursive: true });
     }
 
-    const zip = new AdmZip(zipPath);
-    zip.extractAllTo(extractPath, true);
+    execFileSync('unzip', ['-o', '-q', zipPath, '-d', extractPath]);
     console.log(`Extracted to: ${extractPath}`);
   }
 }

@@ -30,6 +30,7 @@
     "@react-native/eslint-config": "^0.81.3",
     "@react-native/metro-config": "0.81.3",
     "@react-native/typescript-config": "0.81.3",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "^29.5.13",
     "@types/node": "^20.0.0",
     "@types/react": "^19.1.0",

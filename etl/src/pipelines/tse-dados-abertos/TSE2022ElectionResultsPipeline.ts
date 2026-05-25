@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import { FileDownloader } from '../../core/FileDownloader';
+import { HttpClient } from '../../core/HttpClient';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianRole } from '../../types/PoliticianRole';
 import { TSECargo } from '../../types/TSECargo';
@@ -27,11 +28,16 @@ export class TSE2022ElectionResultsPipeline {
   private readonly tempDir = join(process.cwd(), 'temp_tse_2022');
   private readonly zipPath = join(this.tempDir, 'consulta_cand_2022.zip');
   private readonly extractPath = join(this.tempDir, 'extracted');
-  private readonly downloader = new FileDownloader();
+  private readonly downloader: FileDownloader;
   private readonly repo: PoliticianRepository;
 
   constructor(db: Database.Database) {
     this.repo = new PoliticianRepository(db);
+    const httpClient = new HttpClient(
+      { maxRetries: 3, retryWaitMin: 250, retryWaitMax: 2000 },
+      60000
+    );
+    this.downloader = new FileDownloader(httpClient);
   }
 
   async shouldDownload(): Promise<boolean> {
