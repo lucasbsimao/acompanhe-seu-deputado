@@ -16,12 +16,14 @@ export interface ExpenseRow {
 }
 
 export class ExpensesRepository {
+  private readonly db: Database.Database;
   private readonly insertExpense: Database.Statement;
   private readonly insertAll: (rows: ExpenseRow[]) => void;
   private readonly hasExpensesQuery: Database.Statement;
   private readonly countByDeputyQuery: Database.Statement;
 
   constructor(db: Database.Database) {
+    this.db = db;
     this.insertExpense = db.prepare(
       `INSERT OR REPLACE INTO expenses (
         id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
@@ -57,5 +59,13 @@ export class ExpensesRepository {
   countByDeputy(deputyId: string): number {
     const result = this.countByDeputyQuery.get(deputyId) as { count: number };
     return result.count;
+  }
+
+  getDistinctCnpjs(): string[] {
+    const rows = this.db.prepare(
+      `SELECT DISTINCT cnpj_cpf_fornecedor FROM expenses
+       WHERE length(cnpj_cpf_fornecedor) = 14`
+    ).all() as Array<{ cnpj_cpf_fornecedor: string }>;
+    return rows.map(r => r.cnpj_cpf_fornecedor);
   }
 }

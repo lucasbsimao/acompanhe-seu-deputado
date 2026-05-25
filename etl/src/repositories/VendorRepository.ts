@@ -20,7 +20,11 @@ export interface VendorPartner {
 }
 
 export class VendorRepository {
-  constructor(private db: Database) {}
+  private readonly stmtFullCnpjsByBasic: ReturnType<Database['prepare']>;
+
+  constructor(private db: Database) {
+    this.stmtFullCnpjsByBasic = db.prepare('SELECT cnpj FROM vendors WHERE cnpj LIKE ?');
+  }
 
   insertVendorBatch(vendors: Vendor[]): void {
     if (vendors.length === 0) return;
@@ -72,5 +76,15 @@ export class VendorRepository {
     });
 
     transaction();
+  }
+
+  getFullCnpjsByBasicCnpj(basicCnpj: string): string[] {
+    const rows = this.stmtFullCnpjsByBasic.all(`${basicCnpj}%`) as { cnpj: string }[];
+    return rows.map(r => r.cnpj);
+  }
+
+  hasAnyVendors(): boolean {
+    const row = this.db.prepare('SELECT 1 FROM vendors LIMIT 1').get();
+    return row !== undefined;
   }
 }
