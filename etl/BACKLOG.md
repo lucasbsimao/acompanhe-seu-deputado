@@ -167,13 +167,15 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 - Signal is strongest when combined with `VENDOR_IS_CPF` or `RECIBO_DOCUMENT`
 - Corpus: 91,718 affected expenses (13.8% prevalence) — Medium tier is appropriate
 
-### 17. Fix `DUPLICATE_INVOICE` S/N placeholder exclusion
+### 17. `DUPLICATE_INVOICE` pipeline
 
-- **Type**: Bug fix to existing flag logic
-- Add normalization step before `num_documento` comparison
-- Exclusion list: `S/N`, `s/n`, `SN`, `sn`, `S.N.`, `S/Nº`, `00`, `000`, `0`, `-`, blank
-- Without this fix: 1,111 of 6,777 duplicate pairs are S/N placeholders — the 50 pt weight causes any S/N receipt to immediately exceed the "high suspicion" threshold on its own
-- Reduce weight from 50 pt to 40 pt after exclusion (see §9 revised scoring table)
+- **Signal**: Medium-High — 40 pt
+- **Data**: CEAP only (no external datasets)
+- **Depends on**: #1 (`forensic_flags` infrastructure)
+- Same `(cnpj_cpf_fornecedor, num_documento)` pair appears in ≥ 2 expenses for the **same `deputy_id`**
+- Apply S/N placeholder exclusion before comparison (TRIM + UPPER normalisation): `S/N`, `s/n`, `SN`, `sn`, `S.N.`, `S/Nº`, `00`, `000`, `0`, `-`, blank — 1,111 of 6,777 raw duplicate pairs are S/N placeholders; without exclusion the 40 pt weight causes any S/N receipt to immediately exceed the "high suspicion" threshold on its own
+- Does **not** auto-escalate — same-deputy duplicate has a non-zero FPR: a data correction or amended-expense re-submission can produce identical `(cnpj, num_documento)` values under the same deputy. Unlike `CROSS_DEPUTY_INVOICE_REUSE`, there is no definitively fraudulent interpretation.
+- Corpus: ~5,666 true duplicate pairs after S/N exclusion (~1.7% of corpus)
 
 ### 18. Fix `EXTREME_AMOUNT` guardrails
 
@@ -315,6 +317,7 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 #1 (forensic_flags table)
  └─► #2  CROSS_DEPUTY_INVOICE_REUSE
  └─► #16 SINGLE_CLIENT_VENDOR
+ └─► #17 DUPLICATE_INVOICE
 
 #5 (pipeline_runs table)
  └─► #6  CNPJ_MISSING_ESTABLISHMENT
