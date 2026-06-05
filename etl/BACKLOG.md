@@ -10,19 +10,22 @@
 
 These bypass the scoring system entirely. A single occurrence is sufficient for mandatory review regardless of total score.
 
-### 1. `expense_flags` table + post-ingestion SQL pass infrastructure
+### 1. `forensic_flags` table + forensic pipeline infrastructure
 
 - **Type**: Infrastructure prerequisite
 - **Blocks**: items #2 and #16
-- New migration: `expense_flags(expense_id TEXT, flag_name TEXT, score INT, metadata TEXT)`
-- Implement as a dedicated SQL stage that runs after `ExpensesPipeline` completes and before any scoring pipeline reads flags
-- Required because `CROSS_DEPUTY_INVOICE_REUSE` and `SINGLE_CLIENT_VENDOR` aggregate across all deputies simultaneously and cannot be computed inside the per-deputy ETL loop
+- New migration: `forensic_flags(entity_type TEXT, entity_id TEXT, flag_name TEXT, score INT, metadata TEXT)`
+- Each flag indicator is its own pipeline class under `src/pipelines/forensics/`, implementing the standard `execute()` interface with `static readonly dependencies` pointing to its required data-ingestion pipelines
+- `PipelineOrchestrator` handles run order automatically via topological sort — no separate service or entry point needed
+- Flag pipelines run pure SQL aggregations; no HTTP or file download
+- Required because cross-deputy aggregations (`CROSS_DEPUTY_INVOICE_REUSE`, `SINGLE_CLIENT_VENDOR`) span all deputies simultaneously and cannot run inside the per-deputy ETL loop
+- `entity_type` supports future non-expense sources (e.g. `'emenda'`, `'vendor'`) without schema changes
 
 ### 2. `CROSS_DEPUTY_INVOICE_REUSE`
 
 - **Signal**: Definitive — 50 pt / auto-escalate
 - **Data**: CEAP only (no external datasets)
-- **Depends on**: #1 (`expense_flags` infrastructure)
+- **Depends on**: #1 (`forensic_flags` infrastructure)
 - Same `(cnpj_cpf_fornecedor, num_documento)` pair in expenses from ≥ 2 distinct `deputy_id` values
 - Apply same S/N exclusion list as `DUPLICATE_INVOICE` (see item #17): `S/N`, `s/n`, `SN`, `sn`, `S.N.`, `S/Nº`, `00`, `000`, `0`, `-`, blank
 - One invoice cannot justify two separate public reimbursements — zero innocent explanations
@@ -118,7 +121,7 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 - **Signal**: High — 50 pt standalone; **Definitive/auto-escalate** under §6 composite
 - **Depends on**: #10 (`tse_candidates` table)
 - Cross-reference `vendor_partners.partner_cpf_cnpj` = `tse_candidates.cpf`
-- Pre-compute as a boolean or flag stored on `vendors` or written to `expense_flags` at ETL time
+- Pre-compute as a boolean or flag stored on `vendors` or written to `forensic_flags` at ETL time
 - **§6 composite escalation rule**: When `POLITICALLY_CONNECTED_VENDOR` fires together with `RECIBO_DOCUMENT` and either `VENDOR_CNAE_MISMATCH` or `VENDOR_GEOGRAPHIC_ANOMALY`, the expense must auto-escalate to mandatory manual review regardless of total score — this combination should not be suppressible by a scoring threshold
 
 ### 12. TSE campaign donation pipeline
@@ -158,7 +161,7 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 
 - **Signal**: Medium — 20 pt
 - **Data**: CEAP only
-- **Depends on**: #1 (`expense_flags` infrastructure)
+- **Depends on**: #1 (`forensic_flags` infrastructure)
 - Post-ingestion SQL: vendors with exactly 1 distinct `deputy_id` across ≥ 5 total expenses
 - ≥ 5 minimum avoids penalising genuine one-off vendors
 - Signal is strongest when combined with `VENDOR_IS_CPF` or `RECIBO_DOCUMENT`
@@ -309,7 +312,7 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 ## Dependency Graph
 
 ```
-#1 (expense_flags table)
+#1 (forensic_flags table)
  └─► #2  CROSS_DEPUTY_INVOICE_REUSE
  └─► #16 SINGLE_CLIENT_VENDOR
 
