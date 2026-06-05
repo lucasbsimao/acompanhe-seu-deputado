@@ -15,8 +15,9 @@ export class CrossDeputyInvoiceReusePipeline {
     this.repo = new ForensicFlagsRepository(db);
   }
 
-  async execute(): Promise<void> {
+  execute(): Promise<void> {
     this.repo.insertCrossDeputyInvoiceReuse(ForensicFlag.CROSS_DEPUTY_INVOICE_REUSE, SN_PLACEHOLDERS);
     console.log('CrossDeputyInvoiceReusePipeline completed');
+    return Promise.resolve();
   }
 }

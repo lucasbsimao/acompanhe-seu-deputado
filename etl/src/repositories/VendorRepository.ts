@@ -41,13 +41,13 @@ export class VendorRepository {
         stmt.run(
           vendor.cnpj,
           vendor.legal_name,
-          vendor.primary_cnae || null,
-          vendor.uf || null,
-          vendor.municipio || null,
-          vendor.opening_date || null,
-          vendor.registration_status || null,
-          vendor.registration_status_date || null,
-          vendor.company_size || null
+          vendor.primary_cnae ?? null,
+          vendor.uf ?? null,
+          vendor.municipio ?? null,
+          vendor.opening_date ?? null,
+          vendor.registration_status ?? null,
+          vendor.registration_status_date ?? null,
+          vendor.company_size ?? null
         );
       }
     });
@@ -70,7 +70,7 @@ export class VendorRepository {
           partner.cnpj,
           partner.partner_cpf_cnpj,
           partner.partner_name,
-          partner.partner_role || null
+          partner.partner_role ?? null
         );
       }
     });

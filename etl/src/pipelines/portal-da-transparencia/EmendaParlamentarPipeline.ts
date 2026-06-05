@@ -42,27 +42,27 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
     this.lookupService = new PoliticianLookupService(politicianRepository);
   }
 
-  async buildUrl(page: number, pageSize: number): Promise<string> {
+  buildUrl(page: number, pageSize: number): Promise<string> {
     const url = new URL(this.apiEndpoint);
     url.searchParams.set('pagina', String(page));
     url.searchParams.set('tamanhoPagina', String(pageSize));
     url.searchParams.set('ano', String(this.currentYear));
     url.searchParams.set('tipoEmenda', this.currentType);
-    return url.toString();
+    return Promise.resolve(url.toString());
   }
 
-  async decodePage(data: unknown): Promise<ApiEmenda[]> {
+  decodePage(data: unknown): Promise<ApiEmenda[]> {
     if (!Array.isArray(data)) {
       throw new Error('Expected an array response from emendas API');
     }
-    return data as ApiEmenda[];
+    return Promise.resolve(data as ApiEmenda[]);
   }
 
-  async shouldDownload(): Promise<boolean> {
-    return this.repo.count() === 0;
+  shouldDownload(): Promise<boolean> {
+    return Promise.resolve(this.repo.count() === 0);
   }
 
-  async onPageFetched(items: ApiEmenda[]): Promise<void> {
+  onPageFetched(items: ApiEmenda[]): Promise<void> {
     const records: EmendaRecord[] = [];
     let unmatchedCount = 0;
 
@@ -100,6 +100,7 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
     }
 
     this.repo.insertBatch(records);
+    return Promise.resolve();
   }
 
   async execute(forceDownload = false): Promise<void> {

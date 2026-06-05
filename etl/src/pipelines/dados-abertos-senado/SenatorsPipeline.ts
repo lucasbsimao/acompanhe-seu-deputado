@@ -45,11 +45,11 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
     this.lookupService = new PoliticianLookupService(this.repo);
   }
 
-  async buildUrl(): Promise<string> {
-    return this.apiEndpoint;
+  buildUrl(): Promise<string> {
+    return Promise.resolve(this.apiEndpoint);
   }
 
-  async decodePage(data: unknown): Promise<SenatorData[]> {
+  decodePage(data: unknown): Promise<SenatorData[]> {
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response data');
     }
@@ -63,19 +63,19 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
     const parlamentar = response.ListaParlamentarEmExercicio.Parlamentares.Parlamentar;
     const senators = Array.isArray(parlamentar) ? parlamentar : [parlamentar];
     
-    return senators;
+    return Promise.resolve(senators);
   }
 
-  async shouldDownload(): Promise<boolean> {
-    return this.repo.countByRoleWithSourceApiId(PoliticianRole.SENATOR) === 0;
+  shouldDownload(): Promise<boolean> {
+    return Promise.resolve(this.repo.countByRoleWithSourceApiId(PoliticianRole.SENATOR) === 0);
   }
 
-  async onPageFetched(items: SenatorData[]): Promise<void> {
+  onPageFetched(items: SenatorData[]): Promise<void> {
     const matchedSenators = items
       .map((s) => {
         const id = s.IdentificacaoParlamentar;
         const cpf = this.lookupService.findCpfByNormalizedName(id.NomeParlamentar)
-          || this.lookupService.findCpfByNormalizedName(id.NomeCompletoParlamentar || null);
+          ?? this.lookupService.findCpfByNormalizedName(id.NomeCompletoParlamentar ?? null);
 
         if (!cpf) {
           console.warn(`Could not match senator: ${id.NomeParlamentar} (${id.NomeCompletoParlamentar})`);
@@ -89,11 +89,12 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
           uf: id.UfParlamentar,
           partyId: normalizeId(id.SiglaPartidoParlamentar),
           role: PoliticianRole.SENATOR,
-          photoUrl: id.UrlFotoParlamentar || null,
+          photoUrl: id.UrlFotoParlamentar ?? null,
         };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null);
 
     this.repo.updateBatch(matchedSenators);
+    return Promise.resolve();
   }
 }

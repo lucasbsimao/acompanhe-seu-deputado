@@ -47,19 +47,21 @@ export abstract class BasePipeline<T> {
     }
 
     let page = 1;
-    while (true) {
+    let hasMore = true;
+    while (hasMore) {
       const url = await this.buildUrl(page, this.pageSize);
       const { data } = await this.httpClient.request(url, {
         headers: { 'chave-api-dados': this.apiKey },
       });
       const items = await this.decodePage(data);
 
-      if (items.length === 0) break;
-
-      process.stdout.write('. ');
-      await this.onPageFetched(items);
-
-      page++;
+      if (items.length === 0) {
+        hasMore = false;
+      } else {
+        process.stdout.write('. ');
+        await this.onPageFetched(items);
+        page++;
+      }
     }
   }
 }

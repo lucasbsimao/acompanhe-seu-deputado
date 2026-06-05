@@ -53,7 +53,7 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
     this.db = db;
   }
 
-  async buildUrl(page: number, pageSize: number): Promise<string> {
+  buildUrl(page: number, pageSize: number): Promise<string> {
     const url = new URL(`${this.apiEndpoint}/${this.currentApiId}/despesas`);
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: defaultConfig.expenses.yearsToFetch }, (_, i) => currentYear - i).join(',');
@@ -63,10 +63,10 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
     url.searchParams.set('ordenarPor', 'ano');
     url.searchParams.set('pagina', String(page));
     url.searchParams.set('itens', String(pageSize));
-    return url.toString();
+    return Promise.resolve(url.toString());
   }
 
-  async decodePage(data: unknown): Promise<ExpenseData[]> {
+  decodePage(data: unknown): Promise<ExpenseData[]> {
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response data');
     }
@@ -76,10 +76,10 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
       throw new Error('Response does not contain dados array');
     }
 
-    return response.dados;
+    return Promise.resolve(response.dados);
   }
 
-  async extractTotalCount(headers: Record<string, string>): Promise<number> {
+  extractTotalCount(headers: Record<string, string>): Promise<number> {
     const totalCountHeader = headers['x-total-count'];
     if (!totalCountHeader) {
       throw new Error('Missing X-Total-Count header');
@@ -90,14 +90,14 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
       throw new Error('Invalid X-Total-Count header value');
     }
 
-    return totalCount;
+    return Promise.resolve(totalCount);
   }
 
-  async shouldDownload(): Promise<boolean> {
-    return !this.repo.hasExpensesForDeputy(this.currentCpf);
+  shouldDownload(): Promise<boolean> {
+    return Promise.resolve(!this.repo.hasExpensesForDeputy(this.currentCpf));
   }
 
-  async onPageFetched(items: ExpenseData[]): Promise<void> {
+  onPageFetched(items: ExpenseData[]): Promise<void> {
     this.repo.insertBatch(
       items.map(e => ({
         id: `${this.currentCpf}_${e.codDocumento}`,
@@ -114,6 +114,7 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
         valorGlosa: convertToCents(e.valorGlosa),
       }))
     );
+    return Promise.resolve();
   }
 
   async execute(forceDownload = false): Promise<void> {

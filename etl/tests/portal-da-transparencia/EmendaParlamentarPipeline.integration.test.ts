@@ -9,7 +9,25 @@ const FAKE_API_KEY = 'test-api-key-123';
 const TEST_YEAR = String(new Date().getFullYear());
 const TEST_TYPE = 'Emenda Individual - Transferências com Finalidade Definida';
 
-function createMockEmenda(codigo: string, ano = 2024, autor = 'DEPUTADO TESTE'): any {
+interface MockEmenda {
+  codigoEmenda: string;
+  ano: number;
+  tipoEmenda: string;
+  autor: string;
+  nomeAutor: string;
+  numeroEmenda: string;
+  localidadeDoGasto: string;
+  funcao: string;
+  subfuncao: string;
+  valorEmpenhado: string;
+  valorLiquidado: string;
+  valorPago: string;
+  valorRestoInscrito: string;
+  valorRestoCancelado: string;
+  valorRestoPago: string;
+}
+
+function createMockEmenda(codigo: string, ano = 2024, autor = 'DEPUTADO TESTE'): MockEmenda {
   return {
     codigoEmenda: codigo,
     ano,
@@ -29,13 +47,16 @@ function createMockEmenda(codigo: string, ano = 2024, autor = 'DEPUTADO TESTE'):
   };
 }
 
-function seedPolitician(db: any, cpf: string, name: string) {
+function seedPolitician(db: import('better-sqlite3').Database, cpf: string, name: string): void {
   db.exec(`INSERT OR IGNORE INTO parties (id, name, acronym) VALUES ('PT', 'PARTIDO DOS TRABALHADORES', 'PT')`);
   db.exec(`
     INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
     VALUES ('${cpf}', 'api-${cpf}', '${name}', 'SP', 'PT', 'DEPUTY', null, null)
   `);
 }
+
+interface EmendaRow { codigo_emenda: string; politician_cpf: string | null; ano: number; }
+interface CountRow { cnt: number; }
 
 describe('EmendaParlamentarPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
@@ -70,7 +91,7 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     const rows = getDb().db
       .prepare('SELECT * FROM emendas_parlamentares ORDER BY codigo_emenda')
-      .all() as any[];
+      .all() as EmendaRow[];
     assert.strictEqual(rows.length, 2);
     assert.strictEqual(rows[0].codigo_emenda, '202400000001');
     assert.strictEqual(rows[0].politician_cpf, '12345678901');
@@ -110,7 +131,7 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     const rows = getDb().db
       .prepare('SELECT COUNT(*) as cnt FROM emendas_parlamentares')
-      .get() as any;
+      .get() as CountRow;
     assert.strictEqual(rows.cnt, 140);
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -127,7 +148,7 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     const rows = getDb().db
       .prepare('SELECT COUNT(*) as cnt FROM emendas_parlamentares')
-      .get() as any;
+      .get() as CountRow;
     assert.strictEqual(rows.cnt, 1, 'Should not have fetched anything new');
     assert.ok(nock.isDone());
   });
@@ -156,7 +177,7 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     const rows = getDb().db
       .prepare('SELECT COUNT(*) as cnt FROM emendas_parlamentares')
-      .get() as any;
+      .get() as CountRow;
     assert.strictEqual(rows.cnt, 2, 'Should have EXISTING001 + NEW00000001');
     assert.ok(nock.isDone());
   });
@@ -186,12 +207,12 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     const rows = getDb().db
       .prepare('SELECT COUNT(*) as cnt FROM emendas_parlamentares')
-      .get() as any;
+      .get() as CountRow;
     assert.strictEqual(rows.cnt, 1);
     assert.ok(nock.isDone());
   });
 
-  it('should throw when API_KEY env var is missing', async () => {
+  it('should throw when API_KEY env var is missing', () => {
     delete process.env.PORTAL_TRANSPARENCIA_API_KEY;
 
     assert.throws(
@@ -219,7 +240,7 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     const row = getDb().db
       .prepare('SELECT COUNT(*) as cnt FROM emendas_parlamentares')
-      .get() as any;
+      .get() as CountRow;
     assert.strictEqual(row.cnt, 0, 'Unmatched emenda should not be persisted');
     assert.ok(nock.isDone());
   });
@@ -242,7 +263,8 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     const row = getDb().db
       .prepare('SELECT politician_cpf FROM emendas_parlamentares WHERE codigo_emenda = ?')
-      .get('202400000099') as any;
+      .get('202400000099') as { politician_cpf: string } | undefined;
+    assert.ok(row, 'Emenda row should exist');
     assert.strictEqual(row.politician_cpf, '99988877700');
     assert.ok(nock.isDone());
   });
@@ -265,7 +287,8 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     const row = getDb().db
       .prepare('SELECT politician_cpf FROM emendas_parlamentares WHERE codigo_emenda = ?')
-      .get('202400000088') as any;
+      .get('202400000088') as { politician_cpf: string } | undefined;
+    assert.ok(row, 'Emenda row should exist');
     assert.strictEqual(row.politician_cpf, '11122233344');
     assert.ok(nock.isDone());
   });
@@ -286,7 +309,7 @@ describe('EmendaParlamentarPipeline Integration Tests', () => {
 
     const row = getDb().db
       .prepare('SELECT COUNT(*) as cnt FROM emendas_parlamentares')
-      .get() as any;
+      .get() as CountRow;
     assert.strictEqual(row.cnt, 0, 'Empty-author emenda should not be persisted');
     assert.ok(nock.isDone());
   });

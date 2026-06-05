@@ -75,7 +75,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
     }
   }
 
-  async buildUrl(page: number, pageSize: number): Promise<string> {
+  buildUrl(page: number, pageSize: number): Promise<string> {
     const url = new URL(this.apiEndpoint);
     url.searchParams.set('ordem', 'ASC');
     url.searchParams.set('ordenarPor', 'id');
@@ -86,10 +86,10 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
       // includes everyone who ever held a seat in that term (ministers on leave, resignees, suplentes).
       url.searchParams.set('idLegislatura', String(this.currentLegislaturaId));
     }
-    return url.toString();
+    return Promise.resolve(url.toString());
   }
 
-  async decodePage(data: unknown): Promise<PoliticianData[]> {
+  decodePage(data: unknown): Promise<PoliticianData[]> {
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response data');
     }
@@ -99,10 +99,10 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
       throw new Error('Response does not contain dados array');
     }
 
-    return response.dados;
+    return Promise.resolve(response.dados);
   }
 
-  async extractTotalCount(headers: Record<string, string>): Promise<number> {
+  extractTotalCount(headers: Record<string, string>): Promise<number> {
     const totalCountHeader = headers['x-total-count'];
     if (!totalCountHeader) {
       throw new Error('Missing X-Total-Count header');
@@ -113,11 +113,11 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
       throw new Error('Invalid X-Total-Count header value');
     }
 
-    return totalCount;
+    return Promise.resolve(totalCount);
   }
 
-  async shouldDownload(): Promise<boolean> {
-    return this.repo.countByRoleWithSourceApiId(PoliticianRole.DEPUTY) === 0;
+  shouldDownload(): Promise<boolean> {
+    return Promise.resolve(this.repo.countByRoleWithSourceApiId(PoliticianRole.DEPUTY) === 0);
   }
 
   async onPageFetched(items: PoliticianData[]): Promise<void> {

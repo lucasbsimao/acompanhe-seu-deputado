@@ -4,7 +4,7 @@ import { HttpClient } from '../../core/HttpClient';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianRole } from '../../types/PoliticianRole';
 import { TSECargo } from '../../types/TSECargo';
-import { TSEElectionResultStatus, type TSEElectionResultStatusKey } from '../../types/TSEElectionResultStatus';
+import { TSEElectionResultStatus, tseElectionResultStatusFromValue, type TSEElectionResultStatusKey } from '../../types/TSEElectionResultStatus';
 import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
 import { normalizeId } from '../../util/normalization.util';
 import { parse } from 'csv-parse/sync';
@@ -40,8 +40,8 @@ export class TSE2022ElectionResultsPipeline {
     this.downloader = new FileDownloader(httpClient);
   }
 
-  async shouldDownload(): Promise<boolean> {
-    return (
+  shouldDownload(): Promise<boolean> {
+    return Promise.resolve(
       this.repo.countByRole(PoliticianRole.DEPUTY) === 0 &&
       this.repo.countByRole(PoliticianRole.SENATOR) === 0
     );
@@ -92,7 +92,7 @@ export class TSE2022ElectionResultsPipeline {
       delimiter: ';',
       skip_empty_lines: true,
       relax_quotes: true,
-    });
+    }) as TSECandidate[];
     return records;
   }
 
@@ -106,8 +106,8 @@ export class TSE2022ElectionResultsPipeline {
     ];
 
     return candidates.filter(
-      c => validCargos.includes(c.DS_CARGO as TSECargo) &&
-           validStatuses.includes(c.DS_SIT_TOT_TURNO as TSEElectionResultStatus)
+      c => (validCargos as string[]).includes(c.DS_CARGO) &&
+           (validStatuses as string[]).includes(c.DS_SIT_TOT_TURNO)
     );
   }
 
@@ -120,9 +120,9 @@ export class TSE2022ElectionResultsPipeline {
         name: c.NM_URNA_CANDIDATO,
         uf: c.SG_UF,
         partyId: normalizeId(c.SG_PARTIDO),
-        role: c.DS_CARGO === TSECargo.DEPUTADO_FEDERAL ? PoliticianRole.DEPUTY : PoliticianRole.SENATOR,
+        role: c.DS_CARGO === (TSECargo.DEPUTADO_FEDERAL as string) ? PoliticianRole.DEPUTY : PoliticianRole.SENATOR,
         photoUrl: null,
-        electedAs: TSEElectionResultStatus.fromValue(c.DS_SIT_TOT_TURNO) as TSEElectionResultStatusKey,
+        electedAs: tseElectionResultStatusFromValue(c.DS_SIT_TOT_TURNO) as TSEElectionResultStatusKey,
       }));
     
     this.repo.insertBatch(rows);

@@ -75,6 +75,19 @@ function stubTSEZipDownload(zipBuffer: Buffer): void {
     .reply(200, zipBuffer, { 'content-type': 'application/zip' });
 }
 
+interface PoliticianRow {
+  cpf: string;
+  name: string;
+  uf: string;
+  role: string;
+  party_id: string;
+  elected_as: string | null;
+  source_api_id: string | null;
+}
+
+interface CountRow { cnt: number; }
+interface PartyRow { id: string; }
+
 describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
 
@@ -121,7 +134,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     await pipeline.execute(true);
 
     // Assert deputy persisted
-    const deputy = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(deputyCpf) as any;
+    const deputy = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(deputyCpf) as PoliticianRow | undefined;
     assert.ok(deputy, 'Deputy row should be persisted');
     assert.strictEqual(deputy.name, 'DEPUTADO TESTE', 'Deputy name should match NM_URNA_CANDIDATO');
     assert.strictEqual(deputy.uf, 'SP', 'Deputy UF should match SG_UF');
@@ -131,7 +144,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     assert.strictEqual(deputy.source_api_id, null, 'TSE pipeline does not set source_api_id');
 
     // Assert senator persisted
-    const senator = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(senatorCpf) as any;
+    const senator = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(senatorCpf) as PoliticianRow | undefined;
     assert.ok(senator, 'Senator row should be persisted');
     assert.strictEqual(senator.name, 'SENADOR TESTE', 'Senator name should match NM_URNA_CANDIDATO');
     assert.strictEqual(senator.uf, 'MG', 'Senator UF should match SG_UF');
@@ -140,9 +153,9 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     assert.strictEqual(senator.elected_as, 'ELEITO', 'elected_as should be ELEITO');
 
     // Both parties should be created automatically
-    const partyPT = db.prepare('SELECT * FROM parties WHERE id = ?').get('pt') as any;
+    const partyPT = db.prepare('SELECT * FROM parties WHERE id = ?').get('pt') as PartyRow | undefined;
     assert.ok(partyPT, 'Party PT should be auto-created');
-    const partyMDB = db.prepare('SELECT * FROM parties WHERE id = ?').get('mdb') as any;
+    const partyMDB = db.prepare('SELECT * FROM parties WHERE id = ?').get('mdb') as PartyRow | undefined;
     assert.ok(partyMDB, 'Party MDB should be auto-created');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -166,7 +179,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const pipeline = new TSE2022ElectionResultsPipeline(db);
     await pipeline.execute(); // forceDownload defaults to false
 
-    const count = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as any).cnt;
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
     assert.strictEqual(count, 2, 'Politicians table should remain unchanged — no new rows added');
     assert.ok(nock.isDone(), 'No HTTP calls should have been made');
   });
@@ -203,13 +216,13 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const pipeline = new TSE2022ElectionResultsPipeline(db);
     await pipeline.execute(true);
 
-    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as any).cnt;
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
     assert.strictEqual(totalCount, 1, 'Only the elected candidate should be stored');
 
-    const elected = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(electedCpf) as any;
+    const elected = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(electedCpf) as PoliticianRow | undefined;
     assert.ok(elected, 'The elected candidate should be persisted');
 
-    const nonElected = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(nonElectedCpf) as any;
+    const nonElected = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(nonElectedCpf) as PoliticianRow | undefined;
     assert.ok(!nonElected, 'The non-elected candidate should not be stored');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -257,10 +270,10 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const pipeline = new TSE2022ElectionResultsPipeline(db);
     await pipeline.execute(true);
 
-    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as any).cnt;
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
     assert.strictEqual(totalCount, 1, 'Only the federal deputy should be stored');
 
-    const deputadoFederal = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(deputadoFederalCpf) as any;
+    const deputadoFederal = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(deputadoFederalCpf) as PoliticianRow | undefined;
     assert.ok(deputadoFederal, 'Federal deputy should be persisted');
     assert.strictEqual(deputadoFederal.role, 'DEPUTY');
 
@@ -298,10 +311,10 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const pipeline = new TSE2022ElectionResultsPipeline(db);
     await pipeline.execute(true);
 
-    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as any).cnt;
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
     assert.strictEqual(totalCount, 1, 'Only the candidate with a valid CPF should be stored');
 
-    const validRow = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(validCpf) as any;
+    const validRow = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(validCpf) as PoliticianRow | undefined;
     assert.ok(validRow, 'Candidate with valid CPF should be persisted');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -351,20 +364,20 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const pipeline = new TSE2022ElectionResultsPipeline(db);
     await pipeline.execute(true);
 
-    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as any).cnt;
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
     assert.strictEqual(totalCount, 4, 'All four valid elected-status candidates should be persisted');
 
-    const eleito = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfEleito) as any;
-    assert.strictEqual(eleito.elected_as, 'ELEITO');
+    const eleito = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfEleito) as { elected_as: string } | undefined;
+    assert.ok(eleito); assert.strictEqual(eleito.elected_as, 'ELEITO');
 
-    const eleitoPorQP = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfEleitoPorQP) as any;
-    assert.strictEqual(eleitoPorQP.elected_as, 'ELEITO_POR_QP');
+    const eleitoPorQP = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfEleitoPorQP) as { elected_as: string } | undefined;
+    assert.ok(eleitoPorQP); assert.strictEqual(eleitoPorQP.elected_as, 'ELEITO_POR_QP');
 
-    const eleitoPorMedia = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfEleitoPorMedia) as any;
-    assert.strictEqual(eleitoPorMedia.elected_as, 'ELEITO_POR_MEDIA');
+    const eleitoPorMedia = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfEleitoPorMedia) as { elected_as: string } | undefined;
+    assert.ok(eleitoPorMedia); assert.strictEqual(eleitoPorMedia.elected_as, 'ELEITO_POR_MEDIA');
 
-    const suplente = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfSuplente) as any;
-    assert.strictEqual(suplente.elected_as, 'SUPLENTE');
+    const suplente = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfSuplente) as { elected_as: string } | undefined;
+    assert.ok(suplente); assert.strictEqual(suplente.elected_as, 'SUPLENTE');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -396,10 +409,10 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     await pipeline.execute(true); // forceDownload = true
 
     // Both the pre-existing and the newly added politician should be in the table
-    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as any).cnt;
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
     assert.strictEqual(totalCount, 2, 'Both pre-existing and new politician should be present');
 
-    const newDeputy = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(newCpf) as any;
+    const newDeputy = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(newCpf) as PoliticianRow | undefined;
     assert.ok(newDeputy, 'New politician from force-download should be persisted');
     assert.strictEqual(newDeputy.name, 'NOVO DEPUTADO');
     assert.strictEqual(newDeputy.uf, 'SC');

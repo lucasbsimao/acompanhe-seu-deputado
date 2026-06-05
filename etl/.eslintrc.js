@@ -39,6 +39,12 @@ module.exports = {
   ignorePatterns: ['dist/', 'node_modules/', '*.js'],
   overrides: [
     {
+      files: ['tests/**/*.ts'],
+      rules: {
+        '@typescript-eslint/no-floating-promises': 'off',
+      },
+    },
+    {
       files: ['src/repositories/**/*.ts'],
       rules: {
         'sql/format': [

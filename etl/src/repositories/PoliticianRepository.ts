@@ -39,7 +39,7 @@ export class PoliticianRepository {
     this.insertAll = db.transaction((rows: PoliticianRow[]) => {
       for (const r of rows) {
         this.insertParty.run(r.partyId, r.partyId, r.partyId);
-        this.insertPolitician.run(r.cpf, r.sourceApiId, r.name, r.uf, r.partyId, r.role, r.photoUrl, r.electedAs || null);
+        this.insertPolitician.run(r.cpf, r.sourceApiId, r.name, r.uf, r.partyId, r.role, r.photoUrl, r.electedAs ?? null);
       }
     });
     this.updateAll = db.transaction((rows: PoliticianRow[]) => {

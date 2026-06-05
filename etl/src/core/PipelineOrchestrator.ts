@@ -85,7 +85,7 @@ export class PipelineOrchestrator {
   }
 
   async loadPipelineClass(importPath: string): Promise<IPipelineClass> {
-    const module = await import(`../pipelines/${importPath}`);
+    const module = await import(`../pipelines/${importPath}`) as Record<string, IPipelineClass>;
     const className = importPath.split('/').pop()!;
     return module[className];
   }
@@ -174,7 +174,7 @@ export class PipelineOrchestrator {
     if (
       !Array.isArray(PipelineClass.dependencies) ||
       typeof PipelineClass !== 'function' ||
-      typeof PipelineClass.prototype?.execute !== 'function'
+      typeof (PipelineClass.prototype as { execute?: unknown })?.execute !== 'function'
     ) {
       throw new Error(`Pipeline ${className} does not implement IPipelineClass`);
     }

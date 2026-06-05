@@ -199,7 +199,7 @@ export class ReceitaFederalCNPJPipeline {
         await this.processPartnersCsv(csvFile, knownBasicCnpjs);
         break;
       default:
-        throw new Error(`Unknown file type: ${fileType}`);
+        throw new Error(`Unknown file type: ${String(fileType)}`);
     }
   }
 
@@ -272,7 +272,7 @@ export class ReceitaFederalCNPJPipeline {
         opening_date: row.DATA_INICIO_ATIVIDADE?.trim() || undefined,
         registration_status: row.SITUACAO_CADASTRAL?.trim() || undefined,
         registration_status_date: row.DATA_SITUACAO_CADASTRAL?.trim() || undefined,
-        company_size: empresa?.company_size || undefined,
+        company_size: empresa?.company_size ?? undefined,
       });
 
       if (vendors.length >= BATCH_SIZE) {

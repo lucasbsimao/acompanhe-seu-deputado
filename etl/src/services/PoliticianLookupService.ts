@@ -33,6 +33,6 @@ export class PoliticianLookupService {
     }
 
     const normalizedAutor = normalizeNameForMatching(autorName);
-    return this.nameToCpfMap.get(normalizedAutor) || null;
+    return this.nameToCpfMap.get(normalizedAutor) ?? null;
   }
 }

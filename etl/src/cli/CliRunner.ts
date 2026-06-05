@@ -36,7 +36,7 @@ export class CliRunner {
       },
     ];
 
-    const response = await prompts({
+    const response = await prompts<'pipeline'>({
       type: 'select',
       name: 'pipeline',
       message: 'Select a pipeline to execute',

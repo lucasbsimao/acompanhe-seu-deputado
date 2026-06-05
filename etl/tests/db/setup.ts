@@ -16,7 +16,7 @@ export function useTestDatabase() {
   });
 
   after(() => {
-    if (testDb && testDb.db.open) {
+    if (testDb?.db.open) {
       testDb.close();
     }
   });

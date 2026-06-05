@@ -52,6 +52,20 @@ function seedDeputy(db: import('better-sqlite3').Database, cpf: string, apiId: s
   ).run(cpf, apiId, `Deputy ${cpf}`, PoliticianRole.DEPUTY);
 }
 
+interface ExpenseRow {
+  id: string;
+  deputy_id: string;
+  tipo_despesa: string;
+  cod_documento: string;
+  nome_fornecedor: string;
+  cnpj_cpf_fornecedor: string;
+  valor_liquido: number;
+  valor_glosa: number;
+  url_documento: string | null;
+}
+
+interface CountRow { cnt: number; }
+
 describe('ExpensesPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
 
@@ -77,7 +91,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    const rows = db.prepare('SELECT * FROM expenses ORDER BY cod_documento').all() as any[];
+    const rows = db.prepare('SELECT * FROM expenses ORDER BY cod_documento').all() as ExpenseRow[];
     assert.strictEqual(rows.length, 2, 'Should contain 2 expense rows');
 
     assert.strictEqual(rows[0].id, `${DEPUTY_CPF}_DOC001`, 'ID should be cpf_codDocumento');
@@ -109,7 +123,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    const row = db.prepare('SELECT tipo_despesa FROM expenses WHERE cod_documento = ?').get('DOC003') as any;
+    const row = db.prepare('SELECT tipo_despesa FROM expenses WHERE cod_documento = ?').get('DOC003') as { tipo_despesa: string } | undefined;
     assert.ok(row, 'Expense row should exist');
     // normalizeLabel strips accents and non-alphanumeric chars (except spaces)
     assert.ok(!row.tipo_despesa.includes('Ã'), 'tipoDespesa should have accents stripped');
@@ -139,7 +153,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as any).cnt;
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as CountRow).cnt;
     assert.strictEqual(count, 150, 'Should contain 150 expense rows');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -164,7 +178,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(); // forceDownload defaults to false
 
-    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as any).cnt;
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as CountRow).cnt;
     assert.strictEqual(count, 1, 'Should not have fetched new expenses — still just the pre-seeded one');
     assert.ok(nock.isDone(), 'No HTTP calls should have been made');
   });
@@ -194,7 +208,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true); // forceDownload = true
 
-    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as any).cnt;
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as CountRow).cnt;
     assert.strictEqual(count, 2, 'Should have EXISTING001 + NEW001 (INSERT OR REPLACE keeps both when IDs differ)');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -225,8 +239,8 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    const dep1Count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses WHERE deputy_id = ?').get(cpf1) as any).cnt;
-    const dep2Count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses WHERE deputy_id = ?').get(cpf2) as any).cnt;
+    const dep1Count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses WHERE deputy_id = ?').get(cpf1) as CountRow).cnt;
+    const dep2Count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses WHERE deputy_id = ?').get(cpf2) as CountRow).cnt;
     assert.strictEqual(dep1Count, 1, 'Deputy 1 should have 1 expense');
     assert.strictEqual(dep2Count, 1, 'Deputy 2 should have 1 expense');
 
@@ -246,7 +260,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as any).cnt;
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as CountRow).cnt;
     assert.strictEqual(count, 0, 'No expenses should be fetched for deputy with no API ID');
     assert.ok(nock.isDone(), 'No HTTP calls should have been made');
   });
@@ -270,7 +284,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as any).cnt;
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as CountRow).cnt;
     assert.strictEqual(count, 1, 'Should contain 1 expense after retries');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -290,8 +304,8 @@ describe('ExpensesPipeline Integration Tests', () => {
 
     await assert.rejects(
       async () => pipeline.execute(true),
-      (error: any) => {
-        assert.ok(error.message.includes('500'), 'Error should mention status 500');
+      (error: unknown) => {
+        assert.ok((error as Error).message.includes('500'), 'Error should mention status 500');
         return true;
       },
       'Should throw after exhausting all retries'
@@ -311,9 +325,9 @@ describe('ExpensesPipeline Integration Tests', () => {
 
     await assert.rejects(
       async () => pipeline.execute(true),
-      (error: any) => {
+      (error: unknown) => {
         assert.ok(
-          error.message.includes('Missing X-Total-Count header'),
+          (error as Error).message.includes('Missing X-Total-Count header'),
           'Error should mention missing header'
         );
         return true;
@@ -335,9 +349,9 @@ describe('ExpensesPipeline Integration Tests', () => {
 
     await assert.rejects(
       async () => pipeline.execute(true),
-      (error: any) => {
+      (error: unknown) => {
         assert.ok(
-          error.message.includes('Response does not contain dados array'),
+          (error as Error).message.includes('Response does not contain dados array'),
           'Error should mention invalid response format'
         );
         return true;
@@ -360,7 +374,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    let row = db.prepare('SELECT nome_fornecedor FROM expenses WHERE cod_documento = ?').get('DOC_DUPE') as any;
+    let row = db.prepare('SELECT nome_fornecedor FROM expenses WHERE cod_documento = ?').get('DOC_DUPE') as { nome_fornecedor: string };
     assert.strictEqual(row.nome_fornecedor, 'Original Vendor', 'Initial vendor name should be set');
 
     // Re-run with updated data
@@ -372,10 +386,10 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline2 = new ExpensesPipeline(db);
     await pipeline2.execute(true);
 
-    row = db.prepare('SELECT nome_fornecedor FROM expenses WHERE cod_documento = ?').get('DOC_DUPE') as any;
+    row = db.prepare('SELECT nome_fornecedor FROM expenses WHERE cod_documento = ?').get('DOC_DUPE') as { nome_fornecedor: string };
     assert.strictEqual(row.nome_fornecedor, 'Updated Vendor', 'Vendor name should be updated via INSERT OR REPLACE');
 
-    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as any).cnt;
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as CountRow).cnt;
     assert.strictEqual(count, 1, 'Should still have only 1 expense row after upsert');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -395,7 +409,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    const row = db.prepare('SELECT url_documento FROM expenses WHERE cod_documento = ?').get('DOC_NO_URL') as any;
+    const row = db.prepare('SELECT url_documento FROM expenses WHERE cod_documento = ?').get('DOC_NO_URL') as { url_documento: string | null } | undefined;
     assert.ok(row, 'Expense row should exist');
     assert.strictEqual(row.url_documento, null, 'url_documento should be null when API returns empty string');
 

@@ -6,7 +6,15 @@ import { useTestDatabase } from '../db/setup';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 
-function createMockDeputy(id: number): any {
+interface MockDeputy {
+  id: number;
+  nome: string;
+  siglaPartido: string;
+  siglaUf: string;
+  urlFoto: string;
+}
+
+function createMockDeputy(id: number): MockDeputy {
   return {
     id,
     nome: `Deputy ${id}`,
@@ -38,7 +46,18 @@ function makeCPF(id: number): string {
   return digits.join('');
 }
 
-function createMockDeputyDetail(id: number): any {
+interface MockDeputyDetail {
+  dados: {
+    id: number;
+    cpf: string;
+    nomeCivil: string;
+    siglaPartido: string;
+    siglaUf: string;
+    urlFoto: string;
+  };
+}
+
+function createMockDeputyDetail(id: number): MockDeputyDetail {
   return {
     dados: {
       id,
@@ -62,6 +81,17 @@ function seedTSEDeputyRows(db: import('better-sqlite3').Database, count: number)
     }
   });
   insertAll(count);
+}
+
+interface PoliticianRow {
+  source_api_id: string;
+  name: string;
+  uf: string;
+  role: string;
+  photo_url: string | null;
+  elected_as: string | null;
+  party_id: string;
+  cpf: string;
 }
 
 describe('DeputiesETL Integration Tests', () => {
@@ -107,7 +137,7 @@ describe('DeputiesETL Integration Tests', () => {
 
     await etl.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as any[];
+    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as PoliticianRow[];
     assert.strictEqual(result.length, 10, 'Should contain 10 deputies');
     assert.strictEqual(result[0].source_api_id, '1', 'First deputy should have source_api_id 1');
     assert.strictEqual(result[9].source_api_id, '10', 'Last deputy should have source_api_id 10');
@@ -160,7 +190,7 @@ describe('DeputiesETL Integration Tests', () => {
 
     await etl.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as any[];
+    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as PoliticianRow[];
     assert.strictEqual(result.length, 250, 'Should contain 250 deputies');
     assert.strictEqual(result[0].source_api_id, '1', 'First deputy should have source_api_id 1');
     assert.strictEqual(result[100].source_api_id, '101', 'Deputy at index 100 should have source_api_id 101');
@@ -201,7 +231,7 @@ describe('DeputiesETL Integration Tests', () => {
 
     await etl.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians').all() as any[];
+    const result = db.prepare('SELECT * FROM politicians').all() as PoliticianRow[];
     assert.strictEqual(result.length, 5, 'Should contain 5 deputies after retries');
 
     assert.strictEqual(scope.pendingMocks().length, 0, 'All 3 retry mocks should have been called');
@@ -240,7 +270,7 @@ describe('DeputiesETL Integration Tests', () => {
 
     await etl.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians').all() as any[];
+    const result = db.prepare('SELECT * FROM politicians').all() as PoliticianRow[];
     assert.strictEqual(result.length, 5, 'Should contain 5 deputies after rate limit retry');
 
     assert.strictEqual(scope.pendingMocks().length, 0, 'Both endpoint calls (429 and 200) should have been made');
@@ -265,8 +295,8 @@ describe('DeputiesETL Integration Tests', () => {
 
     await assert.rejects(
       async () => await etl.execute(),
-      (error: any) => {
-        assert.ok(error.message.includes('500'), 'Error should mention status 500');
+      (error: unknown) => {
+        assert.ok((error as Error).message.includes('500'), 'Error should mention status 500');
         return true;
       },
       'Should throw error after exhausting retries'
@@ -291,9 +321,9 @@ describe('DeputiesETL Integration Tests', () => {
 
     await assert.rejects(
       async () => await etl.execute(),
-      (error: any) => {
+      (error: unknown) => {
         assert.ok(
-          error.message.includes('Missing X-Total-Count header'),
+          (error as Error).message.includes('Missing X-Total-Count header'),
           'Error should mention missing header'
         );
         return true;
@@ -318,9 +348,9 @@ describe('DeputiesETL Integration Tests', () => {
 
     await assert.rejects(
       async () => await etl.execute(),
-      (error: any) => {
+      (error: unknown) => {
         assert.ok(
-          error.message.includes('Response does not contain dados array'),
+          (error as Error).message.includes('Response does not contain dados array'),
           'Error should mention invalid response format'
         );
         return true;
@@ -363,7 +393,7 @@ describe('DeputiesETL Integration Tests', () => {
 
     await etl.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as any[];
+    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as PoliticianRow[];
     assert.strictEqual(result.length, 550, 'Should contain 550 deputies');
 
     for (let i = 0; i < 550; i++) {
