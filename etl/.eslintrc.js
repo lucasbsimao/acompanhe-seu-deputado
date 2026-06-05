@@ -26,8 +26,8 @@ module.exports = {
     'sql/format': [
       'error',
       {
-        ignoreInline: false,
-        ignoreTagless: false,
+        ignoreInline: true,
+        ignoreTagless: true,
         ignoreStartWithNewLine: false,
       },
       {
@@ -37,4 +37,30 @@ module.exports = {
     ],
   },
   ignorePatterns: ['dist/', 'node_modules/', '*.js'],
+  overrides: [
+    {
+      files: ['src/repositories/**/*.ts'],
+      rules: {
+        'sql/format': [
+          'error',
+          {
+            ignoreInline: true,
+            ignoreTagless: false,
+            ignoreStartWithNewLine: false,
+          },
+          {
+            language: 'sqlite',
+            tabWidth: 2,
+          },
+        ],
+      },
+    },
+    {
+      files: ['**/*.ts'],
+      excludedFiles: ['src/repositories/**/*.ts'],
+      rules: {
+        'sql/format': 'off',
+      },
+    },
+  ],
 };

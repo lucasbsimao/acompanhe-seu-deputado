@@ -79,7 +79,7 @@ export class VendorRepository {
   }
 
   getFullCnpjsByBasicCnpj(basicCnpj: string): string[] {
-    const rows = this.stmtFullCnpjsByBasic.all(`${basicCnpj}%`) as { cnpj: string }[];
+    const rows = this.stmtFullCnpjsByBasic.all(basicCnpj + '%') as { cnpj: string }[];
     return rows.map(r => r.cnpj);
   }
 
