@@ -18,5 +18,6 @@ export const migration003: Migration = {
 );
 
 CREATE INDEX IF NOT EXISTS idx_expenses_deputy_id ON expenses(deputy_id);
-CREATE INDEX IF NOT EXISTS idx_expenses_data_documento ON expenses(data_documento);`,
+CREATE INDEX IF NOT EXISTS idx_expenses_data_documento ON expenses(data_documento);
+CREATE INDEX IF NOT EXISTS idx_expenses_cnpj_numdoc ON expenses(cnpj_cpf_fornecedor, num_documento, deputy_id);`,
 };
