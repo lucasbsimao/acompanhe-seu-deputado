@@ -10,25 +10,7 @@
 
 These bypass the scoring system entirely. A single occurrence is sufficient for mandatory review regardless of total score.
 
-### 1. `expense_flags` table + post-ingestion SQL pass infrastructure
-
-- **Type**: Infrastructure prerequisite
-- **Blocks**: items #2 and #16
-- New migration: `expense_flags(expense_id TEXT, flag_name TEXT, score INT, metadata TEXT)`
-- Implement as a dedicated SQL stage that runs after `ExpensesPipeline` completes and before any scoring pipeline reads flags
-- Required because `CROSS_DEPUTY_INVOICE_REUSE` and `SINGLE_CLIENT_VENDOR` aggregate across all deputies simultaneously and cannot be computed inside the per-deputy ETL loop
-
-### 2. `CROSS_DEPUTY_INVOICE_REUSE`
-
-- **Signal**: Definitive — 50 pt / auto-escalate
-- **Data**: CEAP only (no external datasets)
-- **Depends on**: #1 (`expense_flags` infrastructure)
-- Same `(cnpj_cpf_fornecedor, num_documento)` pair in expenses from ≥ 2 distinct `deputy_id` values
-- Apply same S/N exclusion list as `DUPLICATE_INVOICE` (see item #17): `S/N`, `s/n`, `SN`, `sn`, `S.N.`, `S/Nº`, `00`, `000`, `0`, `-`, blank
-- One invoice cannot justify two separate public reimbursements — zero innocent explanations
-- Corpus: 10,016 affected expenses (1.5% of corpus)
-
-### 3. `CNPJ_POSTDATES_EXPENSE`
+### 1. `CNPJ_POSTDATES_EXPENSE`
 
 - **Signal**: Definitive — auto-escalate
 - **Data**: `vendors.opening_date` (already populated by `ReceitaFederalCNPJPipeline`)
@@ -36,7 +18,7 @@ These bypass the scoring system entirely. A single occurrence is sufficient for 
 - A company that did not legally exist on the invoice date makes the document definitively fraudulent
 - Zero false positive rate — no legitimate explanation exists
 
-### 4. `CNPJ_INACTIVE_AT_EXPENSE`
+### 2. `CNPJ_INACTIVE_AT_EXPENSE`
 
 - **Signal**: Definitive — auto-escalate
 - **Data**: `vendors.registration_status` + `vendors.registration_status_date` (both already populated)
@@ -46,18 +28,18 @@ These bypass the scoring system entirely. A single occurrence is sufficient for 
   - SUSPENSA: 1 out of 357
 - `registration_status_date` column is already populated in `vendors`
 
-### 5. `pipeline_runs` metadata table
+### 3. `pipeline_runs` metadata table
 
 - **Type**: Infrastructure prerequisite
-- **Blocks**: item #6
+- **Blocks**: item #4
 - New migration: `pipeline_runs(pipeline_name TEXT, completed_at TEXT, row_count INT)`
 - Required for the `CNPJ_MISSING_ESTABLISHMENT` freshness gate
 
-### 6. `CNPJ_MISSING_ESTABLISHMENT`
+### 4. `CNPJ_MISSING_ESTABLISHMENT`
 
 - **Signal**: Definitive — auto-escalate
-- **Data**: `vendors` table + `pipeline_runs` freshness gate (item #5)
-- **Depends on**: #5 and a completed `ReceitaFederalCNPJPipeline` run
+- **Data**: `vendors` table + `pipeline_runs` freshness gate (item #3)
+- **Depends on**: #3 and a completed `ReceitaFederalCNPJPipeline` run
 - **Freshness gate**: Suppress entirely if `ReceitaFederalCNPJPipeline` ingestion timestamp is absent or older than 45 days — an unmatched CNPJ before a fresh ingestion is inconclusive
 - Detector: `LEFT JOIN vendors ON expenses.cnpj_cpf_fornecedor = vendors.cnpj WHERE vendors.id IS NULL AND length(expenses.cnpj_cpf_fornecedor) = 14`
 - Do NOT fire if `length(cnpj_cpf_fornecedor) = 11` (CPF vendor — individual)
@@ -69,7 +51,7 @@ These bypass the scoring system entirely. A single occurrence is sufficient for 
 
 All required data is in the `vendors` table from the existing `ReceitaFederalCNPJPipeline` run.
 
-### 7. `FRESHLY_REGISTERED_VENDOR`
+### 5. `FRESHLY_REGISTERED_VENDOR`
 
 - **Signal**: High — 25 pt; sub-group ≤ 7 days auto-escalates
 - **Data**: `vendors.opening_date` (already populated)
@@ -80,22 +62,22 @@ All required data is in the `vendors` table from the existing `ReceitaFederalCNP
   - 31–90 days: 458 vendors → 25 pt
 - Dominant category in corpus: `DIVULGACAO DA ATIVIDADE PARLAMENTAR` (5,890 expenses, R$3.56B) — consistent with vendors incorporated specifically to channel CEAP advertising funds
 
-### 8. `VENDOR_CNAE_MISMATCH`
+### 6. `VENDOR_CNAE_MISMATCH`
 
 - **Signal**: High — 25 pt
 - **Data**: `vendors.primary_cnae` (already populated)
 - Curate incompatibility list per `tipo_despesa` using CNAE divisions (§6.3 disambiguation principle — unambiguous mismatches only, not a generic "not in expected set" approach)
   - CNAE divisions 01–03 (agriculture/fishing), 05–09 (mining), 10–25 (manufacturing) → incompatible with MANUTENCAO DE ESCRITORIO, LOCACAO VEICULOS, SEGURANCA
 - **Empirically validated in corpus**: three agribusiness/cattle companies (CNAE 0151-2 Bovinocultura, 0162-8 Atividades de apoio à pecuária) billed R$14.25M under `MANUTENCAO DE ESCRITORIO`; one of them is in *recuperação judicial*
-- Also contributes to the §6 composite escalation rule (see `POLITICALLY_CONNECTED_VENDOR` item #11)
+- Also contributes to the §6 composite escalation rule (see `POLITICALLY_CONNECTED_VENDOR` item #9)
 
-### 9. `VENDOR_NO_EMPLOYEES` (interim 10 pt)
+### 7. `VENDOR_NO_EMPLOYEES` (interim 10 pt)
 
 - **Signal**: High — 20 pt full / 10 pt interim
 - **Data**: `vendors.company_size` (already populated)
 - **Interim implementation**: `company_size = '01'` (Micro-empresa) as proxy, restricted to `tipo_despesa ∈ {SERVICO DE SEGURANCA, MANUTENCAO DE ESCRITORIO, LOCACAO OU FRETAMENTO DE VEICULOS}` — categories where zero employees is operationally implausible
 - Do not apply to CPF vendors or MEI sole traders providing personal services
-- Upgrade to 20 pt only after `employee_count` column is populated from RAIS data (see item #28)
+- Upgrade to 20 pt only after `employee_count` column is populated from RAIS data (see item #26)
 
 ---
 
@@ -103,9 +85,9 @@ All required data is in the `vendors` table from the existing `ReceitaFederalCNP
 
 Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners` is already fully populated (77,988 records, 89% of matched vendors).
 
-### 10. TSE all-cargo candidates pipeline
+### 8. TSE all-cargo candidates pipeline
 
-- **Type**: New pipeline — blocker for item #11
+- **Type**: New pipeline — blocker for item #9
 - **Source**: `dadosabertos.tse.jus.br` — TSE candidate registration data
 - Creates table: `tse_candidates(cpf TEXT, nome TEXT, cargo TEXT, partido TEXT, ano_eleicao INT, uf TEXT)`
 - **Scope gate**: Must include ALL cargos (GOVERNADOR, DEPUTADO ESTADUAL, PREFEITO, VEREADOR, SENADOR, DEPUTADO FEDERAL, etc.) — do NOT filter by cargo or election result status
@@ -113,25 +95,25 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
   - Forensic value of `POLITICALLY_CONNECTED_VENDOR` scales with breadth of the CPF match pool
 - **Architectural decision (decide at implementation time)**: extended pass inside `TSE2022ElectionResultsPipeline` (one ~500 MB ZIP download, two output tables) vs. dedicated sibling pipeline (isolated responsibility, re-downloads ZIP)
 
-### 11. `POLITICALLY_CONNECTED_VENDOR`
+### 9. `POLITICALLY_CONNECTED_VENDOR`
 
 - **Signal**: High — 50 pt standalone; **Definitive/auto-escalate** under §6 composite
-- **Depends on**: #10 (`tse_candidates` table)
+- **Depends on**: #8 (`tse_candidates` table)
 - Cross-reference `vendor_partners.partner_cpf_cnpj` = `tse_candidates.cpf`
-- Pre-compute as a boolean or flag stored on `vendors` or written to `expense_flags` at ETL time
+- Pre-compute as a boolean or flag stored on `vendors` or written to `forensic_flags` at ETL time
 - **§6 composite escalation rule**: When `POLITICALLY_CONNECTED_VENDOR` fires together with `RECIBO_DOCUMENT` and either `VENDOR_CNAE_MISMATCH` or `VENDOR_GEOGRAPHIC_ANOMALY`, the expense must auto-escalate to mandatory manual review regardless of total score — this combination should not be suppressible by a scoring threshold
 
-### 12. TSE campaign donation pipeline
+### 10. TSE campaign donation pipeline
 
-- **Type**: New pipeline — blocker for item #13
+- **Type**: New pipeline — blocker for item #11
 - **Source**: TSE `prestacao_de_contas` donation records (`dadosabertos.tse.jus.br`)
 - Creates table: `tse_donations(donor_cpf TEXT, recipient_cpf TEXT, ano_eleicao INT, valor INT)`
 - Cross all available election cycles
 
-### 13. `CAMPAIGN_DONOR_VENDOR`
+### 11. `CAMPAIGN_DONOR_VENDOR`
 
 - **Signal**: High — 30 pt
-- **Depends on**: #12 (`tse_donations` table) + `vendor_partners`
+- **Depends on**: #10 (`tse_donations` table) + `vendor_partners`
 - Join path: `vendor_partners.partner_cpf_cnpj` → `tse_donations.donor_cpf` filtered to the paying deputy as recipient
 - More legally actionable than `POLITICALLY_CONNECTED_VENDOR` (direct financial interest in re-election → kickback channel)
 
@@ -139,40 +121,43 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 
 ## Tier 4 — CEAP Schema Gaps + Existing Flag Fixes
 
-### 14. Add `competency_year` / `competency_month` to `expenses`
+### 12. Add `competency_year` / `competency_month` to `expenses`
 
 - **Type**: Schema migration + pipeline update
 - `ano` and `mes` are returned by the Câmara API (`ExpenseData` in `ExpensesPipeline.ts`) but not persisted in `ExpenseRow` or the DB schema
 - Add `competency_year INT` and `competency_month INT` columns to `expenses` table
 - Update `ExpensesPipeline` `onPageFetched` mapping to persist both fields
-- Prerequisite for item #15
+- Prerequisite for item #13
 
-### 15. `COMPETENCY_DATE_MISMATCH`
+### 13. `COMPETENCY_DATE_MISMATCH`
 
 - **Signal**: Medium — 20 pt
-- **Depends on**: #14
+- **Depends on**: #12
 - Logic: `data_documento` falls more than 90 days before the `competency_year`/`competency_month` period
 - CEAP rules (Resolução da Mesa nº 43/2009) require submission within 90 days of expense date — significant backdating suggests document fabrication or retroactive justification
 
-### 16. `SINGLE_CLIENT_VENDOR`
+### 14. `SINGLE_CLIENT_VENDOR`
 
 - **Signal**: Medium — 20 pt
 - **Data**: CEAP only
-- **Depends on**: #1 (`expense_flags` infrastructure)
+- **Depends on**: `forensic_flags` infrastructure (to be added)
 - Post-ingestion SQL: vendors with exactly 1 distinct `deputy_id` across ≥ 5 total expenses
 - ≥ 5 minimum avoids penalising genuine one-off vendors
 - Signal is strongest when combined with `VENDOR_IS_CPF` or `RECIBO_DOCUMENT`
 - Corpus: 91,718 affected expenses (13.8% prevalence) — Medium tier is appropriate
 
-### 17. Fix `DUPLICATE_INVOICE` S/N placeholder exclusion
+### 15. `DUPLICATE_INVOICE` pipeline
 
-- **Type**: Bug fix to existing flag logic
-- Add normalization step before `num_documento` comparison
-- Exclusion list: `S/N`, `s/n`, `SN`, `sn`, `S.N.`, `S/Nº`, `00`, `000`, `0`, `-`, blank
-- Without this fix: 1,111 of 6,777 duplicate pairs are S/N placeholders — the 50 pt weight causes any S/N receipt to immediately exceed the "high suspicion" threshold on its own
-- Reduce weight from 50 pt to 40 pt after exclusion (see §9 revised scoring table)
+- **Signal**: Medium-High — 40 pt
+- **Data**: CEAP only (no external datasets)
+- **Depends on**: `forensic_flags` infrastructure (to be added)
+- Same `(cnpj_cpf_fornecedor, num_documento)` pair appears in ≥ 2 expenses for the **same `deputy_id`**
+- Apply S/N placeholder exclusion before comparison (TRIM + UPPER normalisation): `S/N`, `s/n`, `SN`, `sn`, `S.N.`, `S/Nº`, `00`, `000`, `0`, `-`, blank — 1,111 of 6,777 raw duplicate pairs are S/N placeholders; without exclusion the 40 pt weight causes any S/N receipt to immediately exceed the "high suspicion" threshold on its own
+- Apply same S/N exclusion list as `CROSS_DEPUTY_INVOICE_REUSE` (to be added as a separate task)
+- Does **not** auto-escalate — same-deputy duplicate has a non-zero FPR: a data correction or amended-expense re-submission can produce identical `(cnpj, num_documento)` values under the same deputy. Unlike `CROSS_DEPUTY_INVOICE_REUSE`, there is no definitively fraudulent interpretation.
+- Corpus: ~5,666 true duplicate pairs after S/N exclusion (~1.7% of corpus)
 
-### 18. Fix `EXTREME_AMOUNT` guardrails
+### 16. Fix `EXTREME_AMOUNT` guardrails
 
 - **Type**: Recalibration of existing flag logic
 - Current behavior uses a global 3× median, which is miscalibrated for high-variance categories
@@ -188,47 +173,47 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 
 ## Tier 5 — PDF / OCR Infrastructure + Derived Flags
 
-### 19. Handle `cod_tipo_documento = 4` HTML URLs
+### 17. Handle `cod_tipo_documento = 4` HTML URLs
 
 - **Type**: Architectural prerequisite — must be done before any PDF pipeline work
 - `cod_tipo_documento = 4` links to `nota-fiscal-eletronica?ideDocumentoFiscal=XXXXXX` — an HTML page, not a PDF
 - The pipeline must detect this pattern and skip PDF download/parse for these records
 - Affects 210,212 expenses (31.6% of corpus) — without this fix any PDF pipeline fails on nearly a third of records
 
-### 20. PDF extraction pipeline (pdf-parse + OCR fallback)
+### 18. PDF extraction pipeline (pdf-parse + OCR fallback)
 
-- **Type**: Core infrastructure — prerequisite for items #21, #22, #23
-- **Depends on**: #19
+- **Type**: Core infrastructure — prerequisite for items #19, #20, #21
+- **Depends on**: #17
 - For `cod_tipo_documento ∈ {0, 1, 2, 3}` only
 - **OCR is the primary path for `cod = 1`** (Recibos) — do not wait for pdf-parse to fail before invoking OCR; 81% of Recibos are image-based
 - For `cod = 0` and others: pdf-parse first, OCR as fallback
 - `ghostscript` and `imagemagick` are hard requirements, not optional
 - PDF producer/creator tag (readable without decompression) enables smart routing: iText, PDFsharp, PDFium → text-extractable; HP Scan, iOS, Skia → skip pdf-parse entirely
 
-### 21. `CATEGORY_MISMATCH`
+### 19. `CATEGORY_MISMATCH`
 
 - **Signal**: High — 35 pt
-- **Depends on**: #20
+- **Depends on**: #18
 - Apply unambiguous keyword table from §3.8 only (fuel, hotel, airline, food, postal keywords)
 - **Require extracted text ≥ 100 chars** before applying keyword matching (OCR-sourced text with < 100 chars has too many typos and encoding errors to be reliable)
 - ALUGUEL/CONDOMINIO keywords deliberately excluded — too many legitimate MANUTENCAO documents use these
 - Coverage: ~16% of expenses have extractable text; low coverage but near-zero FPR on unambiguous hits
 
-### 22. `PASSENGER_NAME_MISMATCH` + `FAMILY_PASSENGER` sub-flag
+### 20. `PASSENGER_NAME_MISMATCH` + `FAMILY_PASSENGER` sub-flag
 
 - **Signal**: High — 35 pt; Definitive/auto-escalate on `FAMILY_PASSENGER` (+15 pt)
-- **Depends on**: #20
+- **Depends on**: #18
 - Extend OCR pass for `tipo_despesa ∈ {PASSAGEM AEREA SIGEPA, PASSAGEM AEREA RPA}`
 - Target label patterns: `"Passageiro:"`, `"Passenger:"`, `"Nome do Passageiro:"`
 - Name comparison: NFD Unicode normalization + case-folding + token-overlap matching (handles middle-name reordering); a match on the last token of the deputy's name appearing anywhere in the extracted passenger name is sufficient
 - `FAMILY_PASSENGER` sub-flag: mismatched passenger surname-matches the deputy's surname → escalate unconditionally
-  - Apply same NFD normalization, last-name-token extraction, and 5% corpus frequency gate as `VENDOR_FAMILY_MEMBER` (item #26)
+  - Apply same NFD normalization, last-name-token extraction, and 5% corpus frequency gate as `VENDOR_FAMILY_MEMBER` (item #24)
 - Coverage: ~19–25% of PASSAGEM AEREA expenses (GOL/LATAM/AZUL e-tickets are frequently PDFium — text-extractable)
 
-### 23. Cash payment detection (`CASH_PAYMENT`)
+### 21. Cash payment detection (`CASH_PAYMENT`)
 
 - **Signal**: Medium — +15 pt additive (not standalone)
-- **Depends on**: #20
+- **Depends on**: #18
 - OCR on `cod_tipo_documento = 1` only
 - Target strings: `"em espécie"`, `"pagamento em dinheiro"`, `"pago em espécie"`
 - Absent signal does NOT disprove cash payment — ~81% of Recibos are unextractable; do not use absence as exculpatory evidence
@@ -237,17 +222,17 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 
 ## Tier 6 — Geographic Enrichment
 
-### 24. Add IBGE municipality code to `vendors`
+### 22. Add IBGE municipality code to `vendors`
 
-- **Type**: Schema + enrichment — prerequisite for item #25
+- **Type**: Schema + enrichment — prerequisite for item #23
 - New migration: `municipio_ibge_code TEXT` column on `vendors`
 - RF Estabelecimentos `MUNICIPIO` column is already a numeric IBGE code — map to IBGE urban/rural classification table
 - Standalone UF mismatch has 22–83% FPR by category (airlines, telecoms, ride-hailing are structurally registered in SP/RJ)
 
-### 25. `VENDOR_GEOGRAPHIC_ANOMALY` (rural municipality precision)
+### 23. `VENDOR_GEOGRAPHIC_ANOMALY` (rural municipality precision)
 
-- **Signal**: Medium — 20 pt (do not ship above 10 pt without item #24)
-- **Depends on**: #24 (IBGE municipality codes)
+- **Signal**: Medium — 20 pt (do not ship above 10 pt without item #22)
+- **Depends on**: #22 (IBGE municipality codes)
 - Flag: vendor registered in an IBGE-classified rural municipality while `tipo_despesa ∈ {MANUTENCAO DE ESCRITORIO, LOCACAO OU FRETAMENTO DE VEICULOS, SERVICO DE SEGURANCA}`
 - Rural municipality dimension is far more discriminating than UF mismatch alone — a cattle-farming municipality cannot plausibly sublet urban office space
 - Contributes to the §6 composite escalation rule alongside `POLITICALLY_CONNECTED_VENDOR` and `VENDOR_CNAE_MISMATCH`
@@ -256,7 +241,7 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 
 ## Tier 7 — Remaining Signal Enrichments
 
-### 26. `VENDOR_FAMILY_MEMBER`
+### 24. `VENDOR_FAMILY_MEMBER`
 
 - **Signal**: Low — 15 pt (meaningful only in combination)
 - **Data**: `politicians.name` + `vendor_partners.partner_name`
@@ -266,25 +251,25 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
   3. Enforce 5% corpus frequency gate: suppress flag for any surname whose match rate across all `vendor_partners` records exceeds 5%
   4. Corpus confirmation of noisiest surnames to gate: PEREIRA (40 partner matches), OLIVEIRA (35), SILVA (20)
 
-### 27. ANP fuel price pipeline
+### 25. ANP fuel price pipeline
 
-- **Type**: New pipeline — blocker for item #28
+- **Type**: New pipeline — blocker for item #26
 - **Source**: ANP weekly pump price historical series (`dados.gov.br/dados/conjuntos-dados/serie-historica-de-precos-de-combustiveis-por-revenda`)
 - Creates table: `anp_fuel_prices(uf TEXT, semana_inicio TEXT, produto TEXT, preco_medio INT, preco_p95 INT)`
 - Products: GASOLINA, ETANOL, DIESEL, etc.
 - Join against `expenses` on UF (from deputy state) and ISO week of `data_documento`
 
-### 28. `FUEL_PRICE_ABOVE_ANP`
+### 26. `FUEL_PRICE_ABOVE_ANP`
 
 - **Signal**: Medium — 25 pt
-- **Depends on**: #20 (OCR litre quantity extraction) + #27 (ANP pipeline)
+- **Depends on**: #18 (OCR litre quantity extraction) + #25 (ANP pipeline)
 - For `tipo_despesa = COMBUSTIVEIS E LUBRIFICANTES`: `valor_liquido / extracted_litres > ANP regional P95`
 - COMBUSTIVEIS is the largest single category (233k rows, 35% of all expenses)
 - Limited to ~25% of COMBUSTIVEIS docs that are text-extractable (§2)
 
-### 29. Add `employee_count` to `vendors` from RAIS data
+### 27. Add `employee_count` to `vendors` from RAIS data
 
-- **Type**: Schema enrichment — upgrades item #9 from 10 pt interim to 20 pt full signal
+- **Type**: Schema enrichment — upgrades item #7 from 10 pt interim to 20 pt full signal
 - Separate pipeline: RAIS (Relação Anual de Informações Sociais) or SIMEI/SIMPLES cross-reference
 - Upgrade `VENDOR_NO_EMPLOYEES` to 20 pt after this column is populated
 
@@ -292,7 +277,7 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 
 ## Tier 8 — Score Calibration (run once, after all flags above)
 
-### 30. Scoring recalibration — Option A weights + two-tier thresholds
+### 28. Scoring recalibration — Option A weights + two-tier thresholds
 
 - Run simulation script from §10.7 of `heuristics-validation.md` against `etl/seed.db` after all flags above are implemented
 - **Option A** (statistically preferred): bring all weights to within 1.5× their empirical WoE floor; keep "escalate" for Definitive tier
@@ -309,33 +294,34 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 ## Dependency Graph
 
 ```
-#1 (expense_flags table)
- └─► #2  CROSS_DEPUTY_INVOICE_REUSE
- └─► #16 SINGLE_CLIENT_VENDOR
+#1 (forensic_flags table) — TO BE ADDED BACK
+ └─► CROSS_DEPUTY_INVOICE_REUSE — TO BE ADDED BACK
+ └─► #14 SINGLE_CLIENT_VENDOR
+ └─► #15 DUPLICATE_INVOICE
 
-#5 (pipeline_runs table)
- └─► #6  CNPJ_MISSING_ESTABLISHMENT
+#3 (pipeline_runs table)
+ └─► #4  CNPJ_MISSING_ESTABLISHMENT
 
-#10 (TSE all-cargo pipeline)
- └─► #11 POLITICALLY_CONNECTED_VENDOR  →  §6 composite auto-escalation
+#8 (TSE all-cargo pipeline)
+ └─► #9 POLITICALLY_CONNECTED_VENDOR  →  §6 composite auto-escalation
 
-#12 (TSE donations pipeline)
- └─► #13 CAMPAIGN_DONOR_VENDOR
+#10 (TSE donations pipeline)
+ └─► #11 CAMPAIGN_DONOR_VENDOR
 
-#14 (expenses: ano/mes columns)
- └─► #15 COMPETENCY_DATE_MISMATCH
+#12 (expenses: ano/mes columns)
+ └─► #13 COMPETENCY_DATE_MISMATCH
 
-#19 (cod=4 HTML fix)
- └─► #20 PDF/OCR pipeline
-       └─► #21 CATEGORY_MISMATCH
-       └─► #22 PASSENGER_NAME_MISMATCH + FAMILY_PASSENGER
-       └─► #23 CASH_PAYMENT
+#17 (cod=4 HTML fix)
+ └─► #18 PDF/OCR pipeline
+       └─► #19 CATEGORY_MISMATCH
+       └─► #20 PASSENGER_NAME_MISMATCH + FAMILY_PASSENGER
+       └─► #21 CASH_PAYMENT
 
-#24 (IBGE municipio codes)
- └─► #25 VENDOR_GEOGRAPHIC_ANOMALY  →  §6 composite
+#22 (IBGE municipio codes)
+ └─► #23 VENDOR_GEOGRAPHIC_ANOMALY  →  §6 composite
 
-#27 (ANP pipeline) + #20 (OCR)
- └─► #28 FUEL_PRICE_ABOVE_ANP
+#25 (ANP pipeline) + #18 (OCR)
+ └─► #26 FUEL_PRICE_ABOVE_ANP
 
-#30 depends on all above (run once, at the end)
+#28 depends on all above (run once, at the end)
 ```
