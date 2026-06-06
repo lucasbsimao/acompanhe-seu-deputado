@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { IPipelineDepChain } from '../../types/Pipeline';
+import type { IPipelineDepChain } from '../../types/Pipeline';
 import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';

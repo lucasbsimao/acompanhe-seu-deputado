@@ -3,6 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import { DeputiesPipeline } from '../../src/pipelines/dados-abertos-camara/DeputiesPipeline';
 import { useTestDatabase } from '../db/setup';
+import type Database from 'better-sqlite3';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 
@@ -70,7 +71,7 @@ function createMockDeputyDetail(id: number): MockDeputyDetail {
   };
 }
 
-function seedTSEDeputyRows(db: import('better-sqlite3').Database, count: number): void {
+function seedTSEDeputyRows(db: Database.Database, count: number): void {
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   const insert = db.prepare(
     "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')"
@@ -107,7 +108,7 @@ describe('DeputiesETL Integration Tests', () => {
     nock(API_BASE_URL)
       .get(/\/api\/v2\/deputados\/\d+$/)
       .reply(200, function(uri: string) {
-        const id = Number(uri.split('/').pop()!);
+        const id = Number(uri.split('/').at(-1));
         return createMockDeputyDetail(id);
       })
       .persist();
@@ -294,7 +295,7 @@ describe('DeputiesETL Integration Tests', () => {
     const etl = new DeputiesPipeline(getDb().db, 1);
 
     await assert.rejects(
-      async () => await etl.execute(),
+      async () => etl.execute(),
       (error: unknown) => {
         assert.ok((error as Error).message.includes('500'), 'Error should mention status 500');
         return true;
@@ -320,7 +321,7 @@ describe('DeputiesETL Integration Tests', () => {
     const etl = new DeputiesPipeline(getDb().db, 1);
 
     await assert.rejects(
-      async () => await etl.execute(),
+      async () => etl.execute(),
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Missing X-Total-Count header'),
@@ -347,7 +348,7 @@ describe('DeputiesETL Integration Tests', () => {
     const etl = new DeputiesPipeline(getDb().db, 1);
 
     await assert.rejects(
-      async () => await etl.execute(),
+      async () => etl.execute(),
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Response does not contain dados array'),

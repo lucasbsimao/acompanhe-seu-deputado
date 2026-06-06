@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { PipelineInfo, IPipelineClass } from '../types/Pipeline';
+import type { PipelineInfo, IPipelineClass } from '../types/Pipeline';
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
@@ -86,7 +86,7 @@ export class PipelineOrchestrator {
 
   async loadPipelineClass(importPath: string): Promise<IPipelineClass> {
     const module = await import(`../pipelines/${importPath}`) as Record<string, IPipelineClass>;
-    const className = importPath.split('/').pop()!;
+    const className = importPath.split('/').at(-1) ?? importPath;
     return module[className];
   }
 
@@ -105,8 +105,8 @@ export class PipelineOrchestrator {
     const result: PipelineInfo[] = [];
     const queue = [root];
     while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (visited.has(current.className)) continue;
+      const current = queue.shift();
+      if (!current || visited.has(current.className)) continue;
       visited.add(current.className);
       result.push(current);
       for (const dep of current.dependencies) {
@@ -137,8 +137,8 @@ export class PipelineOrchestrator {
 
     for (const p of pipelines) {
       for (const dep of p.dependencies) {
-        dependents.get(dep)!.push(p.className);
-        inDegree.set(p.className, inDegree.get(p.className)! + 1);
+        dependents.get(dep)?.push(p.className);
+        inDegree.set(p.className, (inDegree.get(p.className) ?? 0) + 1);
       }
     }
 
@@ -146,12 +146,14 @@ export class PipelineOrchestrator {
     const result: PipelineInfo[] = [];
 
     while (queue.length > 0) {
-      const node = queue.shift()!;
+      const node = queue.shift();
+      if (!node) break;
       result.push(node);
-      for (const depName of dependents.get(node.className)!) {
-        const newDeg = inDegree.get(depName)! - 1;
+      for (const depName of dependents.get(node.className) ?? []) {
+        const newDeg = (inDegree.get(depName) ?? 0) - 1;
         inDegree.set(depName, newDeg);
-        if (newDeg === 0) queue.push(byName.get(depName)!);
+        const next = byName.get(depName);
+        if (newDeg === 0 && next) queue.push(next);
       }
     }
 
@@ -174,7 +176,7 @@ export class PipelineOrchestrator {
     if (
       !Array.isArray(PipelineClass.dependencies) ||
       typeof PipelineClass !== 'function' ||
-      typeof (PipelineClass.prototype as { execute?: unknown })?.execute !== 'function'
+      typeof (PipelineClass.prototype as { execute?: unknown }).execute !== 'function'
     ) {
       throw new Error(`Pipeline ${className} does not implement IPipelineClass`);
     }

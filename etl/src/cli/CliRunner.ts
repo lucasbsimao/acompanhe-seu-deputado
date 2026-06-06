@@ -1,5 +1,5 @@
 import prompts from 'prompts';
-import { PipelineInfo } from '../types/Pipeline';
+import type { PipelineInfo } from '../types/Pipeline';
 import { UserCancelledError } from '../core/errors';
 
 

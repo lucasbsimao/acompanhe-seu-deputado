@@ -3,6 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import { SenatorsPipeline } from '../../src/pipelines/dados-abertos-senado/SenatorsPipeline';
 import { useTestDatabase } from '../db/setup';
+import type Database from 'better-sqlite3';
 
 const API_BASE_URL = 'https://legis.senado.leg.br';
 
@@ -68,7 +69,7 @@ function makeCPF(id: number): string {
   return digits.join('');
 }
 
-function seedTSESenatorRows(db: import('better-sqlite3').Database, count: number): void {
+function seedTSESenatorRows(db: Database.Database, count: number): void {
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   const insert = db.prepare(
     "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')"
@@ -81,7 +82,7 @@ function seedTSESenatorRows(db: import('better-sqlite3').Database, count: number
   insertAll(count);
 }
 
-function seedTSESenatorByName(db: import('better-sqlite3').Database, id: number, name: string): void {
+function seedTSESenatorByName(db: Database.Database, id: number, name: string): void {
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   db.prepare(
     "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')"
@@ -343,7 +344,7 @@ describe('SenatorsPipeline Integration Tests', () => {
     const pipeline = new SenatorsPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await pipeline.execute(),
+      async () => pipeline.execute(),
       (error: unknown) => {
         assert.ok((error as Error).message.includes('500'), 'Error should mention status 500');
         return true;
@@ -363,7 +364,7 @@ describe('SenatorsPipeline Integration Tests', () => {
     const pipeline = new SenatorsPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await pipeline.execute(),
+      async () => pipeline.execute(),
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Response does not contain Parlamentar data'),
@@ -388,7 +389,7 @@ describe('SenatorsPipeline Integration Tests', () => {
     const pipeline = new SenatorsPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await pipeline.execute(),
+      async () => pipeline.execute(),
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Response does not contain Parlamentar data'),

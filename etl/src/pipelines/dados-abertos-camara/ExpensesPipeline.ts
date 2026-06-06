@@ -1,6 +1,6 @@
 import { BasePipeline } from './BasePipeline';
 import { DeputiesPipeline } from './DeputiesPipeline';
-import { IPipelineDepChain } from '../../types/Pipeline';
+import type { IPipelineDepChain } from '../../types/Pipeline';
 import { ExpensesRepository } from '../../repositories/ExpensesRepository';
 import { PoliticianRole } from '../../types/PoliticianRole';
 import type Database from 'better-sqlite3';

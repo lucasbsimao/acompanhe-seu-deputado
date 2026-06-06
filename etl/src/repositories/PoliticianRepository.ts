@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { PoliticianRole } from '../types/PoliticianRole';
+import type { PoliticianRole } from '../types/PoliticianRole';
 import type { TSEElectionResultStatusKey } from '../types/TSEElectionResultStatus';
 
 export interface PoliticianRow {

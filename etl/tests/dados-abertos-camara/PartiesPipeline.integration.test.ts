@@ -243,7 +243,7 @@ describe('PartiesETL Integration Tests', () => {
     const etl = new PartiesPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await etl.execute(),
+      async () => etl.execute(),
       (error: unknown) => {
         assert.ok((error as Error).message.includes('500'), 'Error should mention status 500');
         return true;
@@ -268,7 +268,7 @@ describe('PartiesETL Integration Tests', () => {
     const etl = new PartiesPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await etl.execute(),
+      async () => etl.execute(),
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Missing X-Total-Count header'),
@@ -294,7 +294,7 @@ describe('PartiesETL Integration Tests', () => {
     const etl = new PartiesPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await etl.execute(),
+      async () => etl.execute(),
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Response does not contain dados array'),

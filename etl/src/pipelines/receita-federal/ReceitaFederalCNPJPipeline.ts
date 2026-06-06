@@ -8,7 +8,7 @@ import { VendorRepository, type Vendor, type VendorPartner } from '../../reposit
 import { ExpensesRepository } from '../../repositories/ExpensesRepository';
 import { VendorEmpresasCacheRepository, type VendorEmpresaCacheRow } from '../../repositories/VendorEmpresasCacheRepository';
 import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
-import { IPipelineDepChain } from '../../types/Pipeline';
+import type { IPipelineDepChain } from '../../types/Pipeline';
 import defaultConfig from '../../config/defaults.json';
 
 enum FileType {
@@ -223,8 +223,8 @@ export class ReceitaFederalCNPJPipeline {
       if (knownBasicCnpjs.has(row.CNPJ_BASICO)) {
         cacheRows.push({
           cnpj_basic: row.CNPJ_BASICO,
-          legal_name: row.RAZAO_SOCIAL?.trim() ?? '',
-          company_size: row.PORTE_EMPRESA?.trim() ?? ''
+          legal_name: row.RAZAO_SOCIAL.trim(),
+          company_size: row.PORTE_EMPRESA.trim()
         });
         if (cacheRows.length >= BATCH_SIZE) {
           this.empresasCacheRepo.insertBatch(cacheRows);
@@ -266,12 +266,12 @@ export class ReceitaFederalCNPJPipeline {
       vendors.push({
         cnpj,
         legal_name: empresa?.legal_name ?? '',
-        primary_cnae: row.CNAE_FISCAL_PRINCIPAL?.trim() || undefined,
-        uf: row.UF?.trim() || undefined,
-        municipio: row.MUNICIPIO?.trim() || undefined,
-        opening_date: row.DATA_INICIO_ATIVIDADE?.trim() || undefined,
-        registration_status: row.SITUACAO_CADASTRAL?.trim() || undefined,
-        registration_status_date: row.DATA_SITUACAO_CADASTRAL?.trim() || undefined,
+        primary_cnae: row.CNAE_FISCAL_PRINCIPAL.trim() || undefined,
+        uf: row.UF.trim() || undefined,
+        municipio: row.MUNICIPIO.trim() || undefined,
+        opening_date: row.DATA_INICIO_ATIVIDADE.trim() || undefined,
+        registration_status: row.SITUACAO_CADASTRAL.trim() || undefined,
+        registration_status_date: row.DATA_SITUACAO_CADASTRAL.trim() || undefined,
         company_size: empresa?.company_size ?? undefined,
       });
 
@@ -311,7 +311,7 @@ export class ReceitaFederalCNPJPipeline {
     for await (const row of parser as AsyncIterable<SocioRow>) {
       if (!knownBasicCnpjs.has(row.CNPJ_BASICO)) continue;
 
-      const partnerCpfCnpj = row.CNPJ_CPF_DO_SOCIO?.trim() ?? '';
+      const partnerCpfCnpj = row.CNPJ_CPF_DO_SOCIO.trim();
       if (!partnerCpfCnpj) continue;
 
       if (partnerCpfCnpj.length === 14 && !knownBasicCnpjs.has(partnerCpfCnpj.slice(0, 8))) {
@@ -323,8 +323,8 @@ export class ReceitaFederalCNPJPipeline {
         partners.push({
           cnpj: fullCnpj,
           partner_cpf_cnpj: partnerCpfCnpj,
-          partner_name: row.NOME_SOCIO?.trim() ?? '',
-          partner_role: row.QUALIFICACAO_SOCIO?.trim() || undefined,
+          partner_name: row.NOME_SOCIO.trim(),
+          partner_role: row.QUALIFICACAO_SOCIO.trim() || undefined,
         });
       }
 
@@ -349,7 +349,7 @@ export class ReceitaFederalCNPJPipeline {
     if (!existsSync(dir)) return;
     try {
       const files = readdirSync(dir);
-      files.forEach(f => unlinkSync(join(dir, f)));
+      files.forEach(f => { unlinkSync(join(dir, f)); });
       rmdirSync(dir);
     } catch (err) {
       console.warn(`Cleanup warning for ${dir}:`, err);

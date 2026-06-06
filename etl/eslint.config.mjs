@@ -10,7 +10,7 @@ export default tseslint.config(
   {
     ignores: ['dist/**', 'node_modules/**', '*.js', '*.mjs'],
   },
-  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.strictTypeChecked,
   {
     files: ['**/*.ts', '**/*.tsx'],
     plugins: {
@@ -25,7 +25,11 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/return-await': ['error', 'in-try-catch'],
+      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
       '@typescript-eslint/prefer-nullish-coalescing': 'error',
       '@typescript-eslint/prefer-optional-chain': 'error',
     },

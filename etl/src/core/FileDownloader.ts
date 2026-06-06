@@ -2,7 +2,7 @@ import { createWriteStream, mkdirSync, existsSync } from 'fs';
 import { pipeline } from 'stream/promises';
 import { execFileSync } from 'child_process';
 import { join } from 'path';
-import { HttpClient } from './HttpClient';
+import type { HttpClient } from './HttpClient';
 
 export interface BasicAuthOptions {
   username: string;

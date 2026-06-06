@@ -6,7 +6,7 @@ import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
 import { PoliticianRole } from '../../types/PoliticianRole';
 import defaultConfig from '../../config/defaults.json';
 import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
-import { IPipelineDepChain } from '../../types/Pipeline';
+import type { IPipelineDepChain } from '../../types/Pipeline';
 import { PartiesPipeline } from './PartiesPipeline';
 
 interface PoliticianData {

@@ -10,7 +10,7 @@ import { normalizeId } from '../../util/normalization.util';
 import { parse } from 'csv-parse/sync';
 import { readFileSync, readdirSync, unlinkSync, rmdirSync } from 'fs';
 import { join } from 'path';
-import { IPipelineDepChain } from '../../types/Pipeline';
+import type { IPipelineDepChain } from '../../types/Pipeline';
 
 interface TSECandidate {
   DS_CARGO: string;
@@ -131,7 +131,7 @@ export class TSE2022ElectionResultsPipeline {
   private cleanup(): void {
     try {
       const files = readdirSync(this.extractPath);
-      files.forEach(f => unlinkSync(join(this.extractPath, f)));
+      files.forEach(f => { unlinkSync(join(this.extractPath, f)); });
       rmdirSync(this.extractPath);
       unlinkSync(this.zipPath);
       rmdirSync(this.tempDir);

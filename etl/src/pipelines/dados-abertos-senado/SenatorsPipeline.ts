@@ -1,6 +1,6 @@
 import { BasePipeline } from './BasePipeline';
 import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
-import { IPipelineDepChain } from '../../types/Pipeline';
+import type { IPipelineDepChain } from '../../types/Pipeline';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import type Database from 'better-sqlite3';
@@ -21,9 +21,9 @@ interface SenatorData {
 }
 
 interface SenatorsResponse {
-  ListaParlamentarEmExercicio: {
-    Parlamentares: {
-      Parlamentar: SenatorData | SenatorData[];
+  ListaParlamentarEmExercicio?: {
+    Parlamentares?: {
+      Parlamentar?: SenatorData | SenatorData[];
     };
   };
 }

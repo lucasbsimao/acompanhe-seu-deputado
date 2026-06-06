@@ -1,8 +1,9 @@
 import { BasePipeline } from './BasePipeline';
 import { DeputiesPipeline } from '../dados-abertos-camara/DeputiesPipeline';
 import { SenatorsPipeline } from '../dados-abertos-senado/SenatorsPipeline';
-import { IPipelineDepChain } from '../../types/Pipeline';
-import { EmendaRepository, EmendaRecord } from '../../repositories/EmendaRepository';
+import type { IPipelineDepChain } from '../../types/Pipeline';
+import type { EmendaRecord } from '../../repositories/EmendaRepository';
+import { EmendaRepository } from '../../repositories/EmendaRepository';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import type Database from 'better-sqlite3';
@@ -11,19 +12,19 @@ import defaultConfig from '../../config/defaults.json';
 interface ApiEmenda {
   codigoEmenda: string;
   ano: number;
-  tipoEmenda: string;
+  tipoEmenda: string | null;
   autor: string;
   nomeAutor: string;
-  numeroEmenda: string;
-  localidadeDoGasto: string;
-  funcao: string;
-  subfuncao: string;
-  valorEmpenhado: string;
-  valorLiquidado: string;
-  valorPago: string;
-  valorRestoInscrito: string;
-  valorRestoCancelado: string;
-  valorRestoPago: string;
+  numeroEmenda: string | null;
+  localidadeDoGasto: string | null;
+  funcao: string | null;
+  subfuncao: string | null;
+  valorEmpenhado: string | null;
+  valorLiquidado: string | null;
+  valorPago: string | null;
+  valorRestoInscrito: string | null;
+  valorRestoCancelado: string | null;
+  valorRestoPago: string | null;
 }
 
 export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {

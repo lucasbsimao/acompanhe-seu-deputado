@@ -4,6 +4,7 @@ import nock from 'nock';
 import AdmZip from 'adm-zip';
 import { ReceitaFederalCNPJPipeline } from '../../src/pipelines/receita-federal/ReceitaFederalCNPJPipeline';
 import { useTestDatabase } from '../db/setup';
+import type Database from 'better-sqlite3';
 
 // Values from src/config/defaults.json
 const WEBDAV_BASE = 'https://arquivos.receitafederal.gov.br';
@@ -121,7 +122,7 @@ function buildSocioCsvRow(
 /**
  * Seed an expense with a 14-digit CNPJ so ReceitaFederalCNPJPipeline has a known CNPJ to look up.
  */
-function seedExpenseWithCnpj(db: import('better-sqlite3').Database, cnpj: string, suffix = '001'): void {
+function seedExpenseWithCnpj(db: Database.Database, cnpj: string, suffix = '001'): void {
   // Seed minimal required parent records
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   db.prepare(

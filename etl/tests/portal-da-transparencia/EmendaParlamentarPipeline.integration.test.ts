@@ -3,6 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import { EmendaParlamentarPipeline } from '../../src/pipelines/portal-da-transparencia/EmendaParlamentarPipeline';
 import { useTestDatabase } from '../db/setup';
+import type Database from 'better-sqlite3';
 
 const API_BASE_URL = 'https://api.portaldatransparencia.gov.br';
 const FAKE_API_KEY = 'test-api-key-123';
@@ -47,7 +48,7 @@ function createMockEmenda(codigo: string, ano = 2024, autor = 'DEPUTADO TESTE'):
   };
 }
 
-function seedPolitician(db: import('better-sqlite3').Database, cpf: string, name: string): void {
+function seedPolitician(db: Database.Database, cpf: string, name: string): void {
   db.exec(`INSERT OR IGNORE INTO parties (id, name, acronym) VALUES ('PT', 'PARTIDO DOS TRABALHADORES', 'PT')`);
   db.exec(`
     INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)

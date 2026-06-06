@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
-import { ForensicFlag, FORENSIC_FLAG_SCORES } from '../pipelines/forensics/ForensicFlag';
+import type { ForensicFlag} from '../pipelines/forensics/ForensicFlag';
+import { FORENSIC_FLAG_SCORES } from '../pipelines/forensics/ForensicFlag';
 
 export class ForensicFlagsRepository {
   private readonly db: Database.Database;

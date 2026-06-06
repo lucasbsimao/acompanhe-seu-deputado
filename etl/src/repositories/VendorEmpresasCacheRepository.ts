@@ -1,4 +1,4 @@
-import { Database } from 'better-sqlite3';
+import type { Database } from 'better-sqlite3';
 import { vendorCompaniesCache } from '../db/staging/vendor_empresas_cache';
 
 export interface VendorEmpresaCacheRow {

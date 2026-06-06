@@ -2,7 +2,7 @@ import { BasePipeline } from './BasePipeline';
 import { PartyRepository } from '../../repositories/PartyRepository';
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
-import { IPipelineDepChain } from '../../types/Pipeline';
+import type { IPipelineDepChain } from '../../types/Pipeline';
 
 interface PartyData {
   id: number;

@@ -3,6 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import { ExpensesPipeline } from '../../src/pipelines/dados-abertos-camara/ExpensesPipeline';
 import { useTestDatabase } from '../db/setup';
+import type Database from 'better-sqlite3';
 import { PoliticianRole } from '../../src/types/PoliticianRole';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
@@ -44,7 +45,7 @@ function buildExpensesQuery(page: number, yearsToFetch = 4): Record<string, stri
   };
 }
 
-function seedDeputy(db: import('better-sqlite3').Database, cpf: string, apiId: string): void {
+function seedDeputy(db: Database.Database, cpf: string, apiId: string): void {
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   db.prepare(
     `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)

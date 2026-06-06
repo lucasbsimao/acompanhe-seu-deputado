@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 import { before, after, beforeEach } from 'node:test';
 import { DatabaseManager } from '../../src/db/DatabaseManager';
 
@@ -9,7 +9,7 @@ export interface TestDatabase {
 }
 
 export function useTestDatabase() {
-  let testDb: TestDatabase;
+  let testDb: TestDatabase | undefined;
 
   before(() => {
     testDb = createTestDatabase();
@@ -22,14 +22,17 @@ export function useTestDatabase() {
   });
 
   beforeEach(() => {
-    if (!testDb.db.open) {
+    if (!testDb?.db.open) {
       testDb = createTestDatabase();
     }
     testDb.clearData();
   });
 
   return {
-    getDb: () => testDb,
+    getDb: (): TestDatabase => {
+      if (!testDb) throw new Error('testDb not initialized — is getDb() called outside a test body?');
+      return testDb;
+    },
   };
 }
 
