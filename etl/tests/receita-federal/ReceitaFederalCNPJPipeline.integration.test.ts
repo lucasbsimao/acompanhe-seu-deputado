@@ -4,6 +4,7 @@ import nock from 'nock';
 import AdmZip from 'adm-zip';
 import { ReceitaFederalCNPJPipeline } from '../../src/pipelines/receita-federal/ReceitaFederalCNPJPipeline';
 import { useTestDatabase } from '../db/setup';
+import type Database from 'better-sqlite3';
 
 // Values from src/config/defaults.json
 const WEBDAV_BASE = 'https://arquivos.receitafederal.gov.br';
@@ -121,7 +122,7 @@ function buildSocioCsvRow(
 /**
  * Seed an expense with a 14-digit CNPJ so ReceitaFederalCNPJPipeline has a known CNPJ to look up.
  */
-function seedExpenseWithCnpj(db: import('better-sqlite3').Database, cnpj: string, suffix = '001'): void {
+function seedExpenseWithCnpj(db: Database.Database, cnpj: string, suffix = '001'): void {
   // Seed minimal required parent records
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   db.prepare(
@@ -171,6 +172,26 @@ function stubAllZipsForType(
   }
 }
 
+interface VendorRow {
+  cnpj: string;
+  legal_name: string;
+  uf: string | null;
+  municipio: string | null;
+  primary_cnae: string | null;
+  opening_date: string | null;
+  registration_status: string | null;
+  company_size: string | null;
+}
+
+interface PartnerRow {
+  cnpj: string;
+  partner_name: string;
+  partner_cpf_cnpj: string;
+  partner_role: string;
+}
+
+interface CountRow { cnt: number; }
+
 describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
 
@@ -219,7 +240,7 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     await pipeline.execute(true);
 
     // Assert vendor row persisted
-    const vendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as any;
+    const vendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as VendorRow | undefined;
     assert.ok(vendor, 'Vendor row should be persisted');
     assert.strictEqual(vendor.cnpj, FULL_CNPJ, 'CNPJ should match');
     assert.strictEqual(vendor.legal_name, 'EMPRESA TESTE LTDA', 'Legal name should come from Companies file');
@@ -231,7 +252,7 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     assert.strictEqual(vendor.company_size, '05', 'Company size should come from Companies file');
 
     // Assert vendor_partners row persisted
-    const partner = db.prepare('SELECT * FROM vendor_partners WHERE cnpj = ?').get(FULL_CNPJ) as any;
+    const partner = db.prepare('SELECT * FROM vendor_partners WHERE cnpj = ?').get(FULL_CNPJ) as PartnerRow | undefined;
     assert.ok(partner, 'Partner row should be persisted');
     assert.strictEqual(partner.partner_name, 'SOCIO TESTE', 'Partner name should match');
     assert.strictEqual(partner.partner_cpf_cnpj, partnerCnpj, 'Partner CNPJ should match');
@@ -256,7 +277,7 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const pipeline = new ReceitaFederalCNPJPipeline(db);
     await pipeline.execute(); // forceDownload defaults to false
 
-    const count = (db.prepare('SELECT COUNT(*) as cnt FROM vendors').get() as any).cnt;
+    const count = (db.prepare('SELECT COUNT(*) as cnt FROM vendors').get() as CountRow).cnt;
     assert.strictEqual(count, 1, 'Vendors table should remain unchanged');
     assert.ok(nock.isDone(), 'No HTTP calls should have been made');
   });
@@ -282,7 +303,7 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const pipeline = new ReceitaFederalCNPJPipeline(db);
     await pipeline.execute(true);
 
-    const vendorCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendors').get() as any).cnt;
+    const vendorCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendors').get() as CountRow).cnt;
     assert.strictEqual(vendorCount, 0, 'No vendors should be inserted when no CNPJs exist in expenses');
     assert.ok(nock.isDone(), 'No HTTP calls should have been made');
   });
@@ -310,12 +331,12 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const pipeline = new ReceitaFederalCNPJPipeline(db);
     await pipeline.execute(true);
 
-    const vendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as any;
+    const vendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as VendorRow | undefined;
     assert.ok(vendor, 'Vendor should be persisted even without partners');
     assert.strictEqual(vendor.legal_name, 'EMPRESA SEM SOCIOS LTDA');
     assert.strictEqual(vendor.company_size, '01');
 
-    const partnerCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendor_partners WHERE cnpj = ?').get(FULL_CNPJ) as any).cnt;
+    const partnerCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendor_partners WHERE cnpj = ?').get(FULL_CNPJ) as CountRow).cnt;
     assert.strictEqual(partnerCount, 0, 'No partners should be inserted');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -345,7 +366,7 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const pipeline = new ReceitaFederalCNPJPipeline(db);
     await pipeline.execute(true);
 
-    const vendorCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendors').get() as any).cnt;
+    const vendorCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendors').get() as CountRow).cnt;
     assert.strictEqual(vendorCount, 0, 'No vendor should be inserted if CNPJ is not in Establishments');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -374,10 +395,10 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const pipeline = new ReceitaFederalCNPJPipeline(db);
     await pipeline.execute(true);
 
-    const vendor = db.prepare('SELECT cnpj FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as any;
+    const vendor = db.prepare('SELECT cnpj FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as { cnpj: string } | undefined;
     assert.ok(vendor, 'Vendor should still be persisted');
 
-    const partnerCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendor_partners').get() as any).cnt;
+    const partnerCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendor_partners').get() as CountRow).cnt;
     assert.strictEqual(partnerCount, 0, 'Partner with unrelated CNPJ basic should be filtered out');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -407,11 +428,11 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const pipeline = new ReceitaFederalCNPJPipeline(db);
     await pipeline.execute(true); // forceDownload = true bypasses shouldSkip
 
-    const newVendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as any;
+    const newVendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as VendorRow | undefined;
     assert.ok(newVendor, 'New vendor should be inserted via force-download');
     assert.strictEqual(newVendor.legal_name, 'NOVA EMPRESA LTDA');
 
-    const totalVendors = (db.prepare('SELECT COUNT(*) as cnt FROM vendors').get() as any).cnt;
+    const totalVendors = (db.prepare('SELECT COUNT(*) as cnt FROM vendors').get() as CountRow).cnt;
     assert.strictEqual(totalVendors, 2, 'Both the pre-existing and new vendor should be present');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');

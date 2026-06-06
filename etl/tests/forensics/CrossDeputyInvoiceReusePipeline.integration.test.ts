@@ -30,8 +30,16 @@ function seedExpense(db: Database.Database, { id, deputyId, cnpj, numDocumento }
   ).run(id, deputyId, id, numDocumento, cnpj);
 }
 
-function getFlags(db: Database.Database): Array<{ entity_id: string; flag_name: string; score: number; source_table: string; metadata: string | null }> {
-  return db.prepare('SELECT * FROM forensic_flags ORDER BY entity_id').all() as any[];
+interface ForensicFlagRow {
+  entity_id: string;
+  flag_name: string;
+  score: number;
+  source_table: string;
+  metadata: string | null;
+}
+
+function getFlags(db: Database.Database): ForensicFlagRow[] {
+  return db.prepare('SELECT * FROM forensic_flags ORDER BY entity_id').all() as ForensicFlagRow[];
 }
 
 describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {

@@ -2,7 +2,7 @@ import { BasePipeline } from './BasePipeline';
 import { PartyRepository } from '../../repositories/PartyRepository';
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
-import { IPipelineDepChain } from '../../types/Pipeline';
+import type { IPipelineDepChain } from '../../types/Pipeline';
 
 interface PartyData {
   id: number;
@@ -32,16 +32,16 @@ export class PartiesPipeline extends BasePipeline<PartyData> {
     this.repo = new PartyRepository(db);
   }
 
-  async buildUrl(page: number, pageSize: number): Promise<string> {
+  buildUrl(page: number, pageSize: number): Promise<string> {
     const url = new URL(this.apiEndpoint);
     url.searchParams.set('ordem', 'ASC');
     url.searchParams.set('ordenarPor', 'sigla');
     url.searchParams.set('pagina', String(page));
     url.searchParams.set('itens', String(pageSize));
-    return url.toString();
+    return Promise.resolve(url.toString());
   }
 
-  async decodePage(data: unknown): Promise<PartyData[]> {
+  decodePage(data: unknown): Promise<PartyData[]> {
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response data');
     }
@@ -51,10 +51,10 @@ export class PartiesPipeline extends BasePipeline<PartyData> {
       throw new Error('Response does not contain dados array');
     }
 
-    return response.dados;
+    return Promise.resolve(response.dados);
   }
 
-  async extractTotalCount(headers: Record<string, string>): Promise<number> {
+  extractTotalCount(headers: Record<string, string>): Promise<number> {
     const totalCountHeader = headers['x-total-count'];
     if (!totalCountHeader) {
       throw new Error('Missing X-Total-Count header');
@@ -65,14 +65,14 @@ export class PartiesPipeline extends BasePipeline<PartyData> {
       throw new Error('Invalid X-Total-Count header value');
     }
 
-    return totalCount;
+    return Promise.resolve(totalCount);
   }
 
-  async shouldDownload(): Promise<boolean> {
-    return this.repo.count() === 0;
+  shouldDownload(): Promise<boolean> {
+    return Promise.resolve(this.repo.count() === 0);
   }
 
-  async onPageFetched(items: PartyData[]): Promise<void> {
+  onPageFetched(items: PartyData[]): Promise<void> {
     this.repo.insertBatch(
       items.map(d => ({
         id: normalizeId(d.sigla),
@@ -80,5 +80,6 @@ export class PartiesPipeline extends BasePipeline<PartyData> {
         acronym: d.sigla,
       }))
     );
+    return Promise.resolve();
   }
 }

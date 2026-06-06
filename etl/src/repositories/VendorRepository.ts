@@ -1,4 +1,4 @@
-import { Database } from 'better-sqlite3';
+import type { Database } from 'better-sqlite3';
 
 export interface Vendor {
   cnpj: string;
@@ -41,13 +41,13 @@ export class VendorRepository {
         stmt.run(
           vendor.cnpj,
           vendor.legal_name,
-          vendor.primary_cnae || null,
-          vendor.uf || null,
-          vendor.municipio || null,
-          vendor.opening_date || null,
-          vendor.registration_status || null,
-          vendor.registration_status_date || null,
-          vendor.company_size || null
+          vendor.primary_cnae ?? null,
+          vendor.uf ?? null,
+          vendor.municipio ?? null,
+          vendor.opening_date ?? null,
+          vendor.registration_status ?? null,
+          vendor.registration_status_date ?? null,
+          vendor.company_size ?? null
         );
       }
     });
@@ -70,7 +70,7 @@ export class VendorRepository {
           partner.cnpj,
           partner.partner_cpf_cnpj,
           partner.partner_name,
-          partner.partner_role || null
+          partner.partner_role ?? null
         );
       }
     });
@@ -79,7 +79,7 @@ export class VendorRepository {
   }
 
   getFullCnpjsByBasicCnpj(basicCnpj: string): string[] {
-    const rows = this.stmtFullCnpjsByBasic.all(`${basicCnpj}%`) as { cnpj: string }[];
+    const rows = this.stmtFullCnpjsByBasic.all(basicCnpj + '%') as { cnpj: string }[];
     return rows.map(r => r.cnpj);
   }
 

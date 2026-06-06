@@ -1,5 +1,5 @@
 import prompts from 'prompts';
-import { PipelineInfo } from '../types/Pipeline';
+import type { PipelineInfo } from '../types/Pipeline';
 import { UserCancelledError } from '../core/errors';
 
 
@@ -36,7 +36,7 @@ export class CliRunner {
       },
     ];
 
-    const response = await prompts({
+    const response = await prompts<'pipeline'>({
       type: 'select',
       name: 'pipeline',
       message: 'Select a pipeline to execute',
@@ -53,7 +53,7 @@ export class CliRunner {
     }
 
     return {
-      selectedPipeline: response.pipeline === 'all' ? null : response.pipeline,
+      selectedPipeline: response.pipeline === 'all' ? null : String(response.pipeline),
       executeAll: response.pipeline === 'all',
     };
   }

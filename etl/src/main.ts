@@ -55,7 +55,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error('Unhandled error:', error);
   dbManager.close();
   process.exit(1);

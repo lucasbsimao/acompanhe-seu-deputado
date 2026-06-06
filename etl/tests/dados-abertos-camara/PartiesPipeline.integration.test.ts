@@ -6,13 +6,26 @@ import { useTestDatabase } from '../db/setup';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 
-function createMockParty(id: number): any {
+interface MockParty {
+  id: number;
+  sigla: string;
+  nome: string;
+  uri: string;
+}
+
+function createMockParty(id: number): MockParty {
   return {
     id,
     sigla: `PT${id}`,
     nome: `Party ${id}`,
     uri: `https://dadosabertos.camara.leg.br/api/v2/partidos/${id}`,
   };
+}
+
+interface PartyRow {
+  id: string;
+  name: string;
+  acronym: string;
 }
 
 describe('PartiesETL Integration Tests', () => {
@@ -44,7 +57,7 @@ describe('PartiesETL Integration Tests', () => {
 
     await etl.execute();
 
-    const result = db.prepare('SELECT * FROM parties ORDER BY rowid').all() as any[];
+    const result = db.prepare('SELECT * FROM parties ORDER BY rowid').all() as PartyRow[];
     assert.strictEqual(result.length, 10, 'Should contain 10 parties');
     assert.strictEqual(result[0].id, 'pt1', 'First party should have normalized id pt1');
     assert.strictEqual(result[9].id, 'pt10', 'Last party should have normalized id pt10');
@@ -92,7 +105,7 @@ describe('PartiesETL Integration Tests', () => {
 
     await etl.execute();
 
-    const result = db.prepare('SELECT * FROM parties ORDER BY rowid').all() as any[];
+    const result = db.prepare('SELECT * FROM parties ORDER BY rowid').all() as PartyRow[];
     assert.strictEqual(result.length, 250, 'Should contain 250 parties');
     assert.strictEqual(result[0].id, 'pt1', 'First party should have normalized id pt1');
     assert.strictEqual(result[99].id, 'pt100', 'Party at index 99 should have normalized id pt100');
@@ -132,7 +145,7 @@ describe('PartiesETL Integration Tests', () => {
 
     await etl.execute();
 
-    const result = db.prepare('SELECT * FROM parties ORDER BY rowid').all() as any[];
+    const result = db.prepare('SELECT * FROM parties ORDER BY rowid').all() as PartyRow[];
     assert.strictEqual(result.length, 2, 'Should contain 2 parties');
     assert.strictEqual(result[0].id, 'pt', 'PT should be normalized to pt');
     assert.strictEqual(result[1].id, 'psdb', 'PSDB should be normalized to psdb');
@@ -171,7 +184,7 @@ describe('PartiesETL Integration Tests', () => {
 
     await etl.execute();
 
-    const result = db.prepare('SELECT * FROM parties').all() as any[];
+    const result = db.prepare('SELECT * FROM parties').all() as PartyRow[];
     assert.strictEqual(result.length, 5, 'Should contain 5 parties after retries');
 
     assert.strictEqual(scope.pendingMocks().length, 0, 'All 3 retry mocks should have been called');
@@ -207,7 +220,7 @@ describe('PartiesETL Integration Tests', () => {
 
     await etl.execute();
 
-    const result = db.prepare('SELECT * FROM parties').all() as any[];
+    const result = db.prepare('SELECT * FROM parties').all() as PartyRow[];
     assert.strictEqual(result.length, 5, 'Should contain 5 parties after rate limit retry');
 
     assert.strictEqual(scope.pendingMocks().length, 0, 'Both endpoint calls (429 and 200) should have been made');
@@ -230,9 +243,9 @@ describe('PartiesETL Integration Tests', () => {
     const etl = new PartiesPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await etl.execute(),
-      (error: any) => {
-        assert.ok(error.message.includes('500'), 'Error should mention status 500');
+      async () => etl.execute(),
+      (error: unknown) => {
+        assert.ok((error as Error).message.includes('500'), 'Error should mention status 500');
         return true;
       },
       'Should throw error after exhausting retries'
@@ -255,10 +268,10 @@ describe('PartiesETL Integration Tests', () => {
     const etl = new PartiesPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await etl.execute(),
-      (error: any) => {
+      async () => etl.execute(),
+      (error: unknown) => {
         assert.ok(
-          error.message.includes('Missing X-Total-Count header'),
+          (error as Error).message.includes('Missing X-Total-Count header'),
           'Error should mention missing header'
         );
         return true;
@@ -281,10 +294,10 @@ describe('PartiesETL Integration Tests', () => {
     const etl = new PartiesPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await etl.execute(),
-      (error: any) => {
+      async () => etl.execute(),
+      (error: unknown) => {
         assert.ok(
-          error.message.includes('Response does not contain dados array'),
+          (error as Error).message.includes('Response does not contain dados array'),
           'Error should mention invalid response format'
         );
         return true;
@@ -323,7 +336,7 @@ describe('PartiesETL Integration Tests', () => {
 
     await etl.execute();
 
-    const result = db.prepare('SELECT * FROM parties ORDER BY id').all() as any[];
+    const result = db.prepare('SELECT * FROM parties ORDER BY id').all() as PartyRow[];
     assert.strictEqual(result.length, 550, 'Should contain 550 parties');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -354,7 +367,7 @@ describe('PartiesETL Integration Tests', () => {
 
     await etl.execute();
 
-    let result = db.prepare('SELECT * FROM parties WHERE id = ?').all('pt') as any[];
+    let result = db.prepare('SELECT * FROM parties WHERE id = ?').all('pt') as PartyRow[];
     assert.strictEqual(result.length, 1, 'Should contain 1 party');
     assert.strictEqual(result[0].name, 'Partido dos Trabalhadores', 'Party name should be correct');
 
@@ -372,7 +385,7 @@ describe('PartiesETL Integration Tests', () => {
     const etl2 = new PartiesPipeline(db);
     await etl2.execute(true);
 
-    result = db.prepare('SELECT * FROM parties WHERE id = ?').all('pt') as any[];
+    result = db.prepare('SELECT * FROM parties WHERE id = ?').all('pt') as PartyRow[];
     assert.strictEqual(result.length, 1, 'Should still contain 1 party');
     assert.strictEqual(result[0].name, 'Updated Party Name', 'Party name should be updated');
 

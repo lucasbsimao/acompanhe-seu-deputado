@@ -1,4 +1,4 @@
-import { PoliticianRepository } from '../repositories/PoliticianRepository';
+import type { PoliticianRepository } from '../repositories/PoliticianRepository';
 import { normalizeNameForMatching } from '../util/normalization.util';
 
 export class PoliticianLookupService {
@@ -33,6 +33,6 @@ export class PoliticianLookupService {
     }
 
     const normalizedAutor = normalizeNameForMatching(autorName);
-    return this.nameToCpfMap.get(normalizedAutor) || null;
+    return this.nameToCpfMap.get(normalizedAutor) ?? null;
   }
 }

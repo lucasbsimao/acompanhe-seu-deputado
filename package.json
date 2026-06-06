@@ -9,7 +9,12 @@
     "test": "jest",
     "test:all": "jest && npm test --prefix etl",
     "test:unit": "jest --testPathPattern='(?<!integration)\\.test\\.tsx?$'",
-    "test:integration": "jest --testPathPattern='\\.integration\\.test\\.tsx?$'"
+    "test:integration": "jest --testPathPattern='\\.integration\\.test\\.tsx?$'",
+    "prepare": "husky",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\""
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.81.3",
@@ -36,11 +41,22 @@
     "@types/react": "^19.1.0",
     "@types/react-test-renderer": "^19.1.0",
     "better-sqlite3": "^11.0.0",
-    "eslint": "^8.19.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "9.1.2",
+    "eslint-plugin-jest": "^29.15.2",
+    "eslint-plugin-react-native": "^5.0.0",
+    "husky": "^9.1.7",
     "jest": "^29.6.3",
+    "lint-staged": "^17.0.7",
     "prettier": "2.8.8",
     "react-test-renderer": "19.1.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.60.1"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": "eslint --fix",
+    "etl/**/*.ts": "etl/node_modules/.bin/eslint --fix",
+    "**/*.{js,jsx,ts,tsx,json,md}": "prettier --write"
   },
   "engines": {
     "node": ">=20"

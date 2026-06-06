@@ -3,10 +3,23 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import { SenatorsPipeline } from '../../src/pipelines/dados-abertos-senado/SenatorsPipeline';
 import { useTestDatabase } from '../db/setup';
+import type Database from 'better-sqlite3';
 
 const API_BASE_URL = 'https://legis.senado.leg.br';
 
-function createMockSenator(id: number, uf: string = 'SP'): any {
+interface MockSenatorId {
+  CodigoParlamentar: string;
+  NomeParlamentar: string;
+  SiglaPartidoParlamentar: string;
+  UfParlamentar: string;
+  UrlFotoParlamentar?: string;
+}
+
+interface MockSenator {
+  IdentificacaoParlamentar: MockSenatorId;
+}
+
+function createMockSenator(id: number, uf: string = 'SP'): MockSenator {
   return {
     IdentificacaoParlamentar: {
       CodigoParlamentar: String(id),
@@ -18,7 +31,15 @@ function createMockSenator(id: number, uf: string = 'SP'): any {
   };
 }
 
-function createMockResponse(senators: any[]): any {
+interface MockSenatorResponse {
+  ListaParlamentarEmExercicio: {
+    Parlamentares: {
+      Parlamentar: MockSenator[];
+    };
+  };
+}
+
+function createMockResponse(senators: MockSenator[]): MockSenatorResponse {
   return {
     ListaParlamentarEmExercicio: {
       Parlamentares: {
@@ -48,7 +69,7 @@ function makeCPF(id: number): string {
   return digits.join('');
 }
 
-function seedTSESenatorRows(db: import('better-sqlite3').Database, count: number): void {
+function seedTSESenatorRows(db: Database.Database, count: number): void {
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   const insert = db.prepare(
     "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')"
@@ -61,12 +82,25 @@ function seedTSESenatorRows(db: import('better-sqlite3').Database, count: number
   insertAll(count);
 }
 
-function seedTSESenatorByName(db: import('better-sqlite3').Database, id: number, name: string): void {
+function seedTSESenatorByName(db: Database.Database, id: number, name: string): void {
   db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
   db.prepare(
     "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')"
   ).run(makeCPF(id), name);
 }
+
+interface PoliticianRow {
+  source_api_id: string;
+  name: string;
+  uf: string;
+  role: string;
+  photo_url: string | null;
+  elected_as: string | null;
+  party_id: string;
+  cpf: string;
+}
+
+interface CountRow { count: number; }
 
 describe('SenatorsPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
@@ -94,7 +128,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians WHERE role = ? ORDER BY CAST(source_api_id AS INTEGER)').all('SENATOR') as any[];
+    const result = db.prepare('SELECT * FROM politicians WHERE role = ? ORDER BY CAST(source_api_id AS INTEGER)').all('SENATOR') as PoliticianRow[];
     assert.strictEqual(result.length, 10, 'Should contain 10 senators');
     assert.strictEqual(result[0].source_api_id, '1', 'First senator should have source_api_id 1');
     assert.strictEqual(result[0].role, 'SENATOR', 'Role should be SENATOR');
@@ -125,7 +159,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as any[];
+    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as PoliticianRow[];
     assert.strictEqual(result.length, 1, 'Should contain 1 senator');
     assert.strictEqual(result[0].source_api_id, '1', 'Senator should have source_api_id 1');
 
@@ -167,7 +201,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians WHERE role = ? ORDER BY source_api_id').all('SENATOR') as any[];
+    const result = db.prepare('SELECT * FROM politicians WHERE role = ? ORDER BY source_api_id').all('SENATOR') as PoliticianRow[];
     assert.strictEqual(result.length, 2, 'Should contain 2 senators');
     assert.strictEqual(result[0].party_id, 'pt', 'PT should be normalized to pt');
     assert.strictEqual(result[1].party_id, 'psdb', 'PSDB should be normalized to psdb');
@@ -200,7 +234,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as any[];
+    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as PoliticianRow[];
     assert.strictEqual(result.length, 1, 'Should contain 1 senator');
     assert.strictEqual(result[0].photo_url, null, 'Photo URL should be null');
 
@@ -232,7 +266,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as any[];
+    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as PoliticianRow[];
     assert.strictEqual(result.length, 1, 'Should contain 1 senator');
     assert.strictEqual(
       result[0].photo_url,
@@ -264,7 +298,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as any[];
+    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as PoliticianRow[];
     assert.strictEqual(result.length, 5, 'Should contain 5 senators after retries');
 
     assert.strictEqual(scope.pendingMocks().length, 0, 'All 3 retry mocks should have been called');
@@ -292,7 +326,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as any[];
+    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').all('SENATOR') as PoliticianRow[];
     assert.strictEqual(result.length, 5, 'Should contain 5 senators after rate limit retry');
 
     assert.strictEqual(scope.pendingMocks().length, 0, 'Both endpoint calls (429 and 200) should have been made');
@@ -310,9 +344,9 @@ describe('SenatorsPipeline Integration Tests', () => {
     const pipeline = new SenatorsPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await pipeline.execute(),
-      (error: any) => {
-        assert.ok(error.message.includes('500'), 'Error should mention status 500');
+      async () => pipeline.execute(),
+      (error: unknown) => {
+        assert.ok((error as Error).message.includes('500'), 'Error should mention status 500');
         return true;
       },
       'Should throw error after exhausting retries'
@@ -330,10 +364,10 @@ describe('SenatorsPipeline Integration Tests', () => {
     const pipeline = new SenatorsPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await pipeline.execute(),
-      (error: any) => {
+      async () => pipeline.execute(),
+      (error: unknown) => {
         assert.ok(
-          error.message.includes('Response does not contain Parlamentar data'),
+          (error as Error).message.includes('Response does not contain Parlamentar data'),
           'Error should mention invalid response format'
         );
         return true;
@@ -355,10 +389,10 @@ describe('SenatorsPipeline Integration Tests', () => {
     const pipeline = new SenatorsPipeline(getDb().db);
 
     await assert.rejects(
-      async () => await pipeline.execute(),
-      (error: any) => {
+      async () => pipeline.execute(),
+      (error: unknown) => {
         assert.ok(
-          error.message.includes('Response does not contain Parlamentar data'),
+          (error as Error).message.includes('Response does not contain Parlamentar data'),
           'Error should mention missing Parlamentar data'
         );
         return true;
@@ -374,7 +408,7 @@ describe('SenatorsPipeline Integration Tests', () => {
     const pipeline = new SenatorsPipeline(db);
     await pipeline.execute(false);
 
-    const result = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ?').get('SENATOR') as any;
+    const result = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ?').get('SENATOR') as CountRow;
     assert.strictEqual(result.count, 3, 'Should still contain 3 senators (no re-download)');
   });
 
@@ -393,7 +427,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute(true);
 
-    const result = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ?').get('SENATOR') as any;
+    const result = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ?').get('SENATOR') as CountRow;
     assert.strictEqual(result.count, 5, 'Should contain 5 senators after force download');
 
     assert.ok(nock.isDone(), 'HTTP mock should be called with forceDownload=true');
@@ -424,7 +458,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').get('SENATOR') as any;
+    const result = db.prepare('SELECT * FROM politicians WHERE role = ?').get('SENATOR') as PoliticianRow;
     assert.strictEqual(result.source_api_id, '5672', 'Source API ID should be mapped correctly');
     assert.strictEqual(result.name, 'Alan Rick', 'Name should be mapped correctly');
     assert.strictEqual(result.uf, 'AC', 'UF should be mapped correctly');
@@ -459,7 +493,7 @@ describe('SenatorsPipeline Integration Tests', () => {
 
     await pipeline.execute(true);
 
-    const result = db.prepare('SELECT DISTINCT uf FROM politicians WHERE role = ? ORDER BY uf').all('SENATOR') as any[];
+    const result = db.prepare('SELECT DISTINCT uf FROM politicians WHERE role = ? ORDER BY uf').all('SENATOR') as { uf: string }[];
     assert.strictEqual(result.length, 4, 'Should have senators from 4 different states');
     assert.strictEqual(result[0].uf, 'BA', 'Should have senator from BA');
     assert.strictEqual(result[1].uf, 'MG', 'Should have senator from MG');

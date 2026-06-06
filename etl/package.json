@@ -7,7 +7,11 @@
     "build": "tsc",
     "start": "npm run build && node dist/etl/src/main.js",
     "dev": "ts-node src/main.ts",
-    "test": "npm run build && node --test 'dist/etl/tests/**/*.test.js'"
+    "test": "npm run build && node --test 'dist/etl/tests/**/*.test.js'",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\""
   },
   "dependencies": {
     "adm-zip": "^0.5.10",
@@ -22,9 +26,15 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.14.9",
     "@types/prompts": "^2.4.9",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-sql": "^3.0.0",
+    "typescript-eslint": "^8.0.0",
     "nock": "^13.5.0",
+    "prettier": "^3.2.0",
+    "prettier-plugin-sql": "^0.18.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20"

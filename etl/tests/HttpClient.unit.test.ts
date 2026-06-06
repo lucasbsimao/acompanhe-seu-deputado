@@ -130,9 +130,10 @@ describe('HttpClient Unit Tests', () => {
     );
 
     await assert.rejects(
-      async () => await client.request(`${TEST_BASE_URL}/endpoint`),
-      (error: any) => {
-        assert.ok(error.message.includes('500') || error.response?.status === 500);
+      async () => client.request(`${TEST_BASE_URL}/endpoint`),
+      (error: unknown) => {
+        const err = error as { message: string; response?: { status: number } };
+        assert.ok(err.message.includes('500') || err.response?.status === 500);
         return true;
       },
       'Should throw error after exhausting retries'
@@ -150,9 +151,10 @@ describe('HttpClient Unit Tests', () => {
     );
 
     await assert.rejects(
-      async () => await client.request(`${TEST_BASE_URL}/endpoint`),
-      (error: any) => {
-        assert.strictEqual(error.response?.status, 404);
+      async () => client.request(`${TEST_BASE_URL}/endpoint`),
+      (error: unknown) => {
+        const err = error as { response?: { status: number } };
+        assert.strictEqual(err.response?.status, 404);
         return true;
       },
       'Should fail immediately on 404'
@@ -173,9 +175,10 @@ describe('HttpClient Unit Tests', () => {
     );
 
     await assert.rejects(
-      async () => await client.request(`${TEST_BASE_URL}/endpoint`),
-      (error: any) => {
-        assert.ok(error.code === 'ECONNABORTED' || error.message.includes('timeout'));
+      async () => client.request(`${TEST_BASE_URL}/endpoint`),
+      (error: unknown) => {
+        const err = error as { code?: string; message: string };
+        assert.ok(err.code === 'ECONNABORTED' || err.message.includes('timeout'));
         return true;
       },
       'Should timeout'

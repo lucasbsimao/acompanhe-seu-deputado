@@ -7,14 +7,12 @@ export enum TSEElectionResultStatus {
 
 export type TSEElectionResultStatusKey = keyof typeof TSEElectionResultStatus;
 
-export namespace TSEElectionResultStatus {
-  const VALUE_TO_KEY = Object.fromEntries(
-    Object.entries(TSEElectionResultStatus)
-      .filter(([, v]) => typeof v === 'string')
-      .map(([k, v]) => [v, k])
-  ) as Record<string, TSEElectionResultStatusKey>;
+const TSE_VALUE_TO_KEY = Object.fromEntries(
+  Object.entries(TSEElectionResultStatus)
+    .filter(([, v]) => typeof v === 'string')
+    .map(([k, v]) => [v, k])
+) as Record<string, TSEElectionResultStatusKey>;
 
-  export function fromValue(value: string): TSEElectionResultStatusKey | null {
-    return VALUE_TO_KEY[value] ?? null;
-  }
+export function tseElectionResultStatusFromValue(value: string): TSEElectionResultStatusKey | null {
+  return TSE_VALUE_TO_KEY[value] ?? null;
 }
