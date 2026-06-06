@@ -9,7 +9,7 @@ const createSchemaMigrationsTable = `CREATE TABLE IF NOT EXISTS schema_migration
 const splitStatements = (sql: string): string[] =>
   sql
     .split(';')
-    .map((statement) => statement.trim())
+    .map(statement => statement.trim())
     .filter(Boolean);
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
@@ -17,7 +17,8 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   const [result] = await db.executeSql('SELECT version FROM schema_migrations');
   const applied = new Set<string>();
   for (let i = 0; i < result.rows.length; i += 1) {
-    applied.add(result.rows.item(i).version as string);
+    const row = result.rows.item(i) as { version: string };
+    applied.add(row.version);
   }
 
   for (const migration of migrations) {
@@ -28,6 +29,8 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
     for (const statement of statements) {
       await db.executeSql(statement);
     }
-    await db.executeSql('INSERT INTO schema_migrations (version) VALUES (?)', [migration.version]);
+    await db.executeSql('INSERT INTO schema_migrations (version) VALUES (?)', [
+      migration.version,
+    ]);
   }
 }
