@@ -53,7 +53,7 @@ export class CliRunner {
     }
 
     return {
-      selectedPipeline: response.pipeline === 'all' ? null : response.pipeline,
+      selectedPipeline: response.pipeline === 'all' ? null : String(response.pipeline),
       executeAll: response.pipeline === 'all',
     };
   }

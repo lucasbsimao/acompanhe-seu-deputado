@@ -69,7 +69,7 @@ export class PipelineOrchestrator {
 
         PipelineOrchestrator.assertValidPipelineClass(PipelineClass, className);
 
-        const dependencies = PipelineClass.dependencies.map((dep) => (dep as unknown as Function).name);
+        const dependencies = PipelineClass.dependencies.map((dep) => (dep as unknown as { name: string }).name);
         results.push({
           name: className,
           displayName,
