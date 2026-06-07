@@ -58,4 +58,27 @@ export class ForensicFlagsRepository {
       )
       .run(flagName, score);
   }
+
+  insertCnpjInactiveAtExpense(flagName: ForensicFlag, inactiveStatuses: readonly string[]): void {
+    const score = FORENSIC_FLAG_SCORES[flagName];
+    const statusesJson = JSON.stringify(inactiveStatuses);
+    this.db
+      .prepare(
+        `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           ? AS score,
+           NULL AS metadata
+         FROM expenses e
+         JOIN vendors v ON e.cnpj_cpf_fornecedor = v.cnpj
+         WHERE length(e.cnpj_cpf_fornecedor) = 14
+           AND v.registration_status IS NOT NULL
+           AND v.registration_status_date IS NOT NULL
+           AND v.registration_status IN (SELECT value FROM json_each(?))
+           AND v.registration_status_date <= e.data_documento`,
+      )
+      .run(flagName, score, statusesJson);
+  }
 }
