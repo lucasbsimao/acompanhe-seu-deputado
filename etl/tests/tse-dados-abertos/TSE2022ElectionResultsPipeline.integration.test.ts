@@ -4,6 +4,7 @@ import nock from 'nock';
 import AdmZip from 'adm-zip';
 import { TSE2022ElectionResultsPipeline } from '../../src/pipelines/tse-dados-abertos/TSE2022ElectionResultsPipeline';
 import { useTestDatabase } from '../db/setup';
+import { TestPoliticianRepository, makeCPF } from '../db/TestPoliticianRepository';
 
 const TSE_ORIGIN = 'https://cdn.tse.jus.br';
 const TSE_ZIP_PATH = '/estatistica/sead/odsele/consulta_cand/consulta_cand_2022.zip';
@@ -49,26 +50,6 @@ function buildTSEZip(rows: string[]): Buffer {
   return zip.toBuffer();
 }
 
-/**
- * Generate a deterministically valid CPF for a given seed integer.
- * Uses the same algorithm as DeputiesPipeline tests.
- */
-function makeCPF(id: number): string {
-  const base = String(id).padStart(9, '0');
-  const digits = base.split('').map(Number);
-  let sum = 0;
-  for (let i = 0; i < 9; i++) sum += digits[i] * (10 - i);
-  let d1 = 11 - (sum % 11);
-  if (d1 >= 10) d1 = 0;
-  digits.push(d1);
-  sum = 0;
-  for (let i = 0; i < 10; i++) sum += digits[i] * (11 - i);
-  let d2 = 11 - (sum % 11);
-  if (d2 >= 10) d2 = 0;
-  digits.push(d2);
-  return digits.join('');
-}
-
 /** Stub the TSE CDN endpoint with the given zip buffer. */
 function stubTSEZipDownload(zipBuffer: Buffer): void {
   nock(TSE_ORIGIN).get(TSE_ZIP_PATH).reply(200, zipBuffer, { 'content-type': 'application/zip' });
@@ -94,7 +75,12 @@ interface PartyRow {
 describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
 
+  let db: ReturnType<typeof getDb>['db'];
+  let politicianRepo: TestPoliticianRepository;
+
   beforeEach(() => {
+    db = getDb().db;
+    politicianRepo = new TestPoliticianRepository(db);
     nock.cleanAll();
     nock.disableNetConnect();
   });
@@ -105,8 +91,6 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
   });
 
   it('persists elected federal deputies and senators from TSE zip — happy path', async () => {
-    const db = getDb().db;
-
     const deputyCpf = makeCPF(1);
     const senatorCpf = makeCPF(2);
 
@@ -181,22 +165,9 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
   });
 
   it('skips download when politicians table already has deputies and senators', async () => {
-    const db = getDb().db;
-
     // Pre-seed both a deputy and a senator so shouldDownload() returns false
-    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
-      'pt',
-      'PT',
-      'PT',
-    );
-    db.prepare(
-      `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES (?, NULL, ?, 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')`,
-    ).run(makeCPF(10), 'Existing Deputy');
-    db.prepare(
-      `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES (?, NULL, ?, 'RJ', 'pt', 'SENATOR', NULL, 'ELEITO')`,
-    ).run(makeCPF(11), 'Existing Senator');
+    politicianRepo.seedDeputy(makeCPF(10), { name: 'Existing Deputy' });
+    politicianRepo.seedSenator(makeCPF(11), { name: 'Existing Senator', uf: 'RJ' });
 
     // No HTTP mocks — any network call would throw due to nock.disableNetConnect()
     const pipeline = new TSE2022ElectionResultsPipeline(db);
@@ -208,8 +179,6 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
   });
 
   it('filters out non-elected candidates — only valid DS_SIT_TOT_TURNO values are stored', async () => {
-    const db = getDb().db;
-
     const electedCpf = makeCPF(3);
     const nonElectedCpf = makeCPF(4);
 
@@ -257,8 +226,6 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
   });
 
   it('filters out non-federal cargo — only DEPUTADO FEDERAL and SENADOR are stored', async () => {
-    const db = getDb().db;
-
     const deputadoFederalCpf = makeCPF(5);
     const deputadoEstadualCpf = makeCPF(6);
     const governadorCpf = makeCPF(7);
@@ -312,8 +279,6 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
   });
 
   it('filters out candidates with invalid CPF', async () => {
-    const db = getDb().db;
-
     const validCpf = makeCPF(8);
 
     const rows = [
@@ -355,8 +320,6 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
   });
 
   it('stores all four valid elected statuses — ELEITO, ELEITO POR QP, ELEITO POR MÉDIA, SUPLENTE', async () => {
-    const db = getDb().db;
-
     const cpfEleito = makeCPF(20);
     const cpfEleitoPorQP = makeCPF(21);
     const cpfEleitoPorMedia = makeCPF(22);
@@ -438,18 +401,8 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
   });
 
   it('force-download bypasses the shouldDownload check and re-populates politicians', async () => {
-    const db = getDb().db;
-
     // Pre-seed a deputy so shouldDownload() would normally return false
-    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
-      'pt',
-      'PT',
-      'PT',
-    );
-    db.prepare(
-      `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES (?, NULL, ?, 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')`,
-    ).run(makeCPF(30), 'Pre-existing Deputy');
+    politicianRepo.seedDeputy(makeCPF(30), { name: 'Pre-existing Deputy' });
 
     const newCpf = makeCPF(31);
     const rows = [

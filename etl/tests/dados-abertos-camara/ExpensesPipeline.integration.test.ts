@@ -3,8 +3,8 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import { ExpensesPipeline } from '../../src/pipelines/dados-abertos-camara/ExpensesPipeline';
 import { useTestDatabase } from '../db/setup';
-import type Database from 'better-sqlite3';
-import { PoliticianRole } from '../../src/types/PoliticianRole';
+import { TestPoliticianRepository } from '../db/TestPoliticianRepository';
+import { TestExpensesRepository } from '../db/TestExpensesRepository';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 const DEPUTY_API_ID = '12345';
@@ -48,18 +48,6 @@ function buildExpensesQuery(page: number, yearsToFetch = 4): Record<string, stri
   };
 }
 
-function seedDeputy(db: Database.Database, cpf: string, apiId: string): void {
-  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
-    'pt',
-    'PT',
-    'PT',
-  );
-  db.prepare(
-    `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-     VALUES (?, ?, ?, 'SP', 'pt', ?, NULL, 'ELEITO_POR_QP')`,
-  ).run(cpf, apiId, `Deputy ${cpf}`, PoliticianRole.DEPUTY);
-}
-
 interface ExpenseRow {
   id: string;
   deputy_id: string;
@@ -79,7 +67,14 @@ interface CountRow {
 describe('ExpensesPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
 
+  let db: ReturnType<typeof getDb>['db'];
+  let politicianRepo: TestPoliticianRepository;
+  let expensesRepo: TestExpensesRepository;
+
   beforeEach(() => {
+    db = getDb().db;
+    politicianRepo = new TestPoliticianRepository(db);
+    expensesRepo = new TestExpensesRepository(db);
     nock.cleanAll();
   });
 
@@ -88,8 +83,7 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should fetch and persist expenses data with a single page', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     const expenses = [createMockExpense('DOC001'), createMockExpense('DOC002')];
 
@@ -126,8 +120,7 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should normalize tipoDespesa — strip accents and punctuation', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     const expense = createMockExpense('DOC003', {
       tipoDespesa: 'MANUTENÇÃO DE ESCRITÓRIO DE APOIO À ATIVIDADE PARLAMENTAR',
@@ -154,8 +147,7 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should fetch expenses across multiple pages', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     const page1Expenses = Array.from({ length: 100 }, (_, i) =>
       createMockExpense(`DOC${String(i + 1).padStart(4, '0')}`),
@@ -184,29 +176,15 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should skip download when expenses already exist for the deputy (shouldDownload returns false)', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     // Pre-seed an existing expense so shouldDownload() returns false
-    db.prepare(
-      `INSERT INTO expenses (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
-        data_documento, num_documento, url_documento, nome_fornecedor, cnpj_cpf_fornecedor,
-        valor_liquido, valor_glosa)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      `${DEPUTY_CPF}_EXISTING001`,
-      DEPUTY_CPF,
-      'Despesa Existente',
-      'EXISTING001',
-      0,
-      '2026-01-01',
-      'NF-EXISTING',
-      null,
-      'Vendor Existing',
-      '12345678000199',
-      10000,
-      0,
-    );
+    expensesRepo.seedExpense({
+      id: `${DEPUTY_CPF}_EXISTING001`,
+      deputyId: DEPUTY_CPF,
+      cnpj: '12345678000199',
+      numDocumento: 'NF-EXISTING',
+    });
 
     // No HTTP mock registered — any network call would fail
     const pipeline = new ExpensesPipeline(db);
@@ -222,29 +200,15 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should force download even when expenses already exist', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     // Pre-seed an existing expense
-    db.prepare(
-      `INSERT INTO expenses (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
-        data_documento, num_documento, url_documento, nome_fornecedor, cnpj_cpf_fornecedor,
-        valor_liquido, valor_glosa)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      `${DEPUTY_CPF}_EXISTING001`,
-      DEPUTY_CPF,
-      'Despesa Existente',
-      'EXISTING001',
-      0,
-      '2026-01-01',
-      'NF-EXISTING',
-      null,
-      'Vendor Existing',
-      '12345678000199',
-      10000,
-      0,
-    );
+    expensesRepo.seedExpense({
+      id: `${DEPUTY_CPF}_EXISTING001`,
+      deputyId: DEPUTY_CPF,
+      cnpj: '12345678000199',
+      numDocumento: 'NF-EXISTING',
+    });
 
     const newExpense = createMockExpense('NEW001');
 
@@ -267,14 +231,13 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should process multiple deputies and fetch expenses for each', async () => {
-    const db = getDb().db;
     const cpf1 = '11111111101';
     const cpf2 = '22222222202';
     const apiId1 = '11111';
     const apiId2 = '22222';
 
-    seedDeputy(db, cpf1, apiId1);
-    seedDeputy(db, cpf2, apiId2);
+    politicianRepo.seedDeputy(cpf1, { sourceApiId: apiId1 });
+    politicianRepo.seedDeputy(cpf2, { sourceApiId: apiId2 });
 
     // Deputy 1 expenses
     nock(API_BASE_URL)
@@ -304,17 +267,8 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should skip deputies with no source_api_id', async () => {
-    const db = getDb().db;
     // Deputy without source_api_id (NULL)
-    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
-      'pt',
-      'PT',
-      'PT',
-    );
-    db.prepare(
-      `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES (?, ?, ?, 'SP', 'pt', ?, NULL, 'ELEITO_POR_QP')`,
-    ).run('99999999901', null, 'Deputy No API ID', PoliticianRole.DEPUTY);
+    politicianRepo.seedDeputy('99999999901', { name: 'Deputy No API ID', sourceApiId: null });
 
     // No HTTP mock — any call would fail
     const pipeline = new ExpensesPipeline(db);
@@ -326,8 +280,7 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should retry on 500 errors and eventually succeed', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     // 3 failures then success
     nock(API_BASE_URL)
@@ -351,8 +304,7 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should throw after exhausting all retries', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     nock(API_BASE_URL)
       .get(`/api/v2/deputados/${DEPUTY_API_ID}/despesas`)
@@ -373,8 +325,7 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should handle missing X-Total-Count header', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     nock(API_BASE_URL)
       .get(`/api/v2/deputados/${DEPUTY_API_ID}/despesas`)
@@ -397,8 +348,7 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should handle invalid response format', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     nock(API_BASE_URL)
       .get(`/api/v2/deputados/${DEPUTY_API_ID}/despesas`)
@@ -421,8 +371,7 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should use INSERT OR REPLACE to handle duplicate expense documents', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     const expense = createMockExpense('DOC_DUPE', { nomeFornecedor: 'Original Vendor' });
 
@@ -468,8 +417,7 @@ describe('ExpensesPipeline Integration Tests', () => {
   });
 
   it('should store null urlDocumento when API returns empty string', async () => {
-    const db = getDb().db;
-    seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
+    politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
     const expense = createMockExpense('DOC_NO_URL', { urlDocumento: '' });
 
