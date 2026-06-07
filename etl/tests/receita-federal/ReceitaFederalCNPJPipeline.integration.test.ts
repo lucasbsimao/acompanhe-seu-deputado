@@ -4,7 +4,9 @@ import nock from 'nock';
 import AdmZip from 'adm-zip';
 import { ReceitaFederalCNPJPipeline } from '../../src/pipelines/receita-federal/ReceitaFederalCNPJPipeline';
 import { useTestDatabase } from '../db/setup';
-import type Database from 'better-sqlite3';
+import { TestExpensesRepository } from '../db/TestExpensesRepository';
+import { TestVendorRepository } from '../db/TestVendorRepository';
+import { TestPoliticianRepository } from '../db/TestPoliticianRepository';
 
 // Values from src/config/defaults.json
 const WEBDAV_BASE = 'https://arquivos.receitafederal.gov.br';
@@ -119,29 +121,6 @@ function buildSocioCsvRow(
 }
 
 /**
- * Seed an expense with a 14-digit CNPJ so ReceitaFederalCNPJPipeline has a known CNPJ to look up.
- */
-function seedExpenseWithCnpj(db: Database.Database, cnpj: string, suffix = '001'): void {
-  // Seed minimal required parent records
-  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
-    'pt',
-    'PT',
-    'PT',
-  );
-  db.prepare(
-    `INSERT OR IGNORE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-     VALUES ('12345678901', '12345', 'Deputy Test', 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')`,
-  ).run();
-  db.prepare(
-    `INSERT OR IGNORE INTO expenses
-      (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
-       data_documento, num_documento, url_documento, nome_fornecedor,
-       cnpj_cpf_fornecedor, valor_liquido, valor_glosa)
-     VALUES (?, '12345678901', 'Despesa Teste', ?, 0, '2026-01-01', 'NF-${suffix}', NULL, 'Fornecedor Teste', ?, 10000, 0)`,
-  ).run(`12345678901_${suffix}`, suffix, cnpj);
-}
-
-/**
  * Build a nock that serves an empty zip (no relevant CNPJs) for a given file path.
  */
 function stubEmptyZip(scope: nock.Scope, filePath: string): void {
@@ -196,7 +175,16 @@ interface CountRow {
 describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
 
+  let db: ReturnType<typeof getDb>['db'];
+  let expensesRepo: TestExpensesRepository;
+  let vendorRepo: TestVendorRepository;
+  let politicianRepo: TestPoliticianRepository;
+
   beforeEach(() => {
+    db = getDb().db;
+    expensesRepo = new TestExpensesRepository(db);
+    vendorRepo = new TestVendorRepository(db);
+    politicianRepo = new TestPoliticianRepository(db);
     nock.cleanAll();
     nock.disableNetConnect();
   });
@@ -207,10 +195,8 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   });
 
   it('persists vendor and partner from matching CNPJ in expenses — happy path', async () => {
-    const db = getDb().db;
-
     // Seed an expense with a known 14-digit CNPJ
-    seedExpenseWithCnpj(db, FULL_CNPJ, 'DOC001');
+    expensesRepo.seedExpenseWithCnpj(FULL_CNPJ, 'DOC001');
 
     // Build Companies zip: contains our CNPJ_BASIC
     const empresaCsv = buildEmpresaCsvRow(CNPJ_BASIC, 'EMPRESA TESTE LTDA', '05') + '\n';
@@ -284,13 +270,8 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   });
 
   it('skips all HTTP calls when vendors table already has data', async () => {
-    const db = getDb().db;
-
     // Pre-seed a vendor row so hasAnyVendors() returns true
-    db.prepare(`INSERT INTO vendors (cnpj, legal_name) VALUES (?, ?)`).run(
-      FULL_CNPJ,
-      'Existing Vendor LTDA',
-    );
+    vendorRepo.seedMinimalVendor(FULL_CNPJ, 'Existing Vendor LTDA');
 
     // No HTTP mocks — any network call would throw
     const pipeline = new ReceitaFederalCNPJPipeline(db);
@@ -302,25 +283,18 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   });
 
   it('skips HTTP calls when no 14-digit CNPJs exist in expenses', async () => {
-    const db = getDb().db;
-
     // Seed an expense with a CPF (11 digits) — not a CNPJ, should be ignored
-    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
-      'mdb',
-      'MDB',
-      'MDB',
-    );
-    db.prepare(
-      `INSERT OR IGNORE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES ('99999999901', '99999', 'Deputy CPF Only', 'RJ', 'mdb', 'DEPUTY', NULL, 'ELEITO_POR_QP')`,
-    ).run();
-    db.prepare(
-      `INSERT INTO expenses
-        (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
-         data_documento, num_documento, url_documento, nome_fornecedor,
-         cnpj_cpf_fornecedor, valor_liquido, valor_glosa)
-       VALUES (?, '99999999901', 'Despesa CPF', 'DOCX01', 0, '2026-01-01', 'NF-X', NULL, 'Pessoa Fisica', ?, 5000, 0)`,
-    ).run('99999999901_DOCX01', '99999999901'); // 11-digit CPF, excluded by getDistinctCnpjs filter
+    politicianRepo.seedDeputy('99999999901', {
+      name: 'Deputy CPF Only',
+      sourceApiId: '99999',
+      uf: 'RJ',
+    });
+    expensesRepo.seedExpense({
+      id: '99999999901_DOCX01',
+      deputyId: '99999999901',
+      cnpj: '99999999901',
+      numDocumento: 'NF-X',
+    }); // 11-digit CPF, excluded by getDistinctCnpjs filter
 
     // No HTTP mocks — any network call would throw
     const pipeline = new ReceitaFederalCNPJPipeline(db);
@@ -336,9 +310,7 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   });
 
   it('inserts vendor without partner when no matching partners exist in Socios files', async () => {
-    const db = getDb().db;
-
-    seedExpenseWithCnpj(db, FULL_CNPJ, 'DOC002');
+    expensesRepo.seedExpenseWithCnpj(FULL_CNPJ, 'DOC002');
 
     const empresaCsv = buildEmpresaCsvRow(CNPJ_BASIC, 'EMPRESA SEM SOCIOS LTDA', '01') + '\n';
     const empresasZip = buildZipBuffer('Empresas0.csv', empresaCsv);
@@ -376,9 +348,7 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   });
 
   it('does not insert vendor when CNPJ is absent from all Establishments files', async () => {
-    const db = getDb().db;
-
-    seedExpenseWithCnpj(db, FULL_CNPJ, 'DOC003');
+    expensesRepo.seedExpenseWithCnpj(FULL_CNPJ, 'DOC003');
 
     // Companies file has data but Establishments file does NOT have our CNPJ
     const empresaCsv = buildEmpresaCsvRow(CNPJ_BASIC, 'EMPRESA GHOST LTDA') + '\n';
@@ -410,9 +380,7 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   });
 
   it('filters out partners whose CPF/CNPJ basic is not in known basic CNPJs', async () => {
-    const db = getDb().db;
-
-    seedExpenseWithCnpj(db, FULL_CNPJ, 'DOC004');
+    expensesRepo.seedExpenseWithCnpj(FULL_CNPJ, 'DOC004');
 
     const empresaCsv = buildEmpresaCsvRow(CNPJ_BASIC, 'EMPRESA FILTRO LTDA') + '\n';
     const empresasZip = buildZipBuffer('Empresas0.csv', empresaCsv);
@@ -446,15 +414,10 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   });
 
   it('force-downloads and populates vendors even when vendors table already has data', async () => {
-    const db = getDb().db;
-
     // Pre-seed a vendor row so hasAnyVendors() would return true
-    db.prepare('INSERT INTO vendors (cnpj, legal_name) VALUES (?, ?)').run(
-      '00000000000000',
-      'Existing Vendor',
-    );
+    vendorRepo.seedMinimalVendor('00000000000000', 'Existing Vendor');
 
-    seedExpenseWithCnpj(db, FULL_CNPJ, 'DOC005');
+    expensesRepo.seedExpenseWithCnpj(FULL_CNPJ, 'DOC005');
 
     const empresaCsv = buildEmpresaCsvRow(CNPJ_BASIC, 'NOVA EMPRESA LTDA') + '\n';
     const empresasZip = buildZipBuffer('Empresas0.csv', empresaCsv);

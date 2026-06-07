@@ -3,7 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import { SenatorsPipeline } from '../../src/pipelines/dados-abertos-senado/SenatorsPipeline';
 import { useTestDatabase } from '../db/setup';
-import type Database from 'better-sqlite3';
+import { TestPoliticianRepository } from '../db/TestPoliticianRepository';
 
 const API_BASE_URL = 'https://legis.senado.leg.br';
 
@@ -49,54 +49,6 @@ function createMockResponse(senators: MockSenator[]): MockSenatorResponse {
   };
 }
 
-function makeCPF(id: number): string {
-  const base = String(id).padStart(9, '0');
-  const digits = base.split('').map(Number);
-  let sum = 0;
-  for (let i = 0; i < 9; i++) {
-    sum += digits[i] * (10 - i);
-  }
-  let d1 = 11 - (sum % 11);
-  if (d1 >= 10) d1 = 0;
-  digits.push(d1);
-  sum = 0;
-  for (let i = 0; i < 10; i++) {
-    sum += digits[i] * (11 - i);
-  }
-  let d2 = 11 - (sum % 11);
-  if (d2 >= 10) d2 = 0;
-  digits.push(d2);
-  return digits.join('');
-}
-
-function seedTSESenatorRows(db: Database.Database, count: number): void {
-  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
-    'pt',
-    'PT',
-    'PT',
-  );
-  const insert = db.prepare(
-    "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')",
-  );
-  const insertAll = db.transaction((n: number) => {
-    for (let i = 1; i <= n; i++) {
-      insert.run(makeCPF(i), `Senator ${i}`);
-    }
-  });
-  insertAll(count);
-}
-
-function seedTSESenatorByName(db: Database.Database, id: number, name: string): void {
-  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
-    'pt',
-    'PT',
-    'PT',
-  );
-  db.prepare(
-    "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')",
-  ).run(makeCPF(id), name);
-}
-
 interface PoliticianRow {
   source_api_id: string;
   name: string;
@@ -115,7 +67,12 @@ interface CountRow {
 describe('SenatorsPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
 
+  let db: ReturnType<typeof getDb>['db'];
+  let politicianRepo: TestPoliticianRepository;
+
   beforeEach(() => {
+    db = getDb().db;
+    politicianRepo = new TestPoliticianRepository(db);
     nock.cleanAll();
   });
 
@@ -132,8 +89,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    const db = getDb().db;
-    seedTSESenatorRows(db, 10);
+    politicianRepo.seedTSESenatorRows(10);
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -169,8 +125,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    const db = getDb().db;
-    seedTSESenatorByName(db, 1, 'Senator 1');
+    politicianRepo.seedTSESenatorByName(1, 'Senator 1');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -212,9 +167,8 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    const db = getDb().db;
-    seedTSESenatorByName(db, 1, 'Senator One');
-    seedTSESenatorByName(db, 2, 'Senator Two');
+    politicianRepo.seedTSESenatorByName(1, 'Senator One');
+    politicianRepo.seedTSESenatorByName(2, 'Senator Two');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -248,8 +202,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    const db = getDb().db;
-    seedTSESenatorByName(db, 1, 'Senator One');
+    politicianRepo.seedTSESenatorByName(1, 'Senator One');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -283,8 +236,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    const db = getDb().db;
-    seedTSESenatorByName(db, 5672, 'Alan Rick');
+    politicianRepo.seedTSESenatorByName(5672, 'Alan Rick');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -317,8 +269,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    const db = getDb().db;
-    seedTSESenatorRows(db, 5);
+    politicianRepo.seedTSESenatorRows(5);
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -347,8 +298,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    const db = getDb().db;
-    seedTSESenatorRows(db, 5);
+    politicianRepo.seedTSESenatorRows(5);
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -374,7 +324,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .times(4)
       .reply(500, 'Internal Server Error');
 
-    const pipeline = new SenatorsPipeline(getDb().db);
+    const pipeline = new SenatorsPipeline(db);
 
     await assert.rejects(
       async () => pipeline.execute(),
@@ -398,7 +348,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, { invalid: 'format' });
 
-    const pipeline = new SenatorsPipeline(getDb().db);
+    const pipeline = new SenatorsPipeline(db);
 
     await assert.rejects(
       async () => pipeline.execute(),
@@ -423,7 +373,7 @@ describe('SenatorsPipeline Integration Tests', () => {
         },
       });
 
-    const pipeline = new SenatorsPipeline(getDb().db);
+    const pipeline = new SenatorsPipeline(db);
 
     await assert.rejects(
       async () => pipeline.execute(),
@@ -439,8 +389,7 @@ describe('SenatorsPipeline Integration Tests', () => {
   });
 
   it('should skip download when senators already exist', async () => {
-    const db = getDb().db;
-    seedTSESenatorRows(db, 3);
+    politicianRepo.seedTSESenatorRows(3);
 
     const pipeline = new SenatorsPipeline(db);
     await pipeline.execute(false);
@@ -460,8 +409,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    const db = getDb().db;
-    seedTSESenatorRows(db, 5);
+    politicianRepo.seedTSESenatorRows(5);
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -494,8 +442,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    const db = getDb().db;
-    seedTSESenatorByName(db, 5672, 'Alan Rick');
+    politicianRepo.seedTSESenatorByName(5672, 'Alan Rick');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -531,8 +478,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    const db = getDb().db;
-    seedTSESenatorRows(db, 4);
+    politicianRepo.seedTSESenatorRows(4);
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
