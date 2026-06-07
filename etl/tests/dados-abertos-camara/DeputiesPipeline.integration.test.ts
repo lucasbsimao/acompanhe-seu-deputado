@@ -72,9 +72,13 @@ function createMockDeputyDetail(id: number): MockDeputyDetail {
 }
 
 function seedTSEDeputyRows(db: Database.Database, count: number): void {
-  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
+  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
+    'pt',
+    'PT',
+    'PT',
+  );
   const insert = db.prepare(
-    "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')"
+    "INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, NULL, ?, 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')",
   );
   const insertAll = db.transaction((n: number) => {
     for (let i = 1; i <= n; i++) {
@@ -107,7 +111,7 @@ describe('DeputiesETL Integration Tests', () => {
       .persist();
     nock(API_BASE_URL)
       .get(/\/api\/v2\/deputados\/\d+$/)
-      .reply(200, function(uri: string) {
+      .reply(200, function (uri: string) {
         const id = Number(uri.split('/').at(-1));
         return createMockDeputyDetail(id);
       })
@@ -138,11 +142,17 @@ describe('DeputiesETL Integration Tests', () => {
 
     await etl.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as PoliticianRow[];
+    const result = db
+      .prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)')
+      .all() as PoliticianRow[];
     assert.strictEqual(result.length, 10, 'Should contain 10 deputies');
     assert.strictEqual(result[0].source_api_id, '1', 'First deputy should have source_api_id 1');
     assert.strictEqual(result[9].source_api_id, '10', 'Last deputy should have source_api_id 10');
-    assert.strictEqual(result[0].elected_as, 'ELEITO_POR_QP', 'elected_as from TSE should be preserved');
+    assert.strictEqual(
+      result[0].elected_as,
+      'ELEITO_POR_QP',
+      'elected_as from TSE should be preserved',
+    );
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -191,11 +201,21 @@ describe('DeputiesETL Integration Tests', () => {
 
     await etl.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as PoliticianRow[];
+    const result = db
+      .prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)')
+      .all() as PoliticianRow[];
     assert.strictEqual(result.length, 250, 'Should contain 250 deputies');
     assert.strictEqual(result[0].source_api_id, '1', 'First deputy should have source_api_id 1');
-    assert.strictEqual(result[100].source_api_id, '101', 'Deputy at index 100 should have source_api_id 101');
-    assert.strictEqual(result[249].source_api_id, '250', 'Last deputy should have source_api_id 250');
+    assert.strictEqual(
+      result[100].source_api_id,
+      '101',
+      'Deputy at index 100 should have source_api_id 101',
+    );
+    assert.strictEqual(
+      result[249].source_api_id,
+      '250',
+      'Last deputy should have source_api_id 250',
+    );
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -274,7 +294,11 @@ describe('DeputiesETL Integration Tests', () => {
     const result = db.prepare('SELECT * FROM politicians').all() as PoliticianRow[];
     assert.strictEqual(result.length, 5, 'Should contain 5 deputies after rate limit retry');
 
-    assert.strictEqual(scope.pendingMocks().length, 0, 'Both endpoint calls (429 and 200) should have been made');
+    assert.strictEqual(
+      scope.pendingMocks().length,
+      0,
+      'Both endpoint calls (429 and 200) should have been made',
+    );
   });
 
   it('should fail after exhausting all retries', async () => {
@@ -300,10 +324,14 @@ describe('DeputiesETL Integration Tests', () => {
         assert.ok((error as Error).message.includes('500'), 'Error should mention status 500');
         return true;
       },
-      'Should throw error after exhausting retries'
+      'Should throw error after exhausting retries',
     );
 
-    assert.strictEqual(scope.pendingMocks().length, 0, 'All 4 endpoint calls should have been made');
+    assert.strictEqual(
+      scope.pendingMocks().length,
+      0,
+      'All 4 endpoint calls should have been made',
+    );
   });
 
   it('should handle missing X-Total-Count header', async () => {
@@ -325,11 +353,11 @@ describe('DeputiesETL Integration Tests', () => {
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Missing X-Total-Count header'),
-          'Error should mention missing header'
+          'Error should mention missing header',
         );
         return true;
       },
-      'Should throw error for missing X-Total-Count header'
+      'Should throw error for missing X-Total-Count header',
     );
   });
 
@@ -352,11 +380,11 @@ describe('DeputiesETL Integration Tests', () => {
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Response does not contain dados array'),
-          'Error should mention invalid response format'
+          'Error should mention invalid response format',
         );
         return true;
       },
-      'Should throw error for invalid response format'
+      'Should throw error for invalid response format',
     );
   });
 
@@ -372,7 +400,11 @@ describe('DeputiesETL Integration Tests', () => {
         pagina: '1',
         itens: '100',
       })
-      .reply(200, { dados: Array.from({ length: 100 }, (_, i) => createMockDeputy(i + 1)) }, { 'x-total-count': '550' });
+      .reply(
+        200,
+        { dados: Array.from({ length: 100 }, (_, i) => createMockDeputy(i + 1)) },
+        { 'x-total-count': '550' },
+      );
 
     for (let page = 2; page <= 6; page++) {
       nock(API_BASE_URL)
@@ -385,7 +417,9 @@ describe('DeputiesETL Integration Tests', () => {
           itens: '100',
         })
         .reply(200, {
-          dados: Array.from({ length: page === 6 ? 50 : 100 }, (_, i) => createMockDeputy((page - 1) * 100 + i + 1)),
+          dados: Array.from({ length: page === 6 ? 50 : 100 }, (_, i) =>
+            createMockDeputy((page - 1) * 100 + i + 1),
+          ),
         });
     }
 
@@ -394,11 +428,17 @@ describe('DeputiesETL Integration Tests', () => {
 
     await etl.execute(true);
 
-    const result = db.prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)').all() as PoliticianRow[];
+    const result = db
+      .prepare('SELECT * FROM politicians ORDER BY CAST(source_api_id AS INTEGER)')
+      .all() as PoliticianRow[];
     assert.strictEqual(result.length, 550, 'Should contain 550 deputies');
 
     for (let i = 0; i < 550; i++) {
-      assert.strictEqual(result[i].source_api_id, String(i + 1), `Deputy at index ${i} should have source_api_id ${i + 1}`);
+      assert.strictEqual(
+        result[i].source_api_id,
+        String(i + 1),
+        `Deputy at index ${i} should have source_api_id ${i + 1}`,
+      );
     }
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');

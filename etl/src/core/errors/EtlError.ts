@@ -12,11 +12,7 @@ export class EtlError extends Error {
   public readonly timestamp: Date;
   public readonly context?: Record<string, unknown>;
 
-  constructor(
-    code: EtlErrorCode,
-    message: string,
-    context?: Record<string, unknown>
-  ) {
+  constructor(code: EtlErrorCode, message: string, context?: Record<string, unknown>) {
     super(message);
     this.name = 'EtlError';
     this.code = code;

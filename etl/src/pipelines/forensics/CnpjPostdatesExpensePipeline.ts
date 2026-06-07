@@ -1,13 +1,15 @@
 import type Database from 'better-sqlite3';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
+import { ReceitaFederalCNPJPipeline } from '../receita-federal/ReceitaFederalCNPJPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
 
-const SN_PLACEHOLDERS: readonly string[] = ['S/N', 'SN', 'S.N.', 'S/Nº', '00', '000', '0', '-', ''];
-
-export class CrossDeputyInvoiceReusePipeline {
-  static readonly dependencies: readonly IPipelineDepChain[] = [ExpensesPipeline];
+export class CnpjPostdatesExpensePipeline {
+  static readonly dependencies: readonly IPipelineDepChain[] = [
+    ExpensesPipeline,
+    ReceitaFederalCNPJPipeline,
+  ];
 
   private readonly repo: ForensicFlagsRepository;
 
@@ -16,11 +18,8 @@ export class CrossDeputyInvoiceReusePipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertCrossDeputyInvoiceReuse(
-      ForensicFlag.CROSS_DEPUTY_INVOICE_REUSE,
-      SN_PLACEHOLDERS,
-    );
-    console.log('CrossDeputyInvoiceReusePipeline completed');
+    this.repo.insertCnpjPostdatesExpense(ForensicFlag.CNPJ_POSTDATES_EXPENSE);
+    console.log('CnpjPostdatesExpensePipeline completed');
     return Promise.resolve();
   }
 }

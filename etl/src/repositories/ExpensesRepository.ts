@@ -29,20 +29,27 @@ export class ExpensesRepository {
         id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
         data_documento, num_documento, url_documento, nome_fornecedor,
         cnpj_cpf_fornecedor, valor_liquido, valor_glosa
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
-    this.hasExpensesQuery = db.prepare(
-      'SELECT 1 FROM expenses WHERE deputy_id = ? LIMIT 1'
-    );
+    this.hasExpensesQuery = db.prepare('SELECT 1 FROM expenses WHERE deputy_id = ? LIMIT 1');
     this.countByDeputyQuery = db.prepare(
-      'SELECT COUNT(*) as count FROM expenses WHERE deputy_id = ?'
+      'SELECT COUNT(*) as count FROM expenses WHERE deputy_id = ?',
     );
     this.insertAll = db.transaction((rows: ExpenseRow[]) => {
       for (const r of rows) {
         this.insertExpense.run(
-          r.id, r.deputyId, r.tipoDespesa, r.codDocumento, r.codTipoDocumento,
-          r.dataDocumento, r.numDocumento, r.urlDocumento, r.nomeFornecedor,
-          r.cnpjCpfFornecedor, r.valorLiquido, r.valorGlosa
+          r.id,
+          r.deputyId,
+          r.tipoDespesa,
+          r.codDocumento,
+          r.codTipoDocumento,
+          r.dataDocumento,
+          r.numDocumento,
+          r.urlDocumento,
+          r.nomeFornecedor,
+          r.cnpjCpfFornecedor,
+          r.valorLiquido,
+          r.valorGlosa,
         );
       }
     });
@@ -62,10 +69,12 @@ export class ExpensesRepository {
   }
 
   getDistinctCnpjs(): string[] {
-    const rows = this.db.prepare(
-      `SELECT DISTINCT cnpj_cpf_fornecedor FROM expenses
-       WHERE length(cnpj_cpf_fornecedor) = 14`
-    ).all() as Array<{ cnpj_cpf_fornecedor: string }>;
+    const rows = this.db
+      .prepare(
+        `SELECT DISTINCT cnpj_cpf_fornecedor FROM expenses
+       WHERE length(cnpj_cpf_fornecedor) = 14`,
+      )
+      .all() as Array<{ cnpj_cpf_fornecedor: string }>;
     return rows.map(r => r.cnpj_cpf_fornecedor);
   }
 }

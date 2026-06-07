@@ -26,20 +26,31 @@ export class PoliticianRepository {
   constructor(db: Database.Database) {
     this.db = db;
     this.insertParty = db.prepare(
-      'INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)'
+      'INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)',
     );
     this.insertPolitician = db.prepare(
-      'INSERT OR REPLACE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT OR REPLACE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     );
     this.updatePolitician = db.prepare(
-      'UPDATE politicians SET source_api_id = ?, name = ?, uf = ?, party_id = ?, photo_url = ? WHERE cpf = ?'
+      'UPDATE politicians SET source_api_id = ?, name = ?, uf = ?, party_id = ?, photo_url = ? WHERE cpf = ?',
     );
     this.countByRoleQuery = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ?');
-    this.countByRoleWithSourceApiIdQuery = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ? AND source_api_id IS NOT NULL');
+    this.countByRoleWithSourceApiIdQuery = db.prepare(
+      'SELECT COUNT(*) as count FROM politicians WHERE role = ? AND source_api_id IS NOT NULL',
+    );
     this.insertAll = db.transaction((rows: PoliticianRow[]) => {
       for (const r of rows) {
         this.insertParty.run(r.partyId, r.partyId, r.partyId);
-        this.insertPolitician.run(r.cpf, r.sourceApiId, r.name, r.uf, r.partyId, r.role, r.photoUrl, r.electedAs ?? null);
+        this.insertPolitician.run(
+          r.cpf,
+          r.sourceApiId,
+          r.name,
+          r.uf,
+          r.partyId,
+          r.role,
+          r.photoUrl,
+          r.electedAs ?? null,
+        );
       }
     });
     this.updateAll = db.transaction((rows: PoliticianRow[]) => {

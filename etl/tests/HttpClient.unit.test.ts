@@ -17,14 +17,9 @@ describe('HttpClient Unit Tests', () => {
   it('should make successful GET request', async () => {
     const mockData = { message: 'success', data: [1, 2, 3] };
 
-    nock(TEST_BASE_URL)
-      .get('/endpoint')
-      .reply(200, mockData, { 'x-custom-header': 'value' });
+    nock(TEST_BASE_URL).get('/endpoint').reply(200, mockData, { 'x-custom-header': 'value' });
 
-    const client = new HttpClient(
-      { maxRetries: 3, retryWaitMin: 100, retryWaitMax: 1000 },
-      5000
-    );
+    const client = new HttpClient({ maxRetries: 3, retryWaitMin: 100, retryWaitMax: 1000 }, 5000);
 
     const result = await client.request(`${TEST_BASE_URL}/endpoint`);
 
@@ -44,10 +39,7 @@ describe('HttpClient Unit Tests', () => {
       .get('/endpoint')
       .reply(200, mockData);
 
-    const client = new HttpClient(
-      { maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 },
-      5000
-    );
+    const client = new HttpClient({ maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 }, 5000);
 
     const result = await client.request(`${TEST_BASE_URL}/endpoint`);
 
@@ -64,10 +56,7 @@ describe('HttpClient Unit Tests', () => {
       .get('/endpoint')
       .reply(200, mockData);
 
-    const client = new HttpClient(
-      { maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 },
-      5000
-    );
+    const client = new HttpClient({ maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 }, 5000);
 
     const result = await client.request(`${TEST_BASE_URL}/endpoint`);
 
@@ -84,10 +73,7 @@ describe('HttpClient Unit Tests', () => {
       .get('/endpoint')
       .reply(200, mockData);
 
-    const client = new HttpClient(
-      { maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 },
-      5000
-    );
+    const client = new HttpClient({ maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 }, 5000);
 
     const result = await client.request(`${TEST_BASE_URL}/endpoint`);
 
@@ -104,10 +90,7 @@ describe('HttpClient Unit Tests', () => {
       .get('/endpoint')
       .reply(200, mockData);
 
-    const client = new HttpClient(
-      { maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 },
-      5000
-    );
+    const client = new HttpClient({ maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 }, 5000);
 
     const startTime = Date.now();
     const result = await client.request(`${TEST_BASE_URL}/endpoint`);
@@ -119,15 +102,9 @@ describe('HttpClient Unit Tests', () => {
   });
 
   it('should fail after exhausting retries', async () => {
-    nock(TEST_BASE_URL)
-      .get('/endpoint')
-      .times(4)
-      .reply(500, 'Internal Server Error');
+    nock(TEST_BASE_URL).get('/endpoint').times(4).reply(500, 'Internal Server Error');
 
-    const client = new HttpClient(
-      { maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 },
-      5000
-    );
+    const client = new HttpClient({ maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 }, 5000);
 
     await assert.rejects(
       async () => client.request(`${TEST_BASE_URL}/endpoint`),
@@ -136,19 +113,14 @@ describe('HttpClient Unit Tests', () => {
         assert.ok(err.message.includes('500') || err.response?.status === 500);
         return true;
       },
-      'Should throw error after exhausting retries'
+      'Should throw error after exhausting retries',
     );
   });
 
   it('should not retry on 4xx client errors (except 429)', async () => {
-    nock(TEST_BASE_URL)
-      .get('/endpoint')
-      .reply(404, 'Not Found');
+    nock(TEST_BASE_URL).get('/endpoint').reply(404, 'Not Found');
 
-    const client = new HttpClient(
-      { maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 },
-      5000
-    );
+    const client = new HttpClient({ maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 }, 5000);
 
     await assert.rejects(
       async () => client.request(`${TEST_BASE_URL}/endpoint`),
@@ -157,22 +129,16 @@ describe('HttpClient Unit Tests', () => {
         assert.strictEqual(err.response?.status, 404);
         return true;
       },
-      'Should fail immediately on 404'
+      'Should fail immediately on 404',
     );
 
     assert.ok(nock.isDone(), 'Should only make one request');
   });
 
   it('should handle timeout', async () => {
-    nock(TEST_BASE_URL)
-      .get('/endpoint')
-      .delay(2000)
-      .reply(200, { message: 'success' });
+    nock(TEST_BASE_URL).get('/endpoint').delay(2000).reply(200, { message: 'success' });
 
-    const client = new HttpClient(
-      { maxRetries: 0, retryWaitMin: 50, retryWaitMax: 200 },
-      500
-    );
+    const client = new HttpClient({ maxRetries: 0, retryWaitMin: 50, retryWaitMax: 200 }, 500);
 
     await assert.rejects(
       async () => client.request(`${TEST_BASE_URL}/endpoint`),
@@ -181,7 +147,7 @@ describe('HttpClient Unit Tests', () => {
         assert.ok(err.code === 'ECONNABORTED' || err.message.includes('timeout'));
         return true;
       },
-      'Should timeout'
+      'Should timeout',
     );
   });
 
@@ -194,10 +160,7 @@ describe('HttpClient Unit Tests', () => {
       .get('/endpoint')
       .reply(200, mockData);
 
-    const client = new HttpClient(
-      { maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 },
-      5000
-    );
+    const client = new HttpClient({ maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 }, 5000);
 
     const result = await client.request(`${TEST_BASE_URL}/endpoint`);
 
@@ -217,10 +180,7 @@ describe('HttpClient Unit Tests', () => {
       .get('/endpoint')
       .reply(200, mockData);
 
-    const client = new HttpClient(
-      { maxRetries: 3, retryWaitMin, retryWaitMax: 2000 },
-      5000
-    );
+    const client = new HttpClient({ maxRetries: 3, retryWaitMin, retryWaitMax: 2000 }, 5000);
 
     const startTime = Date.now();
     const result = await client.request(`${TEST_BASE_URL}/endpoint`);
@@ -236,14 +196,9 @@ describe('HttpClient Unit Tests', () => {
       nock.cleanAll();
 
       const mockData = { status: `${status} response` };
-      nock(TEST_BASE_URL)
-        .get(`/endpoint-${status}`)
-        .reply(status, mockData);
+      nock(TEST_BASE_URL).get(`/endpoint-${status}`).reply(status, mockData);
 
-      const client = new HttpClient(
-        { maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 },
-        5000
-      );
+      const client = new HttpClient({ maxRetries: 3, retryWaitMin: 50, retryWaitMax: 200 }, 5000);
 
       const result = await client.request(`${TEST_BASE_URL}/endpoint-${status}`);
       assert.deepStrictEqual(result.data, mockData);

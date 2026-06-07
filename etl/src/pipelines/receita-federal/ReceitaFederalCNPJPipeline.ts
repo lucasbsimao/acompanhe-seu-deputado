@@ -4,9 +4,16 @@ import { join } from 'path';
 import { parse } from 'csv-parse';
 import { FileDownloader } from '../../core/FileDownloader';
 import { HttpClient } from '../../core/HttpClient';
-import { VendorRepository, type Vendor, type VendorPartner } from '../../repositories/VendorRepository';
+import {
+  VendorRepository,
+  type Vendor,
+  type VendorPartner,
+} from '../../repositories/VendorRepository';
 import { ExpensesRepository } from '../../repositories/ExpensesRepository';
-import { VendorEmpresasCacheRepository, type VendorEmpresaCacheRow } from '../../repositories/VendorEmpresasCacheRepository';
+import {
+  VendorEmpresasCacheRepository,
+  type VendorEmpresaCacheRow,
+} from '../../repositories/VendorEmpresasCacheRepository';
 import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import defaultConfig from '../../config/defaults.json';
@@ -43,25 +50,60 @@ interface SocioRow {
 }
 
 const ESTABELECIMENTOS_COLUMNS = [
-  'CNPJ_BASICO', 'CNPJ_ORDEM', 'CNPJ_DV', 'TIPO_ESTABELECIMENTO',
-  'NOME_FANTASIA', 'SITUACAO_CADASTRAL', 'DATA_SITUACAO_CADASTRAL',
-  'MOTIVO_SITUACAO_CADASTRAL', 'NOME_CIDADE_EXTERIOR', 'PAIS',
-  'DATA_INICIO_ATIVIDADE', 'CNAE_FISCAL_PRINCIPAL', 'CNAE_FISCAL_SECUNDARIA',
-  'TIPO_LOGRADOURO', 'LOGRADOURO', 'NUMERO', 'COMPLEMENTO', 'BAIRRO',
-  'CEP', 'UF', 'MUNICIPIO', 'DDD_1', 'TELEFONE_1',
-  'DDD_2', 'TELEFONE_2', 'DDD_FAX', 'FAX',
-  'CORREIO_ELETRONICO', 'SITUACAO_ESPECIAL', 'DATA_SITUACAO_ESPECIAL',
+  'CNPJ_BASICO',
+  'CNPJ_ORDEM',
+  'CNPJ_DV',
+  'TIPO_ESTABELECIMENTO',
+  'NOME_FANTASIA',
+  'SITUACAO_CADASTRAL',
+  'DATA_SITUACAO_CADASTRAL',
+  'MOTIVO_SITUACAO_CADASTRAL',
+  'NOME_CIDADE_EXTERIOR',
+  'PAIS',
+  'DATA_INICIO_ATIVIDADE',
+  'CNAE_FISCAL_PRINCIPAL',
+  'CNAE_FISCAL_SECUNDARIA',
+  'TIPO_LOGRADOURO',
+  'LOGRADOURO',
+  'NUMERO',
+  'COMPLEMENTO',
+  'BAIRRO',
+  'CEP',
+  'UF',
+  'MUNICIPIO',
+  'DDD_1',
+  'TELEFONE_1',
+  'DDD_2',
+  'TELEFONE_2',
+  'DDD_FAX',
+  'FAX',
+  'CORREIO_ELETRONICO',
+  'SITUACAO_ESPECIAL',
+  'DATA_SITUACAO_ESPECIAL',
 ];
 
 const EMPRESAS_COLUMNS = [
-  'CNPJ_BASICO', 'RAZAO_SOCIAL', 'NATUREZA_JURIDICA', 'QUALIFICACAO_DO_RESPONSAVEL',
-  'CAPITAL_SOCIAL', 'PORTE_EMPRESA', 'ENTE_FEDERATIVO_RESPONSAVEL',
+  'CNPJ_BASICO',
+  'RAZAO_SOCIAL',
+  'NATUREZA_JURIDICA',
+  'QUALIFICACAO_DO_RESPONSAVEL',
+  'CAPITAL_SOCIAL',
+  'PORTE_EMPRESA',
+  'ENTE_FEDERATIVO_RESPONSAVEL',
 ];
 
 const SOCIOS_COLUMNS = [
-  'CNPJ_BASICO', 'IDENTIFICADOR_DE_SOCIO', 'NOME_SOCIO', 'CNPJ_CPF_DO_SOCIO',
-  'QUALIFICACAO_SOCIO', 'DATA_ENTRADA_SOCIEDADE', 'PAIS', 'REPRESENTANTE_LEGAL',
-  'NOME_DO_REPRESENTANTE', 'QUALIFICACAO_REPRESENTANTE_LEGAL', 'FAIXA_ETARIA',
+  'CNPJ_BASICO',
+  'IDENTIFICADOR_DE_SOCIO',
+  'NOME_SOCIO',
+  'CNPJ_CPF_DO_SOCIO',
+  'QUALIFICACAO_SOCIO',
+  'DATA_ENTRADA_SOCIEDADE',
+  'PAIS',
+  'REPRESENTANTE_LEGAL',
+  'NOME_DO_REPRESENTANTE',
+  'QUALIFICACAO_REPRESENTANTE_LEGAL',
+  'FAIXA_ETARIA',
 ];
 
 export class ReceitaFederalCNPJPipeline {
@@ -90,7 +132,7 @@ export class ReceitaFederalCNPJPipeline {
     this.auth = { username: this.shareToken, password: '' };
     const httpClient = new HttpClient(
       { maxRetries: 3, retryWaitMin: 250, retryWaitMax: 2000 },
-      60000
+      60000,
     );
     this.downloader = new FileDownloader(httpClient);
   }
@@ -111,11 +153,11 @@ export class ReceitaFederalCNPJPipeline {
       return;
     }
 
-    const knownBasicCnpjs = new Set<string>(
-      [...knownCnpjs].map(cnpj => cnpj.slice(0, 8))
-    );
+    const knownBasicCnpjs = new Set<string>([...knownCnpjs].map(cnpj => cnpj.slice(0, 8)));
 
-    console.log(`ReceitaFederalCNPJPipeline: loaded ${knownCnpjs.size} known CNPJs (${knownBasicCnpjs.size} unique basic CNPJs)`);
+    console.log(
+      `ReceitaFederalCNPJPipeline: loaded ${knownCnpjs.size} known CNPJs (${knownBasicCnpjs.size} unique basic CNPJs)`,
+    );
 
     // Create staging table for Companies data
     this.empresasCacheRepo.createTable();
@@ -158,7 +200,7 @@ export class ReceitaFederalCNPJPipeline {
     fileType: FileType,
     index: number,
     knownBasicCnpjs: Set<string>,
-    knownCnpjs: Set<string>
+    knownCnpjs: Set<string>,
   ): Promise<void> {
     const zipName = `${fileType}${index}.zip`;
     const zipPath = join(this.tempDir, zipName);
@@ -186,7 +228,7 @@ export class ReceitaFederalCNPJPipeline {
     fileType: FileType,
     csvFile: string,
     knownBasicCnpjs: Set<string>,
-    knownCnpjs: Set<string>
+    knownCnpjs: Set<string>,
   ): Promise<void> {
     switch (fileType) {
       case FileType.COMPANIES:
@@ -203,17 +245,14 @@ export class ReceitaFederalCNPJPipeline {
     }
   }
 
-  private async processCompaniesCsv(
-    csvFile: string,
-    knownBasicCnpjs: Set<string>
-  ): Promise<void> {
+  private async processCompaniesCsv(csvFile: string, knownBasicCnpjs: Set<string>): Promise<void> {
     const parser = createReadStream(csvFile, { encoding: 'latin1' }).pipe(
       parse({
         columns: EMPRESAS_COLUMNS,
         delimiter: ';',
         skip_empty_lines: true,
         relax_quotes: true,
-      })
+      }),
     );
 
     const BATCH_SIZE = 50;
@@ -224,7 +263,7 @@ export class ReceitaFederalCNPJPipeline {
         cacheRows.push({
           cnpj_basic: row.CNPJ_BASICO,
           legal_name: row.RAZAO_SOCIAL.trim(),
-          company_size: row.PORTE_EMPRESA.trim()
+          company_size: row.PORTE_EMPRESA.trim(),
         });
         if (cacheRows.length >= BATCH_SIZE) {
           this.empresasCacheRepo.insertBatch(cacheRows);
@@ -241,17 +280,14 @@ export class ReceitaFederalCNPJPipeline {
     console.log(`Inserted ${totalInserted} company records from ${csvFile}`);
   }
 
-  private async processEstablishmentsCsv(
-    csvFile: string,
-    knownCnpjs: Set<string>
-  ): Promise<void> {
+  private async processEstablishmentsCsv(csvFile: string, knownCnpjs: Set<string>): Promise<void> {
     const parser = createReadStream(csvFile, { encoding: 'latin1' }).pipe(
       parse({
         columns: ESTABELECIMENTOS_COLUMNS,
         delimiter: ';',
         skip_empty_lines: true,
         relax_quotes: true,
-      })
+      }),
     );
 
     const BATCH_SIZE = 50;
@@ -292,17 +328,14 @@ export class ReceitaFederalCNPJPipeline {
     }
   }
 
-  private async processPartnersCsv(
-    csvFile: string,
-    knownBasicCnpjs: Set<string>
-  ): Promise<void> {
+  private async processPartnersCsv(csvFile: string, knownBasicCnpjs: Set<string>): Promise<void> {
     const parser = createReadStream(csvFile, { encoding: 'latin1' }).pipe(
       parse({
         columns: SOCIOS_COLUMNS,
         delimiter: ';',
         skip_empty_lines: true,
         relax_quotes: true,
-      })
+      }),
     );
 
     const BATCH_SIZE = 50;
@@ -349,7 +382,9 @@ export class ReceitaFederalCNPJPipeline {
     if (!existsSync(dir)) return;
     try {
       const files = readdirSync(dir);
-      files.forEach(f => { unlinkSync(join(dir, f)); });
+      files.forEach(f => {
+        unlinkSync(join(dir, f));
+      });
       rmdirSync(dir);
     } catch (err) {
       console.warn(`Cleanup warning for ${dir}:`, err);

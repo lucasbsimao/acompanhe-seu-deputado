@@ -16,7 +16,6 @@ export interface PaginationConfig {
   timeoutMs?: number;
 }
 
-
 export abstract class BasePipeline<T> {
   protected httpClient: HttpClient;
   protected pageSize: number;
@@ -34,7 +33,7 @@ export abstract class BasePipeline<T> {
         retryWaitMin: normalizedConfig.retryWaitMin,
         retryWaitMax: normalizedConfig.retryWaitMax,
       },
-      normalizedConfig.timeoutMs
+      normalizedConfig.timeoutMs,
     );
   }
 
@@ -78,14 +77,14 @@ export abstract class BasePipeline<T> {
     for (let i = 0; i < pageNumbers.length; i += this.parallelism) {
       const batch = pageNumbers.slice(i, i + this.parallelism);
       const results = await Promise.all(
-        batch.map(async (page) => {
+        batch.map(async page => {
           const url = await this.buildUrl(page, this.pageSize);
           const { data } = await this.httpClient.request(url);
           const items = await this.decodePage(data);
           return { page, items };
-        })
+        }),
       );
-      results.forEach((r) => pageMap.set(r.page, r.items));
+      results.forEach(r => pageMap.set(r.page, r.items));
     }
 
     for (let page = 2; page <= totalPages; page++) {
@@ -97,15 +96,27 @@ export abstract class BasePipeline<T> {
     }
   }
 
-
   private normalizeConfig(cfg: PaginationConfig): Required<PaginationConfig> {
     return {
       pageSize: cfg.pageSize && cfg.pageSize > 0 ? cfg.pageSize : defaultConfig.pagination.pageSize,
-      parallelism: cfg.parallelism && cfg.parallelism > 0 ? cfg.parallelism : defaultConfig.pagination.parallelism,
-      maxRetries: cfg.maxRetries !== undefined && cfg.maxRetries >= 0 ? cfg.maxRetries : defaultConfig.pagination.maxRetries,
-      retryWaitMin: cfg.retryWaitMin && cfg.retryWaitMin > 0 ? cfg.retryWaitMin : defaultConfig.pagination.retryWaitMin,
-      retryWaitMax: cfg.retryWaitMax && cfg.retryWaitMax > 0 ? cfg.retryWaitMax : defaultConfig.pagination.retryWaitMax,
-      timeoutMs: cfg.timeoutMs && cfg.timeoutMs > 0 ? cfg.timeoutMs : defaultConfig.pagination.timeoutMs,
+      parallelism:
+        cfg.parallelism && cfg.parallelism > 0
+          ? cfg.parallelism
+          : defaultConfig.pagination.parallelism,
+      maxRetries:
+        cfg.maxRetries !== undefined && cfg.maxRetries >= 0
+          ? cfg.maxRetries
+          : defaultConfig.pagination.maxRetries,
+      retryWaitMin:
+        cfg.retryWaitMin && cfg.retryWaitMin > 0
+          ? cfg.retryWaitMin
+          : defaultConfig.pagination.retryWaitMin,
+      retryWaitMax:
+        cfg.retryWaitMax && cfg.retryWaitMax > 0
+          ? cfg.retryWaitMax
+          : defaultConfig.pagination.retryWaitMax,
+      timeoutMs:
+        cfg.timeoutMs && cfg.timeoutMs > 0 ? cfg.timeoutMs : defaultConfig.pagination.timeoutMs,
     };
   }
 }

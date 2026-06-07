@@ -9,12 +9,21 @@ type PipelineOrchestratorWithPrivates = {
 };
 
 function makeInfo(className: string, dependencies: string[]): PipelineInfo {
-  return { name: className, displayName: className, className, filePath: '', importPath: className, dependencies };
+  return {
+    name: className,
+    displayName: className,
+    className,
+    filePath: '',
+    importPath: className,
+    dependencies,
+  };
 }
 
 function makeFakeClass(log: { importPath: string; forceDownload: boolean }[], importPath: string) {
   return class {
-    constructor(_db: unknown) { void _db; }
+    constructor(_db: unknown) {
+      void _db;
+    }
     static readonly dependencies: readonly string[] = [];
     execute(forceDownload: boolean): Promise<void> {
       log.push({ importPath, forceDownload });
@@ -24,7 +33,9 @@ function makeFakeClass(log: { importPath: string; forceDownload: boolean }[], im
 }
 
 describe('PipelineOrchestrator.executeAll', () => {
-  afterEach(() => { mock.reset(); });
+  afterEach(() => {
+    mock.reset();
+  });
 
   // Graph: D ← B ← A → C ← D  (diamond), then E depends on A
   //        D has no deps; B and C both depend on D; A depends on B+C; E depends on A
@@ -33,7 +44,7 @@ describe('PipelineOrchestrator.executeAll', () => {
     const log: { importPath: string; forceDownload: boolean }[] = [];
 
     mock.method(orchestrator, 'loadPipelineClass', (importPath: string) =>
-      Promise.resolve(makeFakeClass(log, importPath))
+      Promise.resolve(makeFakeClass(log, importPath)),
     );
 
     const d = makeInfo('D', []);
@@ -43,19 +54,21 @@ describe('PipelineOrchestrator.executeAll', () => {
     const e = makeInfo('E', ['A']);
     await orchestrator.executeAll([e, a, b, c, d], true);
 
-    const names = log.map((entry) => entry.importPath);
+    const names = log.map(entry => entry.importPath);
     assert.strictEqual(names.length, 5);
     assert.ok(names.indexOf('D') < names.indexOf('B'), 'D before B');
     assert.ok(names.indexOf('D') < names.indexOf('C'), 'D before C');
     assert.ok(names.indexOf('B') < names.indexOf('A'), 'B before A');
     assert.ok(names.indexOf('C') < names.indexOf('A'), 'C before A');
     assert.ok(names.indexOf('A') < names.indexOf('E'), 'A before E');
-    assert.ok(log.every((entry) => entry.forceDownload));
+    assert.ok(log.every(entry => entry.forceDownload));
   });
 });
 
 describe('PipelineOrchestrator.executeSelected', () => {
-  afterEach(() => { mock.reset(); });
+  afterEach(() => {
+    mock.reset();
+  });
 
   // Graph: D ← B ← A → C ← D  (diamond A depends on B+C, both depend on D); F is unrelated
   // Select A: must run D, B, C (forceDownload=false) then A (forceDownload=true); F must not run
@@ -64,7 +77,7 @@ describe('PipelineOrchestrator.executeSelected', () => {
     const log: { importPath: string; forceDownload: boolean }[] = [];
 
     mock.method(orchestrator, 'loadPipelineClass', (importPath: string) =>
-      Promise.resolve(makeFakeClass(log, importPath))
+      Promise.resolve(makeFakeClass(log, importPath)),
     );
 
     const d = makeInfo('D', []);
@@ -75,7 +88,7 @@ describe('PipelineOrchestrator.executeSelected', () => {
 
     await orchestrator.executeSelected([a, b, c, d, f], 'A', true);
 
-    const names = log.map((entry) => entry.importPath);
+    const names = log.map(entry => entry.importPath);
     assert.ok(!names.includes('F'), 'F must not run');
     assert.strictEqual(names.length, 4);
     assert.ok(names.indexOf('D') < names.indexOf('B'), 'D before B');
@@ -83,10 +96,10 @@ describe('PipelineOrchestrator.executeSelected', () => {
     assert.ok(names.indexOf('B') < names.indexOf('A'), 'B before A');
     assert.ok(names.indexOf('C') < names.indexOf('A'), 'C before A');
     assert.ok(
-      log.filter((e) => e.importPath !== 'A').every((e) => !e.forceDownload),
-      'deps run with forceDownload=false'
+      log.filter(e => e.importPath !== 'A').every(e => !e.forceDownload),
+      'deps run with forceDownload=false',
     );
-    const aEntry = log.find((e) => e.importPath === 'A');
+    const aEntry = log.find(e => e.importPath === 'A');
     assert.ok(aEntry, 'entry A should exist in log');
     assert.strictEqual(aEntry.forceDownload, true);
   });
@@ -96,7 +109,7 @@ describe('PipelineOrchestrator.executeSelected', () => {
 
     await assert.rejects(
       () => orchestrator.executeSelected([makeInfo('A', [])], 'NonExistent', false),
-      /Pipeline NonExistent not found/
+      /Pipeline NonExistent not found/,
     );
   });
 });
@@ -107,11 +120,13 @@ describe('PipelineOrchestrator.resolveExecutionOrder', () => {
     const b = makeInfo('B', ['C']);
     const a = makeInfo('A', ['B']);
 
-    const result = (PipelineOrchestrator as unknown as PipelineOrchestratorWithPrivates).resolveExecutionOrder([a, b, c]);
+    const result = (
+      PipelineOrchestrator as unknown as PipelineOrchestratorWithPrivates
+    ).resolveExecutionOrder([a, b, c]);
 
     assert.deepStrictEqual(
       result.map((p: PipelineInfo) => p.className),
-      ['C', 'B', 'A']
+      ['C', 'B', 'A'],
     );
   });
 
@@ -121,8 +136,10 @@ describe('PipelineOrchestrator.resolveExecutionOrder', () => {
     const c = makeInfo('C', ['D']);
     const a = makeInfo('A', ['B', 'C']);
 
-    const result: PipelineInfo[] = (PipelineOrchestrator as unknown as PipelineOrchestratorWithPrivates).resolveExecutionOrder([a, b, c, d]);
-    const names = result.map((p) => p.className);
+    const result: PipelineInfo[] = (
+      PipelineOrchestrator as unknown as PipelineOrchestratorWithPrivates
+    ).resolveExecutionOrder([a, b, c, d]);
+    const names = result.map(p => p.className);
 
     assert.ok(names.indexOf('D') < names.indexOf('B'), 'D must come before B');
     assert.ok(names.indexOf('D') < names.indexOf('C'), 'D must come before C');
@@ -133,11 +150,13 @@ describe('PipelineOrchestrator.resolveExecutionOrder', () => {
   it('no dependencies: order is stable (same as input)', () => {
     const pipelines = [makeInfo('X', []), makeInfo('Y', []), makeInfo('Z', [])];
 
-    const result = (PipelineOrchestrator as unknown as PipelineOrchestratorWithPrivates).resolveExecutionOrder(pipelines);
+    const result = (
+      PipelineOrchestrator as unknown as PipelineOrchestratorWithPrivates
+    ).resolveExecutionOrder(pipelines);
 
     assert.deepStrictEqual(
       result.map((p: PipelineInfo) => p.className),
-      ['X', 'Y', 'Z']
+      ['X', 'Y', 'Z'],
     );
   });
 
@@ -146,11 +165,14 @@ describe('PipelineOrchestrator.resolveExecutionOrder', () => {
     const b = makeInfo('B', ['A']);
 
     assert.throws(
-      () => (PipelineOrchestrator as unknown as PipelineOrchestratorWithPrivates).resolveExecutionOrder([a, b]),
+      () =>
+        (PipelineOrchestrator as unknown as PipelineOrchestratorWithPrivates).resolveExecutionOrder(
+          [a, b],
+        ),
       (err: Error) => {
         assert.ok(err.message.includes('Circular dependency detected'), err.message);
         return true;
-      }
+      },
     );
   });
 
@@ -158,11 +180,14 @@ describe('PipelineOrchestrator.resolveExecutionOrder', () => {
     const a = makeInfo('A', ['NonExistent']);
 
     assert.throws(
-      () => (PipelineOrchestrator as unknown as PipelineOrchestratorWithPrivates).resolveExecutionOrder([a]),
+      () =>
+        (PipelineOrchestrator as unknown as PipelineOrchestratorWithPrivates).resolveExecutionOrder(
+          [a],
+        ),
       (err: Error) => {
         assert.ok(err.message.includes('Unknown dependency'), err.message);
         return true;
-      }
+      },
     );
   });
 });

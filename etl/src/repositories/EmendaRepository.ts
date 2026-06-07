@@ -46,7 +46,9 @@ export class EmendaRepository {
   }
 
   count(): number {
-    const row = this.db.prepare('SELECT COUNT(*) as cnt FROM emendas_parlamentares').get() as { cnt: number };
+    const row = this.db.prepare('SELECT COUNT(*) as cnt FROM emendas_parlamentares').get() as {
+      cnt: number;
+    };
     return row.cnt;
   }
 }

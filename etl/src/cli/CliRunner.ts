@@ -2,7 +2,6 @@ import prompts from 'prompts';
 import type { PipelineInfo } from '../types/Pipeline';
 import { UserCancelledError } from '../core/errors';
 
-
 export interface CliOptions {
   forceDownload: boolean;
 }
@@ -26,7 +25,7 @@ export class CliRunner {
     }
 
     const choices = [
-      ...pipelines.map((p) => ({
+      ...pipelines.map(p => ({
         title: p.displayName,
         value: p.className,
       })),
@@ -36,16 +35,19 @@ export class CliRunner {
       },
     ];
 
-    const response = await prompts<'pipeline'>({
-      type: 'select',
-      name: 'pipeline',
-      message: 'Select a pipeline to execute',
-      choices,
-    }, {
-      onCancel: () => {
-        throw new UserCancelledError();
-      }
-    });
+    const response = await prompts<'pipeline'>(
+      {
+        type: 'select',
+        name: 'pipeline',
+        message: 'Select a pipeline to execute',
+        choices,
+      },
+      {
+        onCancel: () => {
+          throw new UserCancelledError();
+        },
+      },
+    );
 
     if (!response.pipeline) {
       console.log('No pipeline selected');
@@ -58,4 +60,3 @@ export class CliRunner {
     };
   }
 }
-

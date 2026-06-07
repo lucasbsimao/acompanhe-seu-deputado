@@ -15,7 +15,7 @@ describe('convertToCents', () => {
 
   it('should convert values >= 100 correctly', () => {
     assert.strictEqual(convertToCents(100.0), 10000);
-    assert.strictEqual(convertToCents(150.50), 15050);
+    assert.strictEqual(convertToCents(150.5), 15050);
     assert.strictEqual(convertToCents(1234.56), 123456);
   });
 

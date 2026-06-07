@@ -13,7 +13,7 @@ export class PartyRepository {
 
   constructor(db: Database.Database) {
     this.insertParty = db.prepare(
-      'INSERT OR REPLACE INTO parties (id, name, acronym) VALUES (?, ?, ?)'
+      'INSERT OR REPLACE INTO parties (id, name, acronym) VALUES (?, ?, ?)',
     );
     this.countQuery = db.prepare('SELECT COUNT(*) as count FROM parties');
     this.insertAll = db.transaction((rows: PartyRow[]) => {

@@ -223,7 +223,11 @@ describe('PartiesETL Integration Tests', () => {
     const result = db.prepare('SELECT * FROM parties').all() as PartyRow[];
     assert.strictEqual(result.length, 5, 'Should contain 5 parties after rate limit retry');
 
-    assert.strictEqual(scope.pendingMocks().length, 0, 'Both endpoint calls (429 and 200) should have been made');
+    assert.strictEqual(
+      scope.pendingMocks().length,
+      0,
+      'Both endpoint calls (429 and 200) should have been made',
+    );
   });
 
   it('should fail after exhausting all retries', async () => {
@@ -248,10 +252,14 @@ describe('PartiesETL Integration Tests', () => {
         assert.ok((error as Error).message.includes('500'), 'Error should mention status 500');
         return true;
       },
-      'Should throw error after exhausting retries'
+      'Should throw error after exhausting retries',
     );
 
-    assert.strictEqual(scope.pendingMocks().length, 0, 'All 4 endpoint calls should have been made');
+    assert.strictEqual(
+      scope.pendingMocks().length,
+      0,
+      'All 4 endpoint calls should have been made',
+    );
   });
 
   it('should handle missing X-Total-Count header', async () => {
@@ -272,11 +280,11 @@ describe('PartiesETL Integration Tests', () => {
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Missing X-Total-Count header'),
-          'Error should mention missing header'
+          'Error should mention missing header',
         );
         return true;
       },
-      'Should throw error for missing X-Total-Count header'
+      'Should throw error for missing X-Total-Count header',
     );
   });
 
@@ -298,11 +306,11 @@ describe('PartiesETL Integration Tests', () => {
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Response does not contain dados array'),
-          'Error should mention invalid response format'
+          'Error should mention invalid response format',
         );
         return true;
       },
-      'Should throw error for invalid response format'
+      'Should throw error for invalid response format',
     );
   });
 
@@ -315,7 +323,11 @@ describe('PartiesETL Integration Tests', () => {
         pagina: '1',
         itens: '100',
       })
-      .reply(200, { dados: Array.from({ length: 100 }, (_, i) => createMockParty(i + 1)) }, { 'x-total-count': '550' });
+      .reply(
+        200,
+        { dados: Array.from({ length: 100 }, (_, i) => createMockParty(i + 1)) },
+        { 'x-total-count': '550' },
+      );
 
     for (let page = 2; page <= 6; page++) {
       nock(API_BASE_URL)
@@ -327,7 +339,9 @@ describe('PartiesETL Integration Tests', () => {
           itens: '100',
         })
         .reply(200, {
-          dados: Array.from({ length: page === 6 ? 50 : 100 }, (_, i) => createMockParty((page - 1) * 100 + i + 1)),
+          dados: Array.from({ length: page === 6 ? 50 : 100 }, (_, i) =>
+            createMockParty((page - 1) * 100 + i + 1),
+          ),
         });
     }
 
@@ -380,7 +394,11 @@ describe('PartiesETL Integration Tests', () => {
         pagina: '1',
         itens: '100',
       })
-      .reply(200, { dados: [{ ...parties[0], nome: 'Updated Party Name' }] }, { 'x-total-count': '1' });
+      .reply(
+        200,
+        { dados: [{ ...parties[0], nome: 'Updated Party Name' }] },
+        { 'x-total-count': '1' },
+      );
 
     const etl2 = new PartiesPipeline(db);
     await etl2.execute(true);

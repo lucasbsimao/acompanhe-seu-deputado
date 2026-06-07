@@ -4,7 +4,11 @@ import { HttpClient } from '../../core/HttpClient';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianRole } from '../../types/PoliticianRole';
 import { TSECargo } from '../../types/TSECargo';
-import { TSEElectionResultStatus, tseElectionResultStatusFromValue, type TSEElectionResultStatusKey } from '../../types/TSEElectionResultStatus';
+import {
+  TSEElectionResultStatus,
+  tseElectionResultStatusFromValue,
+  type TSEElectionResultStatusKey,
+} from '../../types/TSEElectionResultStatus';
 import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
 import { normalizeId } from '../../util/normalization.util';
 import { parse } from 'csv-parse/sync';
@@ -24,7 +28,8 @@ interface TSECandidate {
 export class TSE2022ElectionResultsPipeline {
   static readonly dependencies: readonly IPipelineDepChain[] = [];
 
-  private readonly downloadUrl = 'https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2022.zip';
+  private readonly downloadUrl =
+    'https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2022.zip';
   private readonly tempDir = join(process.cwd(), 'temp_tse_2022');
   private readonly zipPath = join(this.tempDir, 'consulta_cand_2022.zip');
   private readonly extractPath = join(this.tempDir, 'extracted');
@@ -35,7 +40,7 @@ export class TSE2022ElectionResultsPipeline {
     this.repo = new PoliticianRepository(db);
     const httpClient = new HttpClient(
       { maxRetries: 3, retryWaitMin: 250, retryWaitMax: 2000 },
-      60000
+      60000,
     );
     this.downloader = new FileDownloader(httpClient);
   }
@@ -43,7 +48,7 @@ export class TSE2022ElectionResultsPipeline {
   shouldDownload(): Promise<boolean> {
     return Promise.resolve(
       this.repo.countByRole(PoliticianRole.DEPUTY) === 0 &&
-      this.repo.countByRole(PoliticianRole.SENATOR) === 0
+        this.repo.countByRole(PoliticianRole.SENATOR) === 0,
     );
   }
 
@@ -55,22 +60,22 @@ export class TSE2022ElectionResultsPipeline {
 
     try {
       console.log('Starting TSE 2022 Election Results Pipeline...');
-      
+
       await this.downloader.downloadFile(this.downloadUrl, this.zipPath);
       this.downloader.extractZip(this.zipPath, this.extractPath);
-      
+
       const csvFiles = this.findCSVFiles();
       console.log(`Found ${csvFiles.length} CSV files`);
-      
+
       const allCandidates: TSECandidate[] = [];
       for (const file of csvFiles) {
         const candidates = this.parseCSVFile(file);
         allCandidates.push(...candidates);
       }
-      
+
       const elected = this.filterElected(allCandidates);
       console.log(`Filtered ${elected.length} elected politicians`);
-      
+
       this.storePoliticians(elected);
       console.log('TSE 2022 data stored successfully');
     } finally {
@@ -106,8 +111,9 @@ export class TSE2022ElectionResultsPipeline {
     ];
 
     return candidates.filter(
-      c => (validCargos as string[]).includes(c.DS_CARGO) &&
-           (validStatuses as string[]).includes(c.DS_SIT_TOT_TURNO)
+      c =>
+        (validCargos as string[]).includes(c.DS_CARGO) &&
+        (validStatuses as string[]).includes(c.DS_SIT_TOT_TURNO),
     );
   }
 
@@ -120,18 +126,25 @@ export class TSE2022ElectionResultsPipeline {
         name: c.NM_URNA_CANDIDATO,
         uf: c.SG_UF,
         partyId: normalizeId(c.SG_PARTIDO),
-        role: c.DS_CARGO === (TSECargo.DEPUTADO_FEDERAL as string) ? PoliticianRole.DEPUTY : PoliticianRole.SENATOR,
+        role:
+          c.DS_CARGO === (TSECargo.DEPUTADO_FEDERAL as string)
+            ? PoliticianRole.DEPUTY
+            : PoliticianRole.SENATOR,
         photoUrl: null,
-        electedAs: tseElectionResultStatusFromValue(c.DS_SIT_TOT_TURNO) as TSEElectionResultStatusKey,
+        electedAs: tseElectionResultStatusFromValue(
+          c.DS_SIT_TOT_TURNO,
+        ) as TSEElectionResultStatusKey,
       }));
-    
+
     this.repo.insertBatch(rows);
   }
 
   private cleanup(): void {
     try {
       const files = readdirSync(this.extractPath);
-      files.forEach(f => { unlinkSync(join(this.extractPath, f)); });
+      files.forEach(f => {
+        unlinkSync(join(this.extractPath, f));
+      });
       rmdirSync(this.extractPath);
       unlinkSync(this.zipPath);
       rmdirSync(this.tempDir);

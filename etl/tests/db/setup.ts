@@ -30,14 +30,15 @@ export function useTestDatabase() {
 
   return {
     getDb: (): TestDatabase => {
-      if (!testDb) throw new Error('testDb not initialized — is getDb() called outside a test body?');
+      if (!testDb)
+        throw new Error('testDb not initialized — is getDb() called outside a test body?');
       return testDb;
     },
   };
 }
 
 export function createTestDatabase(): TestDatabase {
-  const dbManager = new DatabaseManager(":memory:");
+  const dbManager = new DatabaseManager(':memory:');
   const db = dbManager.initialize();
   db.pragma('busy_timeout = 5000');
 

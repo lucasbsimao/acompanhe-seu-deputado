@@ -24,9 +24,9 @@ export class PipelineOrchestrator {
   async executeSelected(
     pipelines: PipelineInfo[],
     selectedClassName: string,
-    forceDownload: boolean
+    forceDownload: boolean,
   ): Promise<void> {
-    const selected = pipelines.find((p) => p.className === selectedClassName);
+    const selected = pipelines.find(p => p.className === selectedClassName);
     if (!selected) throw new Error(`Pipeline ${selectedClassName} not found`);
 
     const subset = PipelineOrchestrator.retrievePipelineDeps(pipelines, selected);
@@ -46,7 +46,7 @@ export class PipelineOrchestrator {
     const results: PipelineInfo[] = [];
 
     // Dynamically discover all subdirectories
-    const subdirs = readdirSync(pipelinesDir).filter((f) => {
+    const subdirs = readdirSync(pipelinesDir).filter(f => {
       const fullPath = join(pipelinesDir, f);
       try {
         return statSync(fullPath).isDirectory();
@@ -58,7 +58,7 @@ export class PipelineOrchestrator {
     for (const subdir of subdirs) {
       const subdirPath = join(pipelinesDir, subdir);
       const files = readdirSync(subdirPath).filter(
-        (f) => f.endsWith('Pipeline.js') && f !== 'BasePipeline.js'
+        f => f.endsWith('Pipeline.js') && f !== 'BasePipeline.js',
       );
 
       for (const file of files) {
@@ -69,7 +69,9 @@ export class PipelineOrchestrator {
 
         PipelineOrchestrator.assertValidPipelineClass(PipelineClass, className);
 
-        const dependencies = PipelineClass.dependencies.map((dep) => (dep as unknown as { name: string }).name);
+        const dependencies = PipelineClass.dependencies.map(
+          dep => (dep as unknown as { name: string }).name,
+        );
         results.push({
           name: className,
           displayName,
@@ -85,7 +87,7 @@ export class PipelineOrchestrator {
   }
 
   async loadPipelineClass(importPath: string): Promise<IPipelineClass> {
-    const module = await import(`../pipelines/${importPath}`) as Record<string, IPipelineClass>;
+    const module = (await import(`../pipelines/${importPath}`)) as Record<string, IPipelineClass>;
     const className = importPath.split('/').at(-1) ?? importPath;
     return module[className];
   }
@@ -98,9 +100,9 @@ export class PipelineOrchestrator {
    */
   private static retrievePipelineDeps(
     pipelines: PipelineInfo[],
-    root: PipelineInfo
+    root: PipelineInfo,
   ): PipelineInfo[] {
-    const byName = new Map(pipelines.map((p) => [p.className, p]));
+    const byName = new Map(pipelines.map(p => [p.className, p]));
     const visited = new Set<string>();
     const result: PipelineInfo[] = [];
     const queue = [root];
@@ -124,7 +126,7 @@ export class PipelineOrchestrator {
    * @returns A sorted array of pipelines in execution order
    */
   private static resolveExecutionOrder(pipelines: PipelineInfo[]): PipelineInfo[] {
-    const byName = new Map(pipelines.map((p) => [p.className, p]));
+    const byName = new Map(pipelines.map(p => [p.className, p]));
 
     for (const p of pipelines) {
       for (const dep of p.dependencies) {
@@ -132,8 +134,8 @@ export class PipelineOrchestrator {
       }
     }
 
-    const inDegree = new Map(pipelines.map((p) => [p.className, 0]));
-    const dependents = new Map<string, string[]>(pipelines.map((p) => [p.className, []]));
+    const inDegree = new Map(pipelines.map(p => [p.className, 0]));
+    const dependents = new Map<string, string[]>(pipelines.map(p => [p.className, []]));
 
     for (const p of pipelines) {
       for (const dep of p.dependencies) {
@@ -142,7 +144,7 @@ export class PipelineOrchestrator {
       }
     }
 
-    const queue = pipelines.filter((p) => inDegree.get(p.className) === 0);
+    const queue = pipelines.filter(p => inDegree.get(p.className) === 0);
     const result: PipelineInfo[] = [];
 
     while (queue.length > 0) {
@@ -159,8 +161,8 @@ export class PipelineOrchestrator {
 
     if (result.length < pipelines.length) {
       const remaining = pipelines
-        .filter((p) => !result.includes(p))
-        .map((p) => p.className)
+        .filter(p => !result.includes(p))
+        .map(p => p.className)
         .join(', ');
       throw new Error(`Circular dependency detected involving: ${remaining}`);
     }
@@ -186,6 +188,6 @@ export class PipelineOrchestrator {
     return camelCase
       .replace(/([A-Z])/g, ' $1')
       .trim()
-      .replace(/^./, (str) => str.toUpperCase());
+      .replace(/^./, str => str.toUpperCase());
   }
 }

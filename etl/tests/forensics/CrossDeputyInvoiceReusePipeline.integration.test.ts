@@ -14,19 +14,26 @@ interface ExpenseSeed {
 }
 
 function seedDeputy(db: Database.Database, cpf: string): void {
-  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
+  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
+    'pt',
+    'PT',
+    'PT',
+  );
   db.prepare(
     `INSERT OR IGNORE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-     VALUES (?, ?, ?, 'SP', 'pt', ?, NULL, 'ELEITO_POR_QP')`
+     VALUES (?, ?, ?, 'SP', 'pt', ?, NULL, 'ELEITO_POR_QP')`,
   ).run(cpf, cpf, `Deputy ${cpf}`, PoliticianRole.DEPUTY);
 }
 
-function seedExpense(db: Database.Database, { id, deputyId, cnpj, numDocumento }: ExpenseSeed): void {
+function seedExpense(
+  db: Database.Database,
+  { id, deputyId, cnpj, numDocumento }: ExpenseSeed,
+): void {
   db.prepare(
     `INSERT INTO expenses (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
       data_documento, num_documento, url_documento, nome_fornecedor, cnpj_cpf_fornecedor,
       valor_liquido, valor_glosa)
-     VALUES (?, ?, 'MANUTENCAO', ?, 0, '2024-01-01', ?, NULL, 'Vendor LTDA', ?, 10000, 0)`
+     VALUES (?, ?, 'MANUTENCAO', ?, 0, '2024-01-01', ?, NULL, 'Vendor LTDA', ?, 10000, 0)`,
   ).run(id, deputyId, id, numDocumento, cnpj);
 }
 
@@ -49,8 +56,18 @@ describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {
     const db = getDb().db;
     seedDeputy(db, 'CPF001');
     seedDeputy(db, 'CPF002');
-    seedExpense(db, { id: 'EXP-A1', deputyId: 'CPF001', cnpj: '11222333000181', numDocumento: 'NF-100' });
-    seedExpense(db, { id: 'EXP-A2', deputyId: 'CPF002', cnpj: '11222333000181', numDocumento: 'NF-100' });
+    seedExpense(db, {
+      id: 'EXP-A1',
+      deputyId: 'CPF001',
+      cnpj: '11222333000181',
+      numDocumento: 'NF-100',
+    });
+    seedExpense(db, {
+      id: 'EXP-A2',
+      deputyId: 'CPF002',
+      cnpj: '11222333000181',
+      numDocumento: 'NF-100',
+    });
 
     const pipeline = new CrossDeputyInvoiceReusePipeline(db);
     await pipeline.execute();
@@ -72,9 +89,24 @@ describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {
     seedDeputy(db, 'CPF001');
     seedDeputy(db, 'CPF002');
     seedDeputy(db, 'CPF003');
-    seedExpense(db, { id: 'EXP-B1', deputyId: 'CPF001', cnpj: '99000000000191', numDocumento: 'NF-999' });
-    seedExpense(db, { id: 'EXP-B2', deputyId: 'CPF002', cnpj: '99000000000191', numDocumento: 'NF-999' });
-    seedExpense(db, { id: 'EXP-B3', deputyId: 'CPF003', cnpj: '99000000000191', numDocumento: 'NF-999' });
+    seedExpense(db, {
+      id: 'EXP-B1',
+      deputyId: 'CPF001',
+      cnpj: '99000000000191',
+      numDocumento: 'NF-999',
+    });
+    seedExpense(db, {
+      id: 'EXP-B2',
+      deputyId: 'CPF002',
+      cnpj: '99000000000191',
+      numDocumento: 'NF-999',
+    });
+    seedExpense(db, {
+      id: 'EXP-B3',
+      deputyId: 'CPF003',
+      cnpj: '99000000000191',
+      numDocumento: 'NF-999',
+    });
 
     const pipeline = new CrossDeputyInvoiceReusePipeline(db);
     await pipeline.execute();
@@ -86,8 +118,18 @@ describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {
   it('does not flag when same (cnpj, num_documento) pair belongs to only one deputy', async () => {
     const db = getDb().db;
     seedDeputy(db, 'CPF001');
-    seedExpense(db, { id: 'EXP-C1', deputyId: 'CPF001', cnpj: '11222333000181', numDocumento: 'NF-200' });
-    seedExpense(db, { id: 'EXP-C2', deputyId: 'CPF001', cnpj: '11222333000181', numDocumento: 'NF-200' });
+    seedExpense(db, {
+      id: 'EXP-C1',
+      deputyId: 'CPF001',
+      cnpj: '11222333000181',
+      numDocumento: 'NF-200',
+    });
+    seedExpense(db, {
+      id: 'EXP-C2',
+      deputyId: 'CPF001',
+      cnpj: '11222333000181',
+      numDocumento: 'NF-200',
+    });
 
     const pipeline = new CrossDeputyInvoiceReusePipeline(db);
     await pipeline.execute();
@@ -100,14 +142,28 @@ describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {
     const db = getDb().db;
     seedDeputy(db, 'CPF001');
     seedDeputy(db, 'CPF002');
-    seedExpense(db, { id: 'EXP-D1', deputyId: 'CPF001', cnpj: 'CNPJ-AAA', numDocumento: 'NF-SHARED' });
-    seedExpense(db, { id: 'EXP-D2', deputyId: 'CPF002', cnpj: 'CNPJ-BBB', numDocumento: 'NF-SHARED' });
+    seedExpense(db, {
+      id: 'EXP-D1',
+      deputyId: 'CPF001',
+      cnpj: 'CNPJ-AAA',
+      numDocumento: 'NF-SHARED',
+    });
+    seedExpense(db, {
+      id: 'EXP-D2',
+      deputyId: 'CPF002',
+      cnpj: 'CNPJ-BBB',
+      numDocumento: 'NF-SHARED',
+    });
 
     const pipeline = new CrossDeputyInvoiceReusePipeline(db);
     await pipeline.execute();
 
     const flags = getFlags(db);
-    assert.strictEqual(flags.length, 0, 'Different vendors with same num_documento should not be flagged');
+    assert.strictEqual(
+      flags.length,
+      0,
+      'Different vendors with same num_documento should not be flagged',
+    );
   });
 
   it('does not flag when there are no expenses', async () => {
@@ -124,8 +180,18 @@ describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {
     const db = getDb().db;
     seedDeputy(db, 'CPF001');
     seedDeputy(db, 'CPF002');
-    seedExpense(db, { id: 'EXP-E1', deputyId: 'CPF001', cnpj: '55000000000100', numDocumento: 'NF-IDEM' });
-    seedExpense(db, { id: 'EXP-E2', deputyId: 'CPF002', cnpj: '55000000000100', numDocumento: 'NF-IDEM' });
+    seedExpense(db, {
+      id: 'EXP-E1',
+      deputyId: 'CPF001',
+      cnpj: '55000000000100',
+      numDocumento: 'NF-IDEM',
+    });
+    seedExpense(db, {
+      id: 'EXP-E2',
+      deputyId: 'CPF002',
+      cnpj: '55000000000100',
+      numDocumento: 'NF-IDEM',
+    });
 
     const pipeline = new CrossDeputyInvoiceReusePipeline(db);
     await pipeline.execute();
@@ -139,9 +205,24 @@ describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {
     const db = getDb().db;
     seedDeputy(db, 'CPF001');
     seedDeputy(db, 'CPF002');
-    seedExpense(db, { id: 'EXP-F1', deputyId: 'CPF001', cnpj: '77000000000177', numDocumento: 'NF-CROSS' });
-    seedExpense(db, { id: 'EXP-F2', deputyId: 'CPF002', cnpj: '77000000000177', numDocumento: 'NF-CROSS' });
-    seedExpense(db, { id: 'EXP-F3', deputyId: 'CPF001', cnpj: '88000000000188', numDocumento: 'NF-UNIQUE' });
+    seedExpense(db, {
+      id: 'EXP-F1',
+      deputyId: 'CPF001',
+      cnpj: '77000000000177',
+      numDocumento: 'NF-CROSS',
+    });
+    seedExpense(db, {
+      id: 'EXP-F2',
+      deputyId: 'CPF002',
+      cnpj: '77000000000177',
+      numDocumento: 'NF-CROSS',
+    });
+    seedExpense(db, {
+      id: 'EXP-F3',
+      deputyId: 'CPF001',
+      cnpj: '88000000000188',
+      numDocumento: 'NF-UNIQUE',
+    });
 
     const pipeline = new CrossDeputyInvoiceReusePipeline(db);
     await pipeline.execute();
@@ -160,14 +241,28 @@ describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {
         const db = getDb().db;
         seedDeputy(db, 'CPF001');
         seedDeputy(db, 'CPF002');
-        seedExpense(db, { id: 'EXP-SN1', deputyId: 'CPF001', cnpj: '12300000000100', numDocumento: variant });
-        seedExpense(db, { id: 'EXP-SN2', deputyId: 'CPF002', cnpj: '12300000000100', numDocumento: variant });
+        seedExpense(db, {
+          id: 'EXP-SN1',
+          deputyId: 'CPF001',
+          cnpj: '12300000000100',
+          numDocumento: variant,
+        });
+        seedExpense(db, {
+          id: 'EXP-SN2',
+          deputyId: 'CPF002',
+          cnpj: '12300000000100',
+          numDocumento: variant,
+        });
 
         const pipeline = new CrossDeputyInvoiceReusePipeline(db);
         await pipeline.execute();
 
         const flags = getFlags(db);
-        assert.strictEqual(flags.length, 0, `Expenses with num_documento="${variant}" should not be flagged`);
+        assert.strictEqual(
+          flags.length,
+          0,
+          `Expenses with num_documento="${variant}" should not be flagged`,
+        );
       });
     }
 
@@ -175,8 +270,18 @@ describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {
       const db = getDb().db;
       seedDeputy(db, 'CPF001');
       seedDeputy(db, 'CPF002');
-      seedExpense(db, { id: 'EXP-LC1', deputyId: 'CPF001', cnpj: '45600000000100', numDocumento: 's/n' });
-      seedExpense(db, { id: 'EXP-LC2', deputyId: 'CPF002', cnpj: '45600000000100', numDocumento: 's/n' });
+      seedExpense(db, {
+        id: 'EXP-LC1',
+        deputyId: 'CPF001',
+        cnpj: '45600000000100',
+        numDocumento: 's/n',
+      });
+      seedExpense(db, {
+        id: 'EXP-LC2',
+        deputyId: 'CPF002',
+        cnpj: '45600000000100',
+        numDocumento: 's/n',
+      });
 
       const pipeline = new CrossDeputyInvoiceReusePipeline(db);
       await pipeline.execute();
@@ -189,8 +294,18 @@ describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {
       const db = getDb().db;
       seedDeputy(db, 'CPF001');
       seedDeputy(db, 'CPF002');
-      seedExpense(db, { id: 'EXP-WS1', deputyId: 'CPF001', cnpj: '78900000000100', numDocumento: '  S/N  ' });
-      seedExpense(db, { id: 'EXP-WS2', deputyId: 'CPF002', cnpj: '78900000000100', numDocumento: '  S/N  ' });
+      seedExpense(db, {
+        id: 'EXP-WS1',
+        deputyId: 'CPF001',
+        cnpj: '78900000000100',
+        numDocumento: '  S/N  ',
+      });
+      seedExpense(db, {
+        id: 'EXP-WS2',
+        deputyId: 'CPF002',
+        cnpj: '78900000000100',
+        numDocumento: '  S/N  ',
+      });
 
       const pipeline = new CrossDeputyInvoiceReusePipeline(db);
       await pipeline.execute();
@@ -203,14 +318,28 @@ describe('CrossDeputyInvoiceReusePipeline Integration Tests', () => {
       const db = getDb().db;
       seedDeputy(db, 'CPF001');
       seedDeputy(db, 'CPF002');
-      seedExpense(db, { id: 'EXP-LG1', deputyId: 'CPF001', cnpj: '32100000000199', numDocumento: '0001' });
-      seedExpense(db, { id: 'EXP-LG2', deputyId: 'CPF002', cnpj: '32100000000199', numDocumento: '0001' });
+      seedExpense(db, {
+        id: 'EXP-LG1',
+        deputyId: 'CPF001',
+        cnpj: '32100000000199',
+        numDocumento: '0001',
+      });
+      seedExpense(db, {
+        id: 'EXP-LG2',
+        deputyId: 'CPF002',
+        cnpj: '32100000000199',
+        numDocumento: '0001',
+      });
 
       const pipeline = new CrossDeputyInvoiceReusePipeline(db);
       await pipeline.execute();
 
       const flags = getFlags(db);
-      assert.strictEqual(flags.length, 2, '"0001" is not in the S/N exclusion list and should be flagged');
+      assert.strictEqual(
+        flags.length,
+        2,
+        '"0001" is not in the S/N exclusion list and should be flagged',
+      );
     });
   });
 });

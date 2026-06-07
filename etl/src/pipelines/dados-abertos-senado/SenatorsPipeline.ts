@@ -31,7 +31,8 @@ interface SenatorsResponse {
 export class SenatorsPipeline extends BasePipeline<SenatorData> {
   static readonly dependencies: readonly IPipelineDepChain[] = [TSE2022ElectionResultsPipeline];
 
-  private readonly apiEndpoint = 'https://legis.senado.leg.br/dadosabertos/senador/lista/atual?participacao=T&v=4';
+  private readonly apiEndpoint =
+    'https://legis.senado.leg.br/dadosabertos/senador/lista/atual?participacao=T&v=4';
   private readonly repo: PoliticianRepository;
   private readonly lookupService: PoliticianLookupService;
 
@@ -55,14 +56,14 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
     }
 
     const response = data as SenatorsResponse;
-    
+
     if (!response.ListaParlamentarEmExercicio?.Parlamentares?.Parlamentar) {
       throw new Error('Response does not contain Parlamentar data');
     }
 
     const parlamentar = response.ListaParlamentarEmExercicio.Parlamentares.Parlamentar;
     const senators = Array.isArray(parlamentar) ? parlamentar : [parlamentar];
-    
+
     return Promise.resolve(senators);
   }
 
@@ -72,13 +73,16 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
 
   onPageFetched(items: SenatorData[]): Promise<void> {
     const matchedSenators = items
-      .map((s) => {
+      .map(s => {
         const id = s.IdentificacaoParlamentar;
-        const cpf = this.lookupService.findCpfByNormalizedName(id.NomeParlamentar)
-          ?? this.lookupService.findCpfByNormalizedName(id.NomeCompletoParlamentar ?? null);
+        const cpf =
+          this.lookupService.findCpfByNormalizedName(id.NomeParlamentar) ??
+          this.lookupService.findCpfByNormalizedName(id.NomeCompletoParlamentar ?? null);
 
         if (!cpf) {
-          console.warn(`Could not match senator: ${id.NomeParlamentar} (${id.NomeCompletoParlamentar})`);
+          console.warn(
+            `Could not match senator: ${id.NomeParlamentar} (${id.NomeCompletoParlamentar})`,
+          );
           return null;
         }
 
