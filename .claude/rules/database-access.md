@@ -72,9 +72,61 @@ export class SomePipeline {
 - Implement use cases
 
 This rule applies to ALL components except repositories:
+
 - Services
-- Pipelines  
+- Pipelines
 - Controllers
 - Any other business logic components
 
 Only repository classes should access the database directly.
+
+## Test-only repositories
+
+Integration tests must never call `db.prepare()` or `db.exec()` directly. Instead, use dedicated **test-only repository classes** located in `etl/tests/db/`:
+
+| File                          | Purpose                                                 |
+| ----------------------------- | ------------------------------------------------------- |
+| `TestPoliticianRepository`    | Seed parties + politicians; export `makeCPF` helper     |
+| `TestExpensesRepository`      | Seed expenses; `seedExpenseWithCnpj` convenience method |
+| `TestVendorRepository`        | Seed vendors                                            |
+| `TestForensicFlagsRepository` | Read `forensic_flags` for assertions                    |
+| `TestEmendaRepository`        | Seed emendas parlamentares                              |
+
+### Correct test pattern
+
+```typescript
+// ✅ Test uses test repository classes
+it('flags expense when vendor postdates it', async () => {
+  const db = getDb().db;
+  new TestPoliticianRepository(db).seedDeputy('CPF001');
+  new TestExpensesRepository(db).seedExpense({
+    id: 'EXP-1',
+    deputyId: 'CPF001',
+    cnpj: '11222333000181',
+    dataDocumento: '2023-06-01',
+  });
+  new TestVendorRepository(db).seedVendor('11222333000181', '2023-06-15');
+
+  await new SomePipeline(db).execute();
+
+  const flags = new TestForensicFlagsRepository(db).getAllFlags();
+  assert.strictEqual(flags.length, 1);
+});
+```
+
+### Incorrect test pattern
+
+```typescript
+// ❌ Test accesses database directly
+it('flags expense when vendor postdates it', async () => {
+  const db = getDb().db;
+  db.prepare('INSERT OR IGNORE INTO parties ...').run(...);
+  db.prepare('INSERT INTO expenses ...').run(...);
+
+  await new SomePipeline(db).execute();
+
+  const flags = db.prepare('SELECT * FROM forensic_flags').all();
+});
+```
+
+When a new seeding need arises, **add a method to the appropriate test repository** rather than writing inline `db.prepare()` calls in the test body.
