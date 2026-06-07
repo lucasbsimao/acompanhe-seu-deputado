@@ -18,7 +18,7 @@ export abstract class BasePipeline<T> {
         retryWaitMin: config.retryWaitMin ?? defaultConfig.pagination.retryWaitMin,
         retryWaitMax: config.retryWaitMax ?? defaultConfig.pagination.retryWaitMax,
       },
-      config.timeoutMs ?? defaultConfig.pagination.timeoutMs
+      config.timeoutMs ?? defaultConfig.pagination.timeoutMs,
     );
   }
 
@@ -36,7 +36,7 @@ export abstract class BasePipeline<T> {
     const url = await this.buildUrl();
     const { data } = await this.httpClient.request(url);
     const items = await this.decodePage(data);
-    
+
     console.log('Total records:', items.length);
     await this.onPageFetched(items);
   }

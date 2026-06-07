@@ -47,7 +47,7 @@ export class VendorRepository {
           vendor.opening_date ?? null,
           vendor.registration_status ?? null,
           vendor.registration_status_date ?? null,
-          vendor.company_size ?? null
+          vendor.company_size ?? null,
         );
       }
     });
@@ -70,7 +70,7 @@ export class VendorRepository {
           partner.cnpj,
           partner.partner_cpf_cnpj,
           partner.partner_name,
-          partner.partner_role ?? null
+          partner.partner_role ?? null,
         );
       }
     });

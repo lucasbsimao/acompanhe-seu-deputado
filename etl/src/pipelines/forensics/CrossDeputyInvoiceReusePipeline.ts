@@ -16,7 +16,10 @@ export class CrossDeputyInvoiceReusePipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertCrossDeputyInvoiceReuse(ForensicFlag.CROSS_DEPUTY_INVOICE_REUSE, SN_PLACEHOLDERS);
+    this.repo.insertCrossDeputyInvoiceReuse(
+      ForensicFlag.CROSS_DEPUTY_INVOICE_REUSE,
+      SN_PLACEHOLDERS,
+    );
     console.log('CrossDeputyInvoiceReusePipeline completed');
     return Promise.resolve();
   }

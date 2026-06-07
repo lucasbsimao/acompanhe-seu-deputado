@@ -9,7 +9,8 @@ const TSE_ORIGIN = 'https://cdn.tse.jus.br';
 const TSE_ZIP_PATH = '/estatistica/sead/odsele/consulta_cand/consulta_cand_2022.zip';
 
 // CSV header for the TSE candidates file (semicolon-delimited, latin1)
-const CSV_HEADER = 'DT_GERACAO;HH_GERACAO;ANO_ELEICAO;CD_TIPO_ELEICAO;NM_TIPO_ELEICAO;NR_TURNO;CD_ELEICAO;DS_ELEICAO;DT_ELEICAO;TP_ABRANGENCIA;SG_UF;SG_UE;NM_UE;CD_CARGO;DS_CARGO;NR_CANDIDATO;NM_CANDIDATO;NM_URNA_CANDIDATO;NM_SOCIAL_CANDIDATO;NR_CPF_CANDIDATO;NM_EMAIL;CD_SITUACAO_CANDIDATURA;DS_SITUACAO_CANDIDATURA;CD_DETALHE_SITUACAO_CAND;DS_DETALHE_SITUACAO_CAND;TP_AGREMIACAO;NR_PARTIDO;SG_PARTIDO;NM_PARTIDO;SQ_COLIGACAO;NM_COLIGACAO;CD_NACIONALIDADE;DS_NACIONALIDADE;SG_UF_NASCIMENTO;CD_MUNICIPIO_NASCIMENTO;NM_MUNICIPIO_NASCIMENTO;DT_NASCIMENTO;NR_IDADE_DATA_POSSE;CD_ESTADO_CIVIL;DS_ESTADO_CIVIL;CD_GENERO;DS_GENERO;CD_GRAU_INSTRUCAO;DS_GRAU_INSTRUCAO;CD_OCUPACAO;DS_OCUPACAO;NR_PROTOCOLO_CANDIDATURA;NR_PROCESSO;CD_SITUACAO_CANDIDATO_PLEITO;DS_SITUACAO_CANDIDATO_PLEITO;CD_SITUACAO_CANDIDATO_URNA;DS_SITUACAO_CANDIDATO_URNA;CD_SITUACAO_CANDIDATO_TOT;DS_SIT_TOT_TURNO';
+const CSV_HEADER =
+  'DT_GERACAO;HH_GERACAO;ANO_ELEICAO;CD_TIPO_ELEICAO;NM_TIPO_ELEICAO;NR_TURNO;CD_ELEICAO;DS_ELEICAO;DT_ELEICAO;TP_ABRANGENCIA;SG_UF;SG_UE;NM_UE;CD_CARGO;DS_CARGO;NR_CANDIDATO;NM_CANDIDATO;NM_URNA_CANDIDATO;NM_SOCIAL_CANDIDATO;NR_CPF_CANDIDATO;NM_EMAIL;CD_SITUACAO_CANDIDATURA;DS_SITUACAO_CANDIDATURA;CD_DETALHE_SITUACAO_CAND;DS_DETALHE_SITUACAO_CAND;TP_AGREMIACAO;NR_PARTIDO;SG_PARTIDO;NM_PARTIDO;SQ_COLIGACAO;NM_COLIGACAO;CD_NACIONALIDADE;DS_NACIONALIDADE;SG_UF_NASCIMENTO;CD_MUNICIPIO_NASCIMENTO;NM_MUNICIPIO_NASCIMENTO;DT_NASCIMENTO;NR_IDADE_DATA_POSSE;CD_ESTADO_CIVIL;DS_ESTADO_CIVIL;CD_GENERO;DS_GENERO;CD_GRAU_INSTRUCAO;DS_GRAU_INSTRUCAO;CD_OCUPACAO;DS_OCUPACAO;NR_PROTOCOLO_CANDIDATURA;NR_PROCESSO;CD_SITUACAO_CANDIDATO_PLEITO;DS_SITUACAO_CANDIDATO_PLEITO;CD_SITUACAO_CANDIDATO_URNA;DS_SITUACAO_CANDIDATO_URNA;CD_SITUACAO_CANDIDATO_TOT;DS_SIT_TOT_TURNO';
 
 /**
  * Build a single CSV candidate row. Only fields used by the pipeline are populated;
@@ -70,9 +71,7 @@ function makeCPF(id: number): string {
 
 /** Stub the TSE CDN endpoint with the given zip buffer. */
 function stubTSEZipDownload(zipBuffer: Buffer): void {
-  nock(TSE_ORIGIN)
-    .get(TSE_ZIP_PATH)
-    .reply(200, zipBuffer, { 'content-type': 'application/zip' });
+  nock(TSE_ORIGIN).get(TSE_ZIP_PATH).reply(200, zipBuffer, { 'content-type': 'application/zip' });
 }
 
 interface PoliticianRow {
@@ -85,8 +84,12 @@ interface PoliticianRow {
   source_api_id: string | null;
 }
 
-interface CountRow { cnt: number; }
-interface PartyRow { id: string; }
+interface CountRow {
+  cnt: number;
+}
+interface PartyRow {
+  id: string;
+}
 
 describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
@@ -134,28 +137,44 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     await pipeline.execute(true);
 
     // Assert deputy persisted
-    const deputy = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(deputyCpf) as PoliticianRow | undefined;
+    const deputy = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(deputyCpf) as
+      | PoliticianRow
+      | undefined;
     assert.ok(deputy, 'Deputy row should be persisted');
     assert.strictEqual(deputy.name, 'DEPUTADO TESTE', 'Deputy name should match NM_URNA_CANDIDATO');
     assert.strictEqual(deputy.uf, 'SP', 'Deputy UF should match SG_UF');
     assert.strictEqual(deputy.role, 'DEPUTY', 'DS_CARGO DEPUTADO FEDERAL maps to DEPUTY role');
     assert.strictEqual(deputy.party_id, 'pt', 'Party ID should be normalized to lowercase');
-    assert.strictEqual(deputy.elected_as, 'ELEITO_POR_QP', 'elected_as should be the enum key for ELEITO POR QP');
+    assert.strictEqual(
+      deputy.elected_as,
+      'ELEITO_POR_QP',
+      'elected_as should be the enum key for ELEITO POR QP',
+    );
     assert.strictEqual(deputy.source_api_id, null, 'TSE pipeline does not set source_api_id');
 
     // Assert senator persisted
-    const senator = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(senatorCpf) as PoliticianRow | undefined;
+    const senator = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(senatorCpf) as
+      | PoliticianRow
+      | undefined;
     assert.ok(senator, 'Senator row should be persisted');
-    assert.strictEqual(senator.name, 'SENADOR TESTE', 'Senator name should match NM_URNA_CANDIDATO');
+    assert.strictEqual(
+      senator.name,
+      'SENADOR TESTE',
+      'Senator name should match NM_URNA_CANDIDATO',
+    );
     assert.strictEqual(senator.uf, 'MG', 'Senator UF should match SG_UF');
     assert.strictEqual(senator.role, 'SENATOR', 'DS_CARGO SENADOR maps to SENATOR role');
     assert.strictEqual(senator.party_id, 'mdb', 'Party ID should be normalized to lowercase');
     assert.strictEqual(senator.elected_as, 'ELEITO', 'elected_as should be ELEITO');
 
     // Both parties should be created automatically
-    const partyPT = db.prepare('SELECT * FROM parties WHERE id = ?').get('pt') as PartyRow | undefined;
+    const partyPT = db.prepare('SELECT * FROM parties WHERE id = ?').get('pt') as
+      | PartyRow
+      | undefined;
     assert.ok(partyPT, 'Party PT should be auto-created');
-    const partyMDB = db.prepare('SELECT * FROM parties WHERE id = ?').get('mdb') as PartyRow | undefined;
+    const partyMDB = db.prepare('SELECT * FROM parties WHERE id = ?').get('mdb') as
+      | PartyRow
+      | undefined;
     assert.ok(partyMDB, 'Party MDB should be auto-created');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -165,14 +184,18 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const db = getDb().db;
 
     // Pre-seed both a deputy and a senator so shouldDownload() returns false
-    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
+    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
+      'pt',
+      'PT',
+      'PT',
+    );
     db.prepare(
       `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES (?, NULL, ?, 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')`
+       VALUES (?, NULL, ?, 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')`,
     ).run(makeCPF(10), 'Existing Deputy');
     db.prepare(
       `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES (?, NULL, ?, 'RJ', 'pt', 'SENATOR', NULL, 'ELEITO')`
+       VALUES (?, NULL, ?, 'RJ', 'pt', 'SENATOR', NULL, 'ELEITO')`,
     ).run(makeCPF(11), 'Existing Senator');
 
     // No HTTP mocks — any network call would throw due to nock.disableNetConnect()
@@ -216,13 +239,18 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const pipeline = new TSE2022ElectionResultsPipeline(db);
     await pipeline.execute(true);
 
-    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow)
+      .cnt;
     assert.strictEqual(totalCount, 1, 'Only the elected candidate should be stored');
 
-    const elected = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(electedCpf) as PoliticianRow | undefined;
+    const elected = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(electedCpf) as
+      | PoliticianRow
+      | undefined;
     assert.ok(elected, 'The elected candidate should be persisted');
 
-    const nonElected = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(nonElectedCpf) as PoliticianRow | undefined;
+    const nonElected = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(nonElectedCpf) as
+      | PoliticianRow
+      | undefined;
     assert.ok(!nonElected, 'The non-elected candidate should not be stored');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -270,10 +298,13 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const pipeline = new TSE2022ElectionResultsPipeline(db);
     await pipeline.execute(true);
 
-    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow)
+      .cnt;
     assert.strictEqual(totalCount, 1, 'Only the federal deputy should be stored');
 
-    const deputadoFederal = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(deputadoFederalCpf) as PoliticianRow | undefined;
+    const deputadoFederal = db
+      .prepare('SELECT * FROM politicians WHERE cpf = ?')
+      .get(deputadoFederalCpf) as PoliticianRow | undefined;
     assert.ok(deputadoFederal, 'Federal deputy should be persisted');
     assert.strictEqual(deputadoFederal.role, 'DEPUTY');
 
@@ -311,10 +342,13 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const pipeline = new TSE2022ElectionResultsPipeline(db);
     await pipeline.execute(true);
 
-    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow)
+      .cnt;
     assert.strictEqual(totalCount, 1, 'Only the candidate with a valid CPF should be stored');
 
-    const validRow = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(validCpf) as PoliticianRow | undefined;
+    const validRow = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(validCpf) as
+      | PoliticianRow
+      | undefined;
     assert.ok(validRow, 'Candidate with valid CPF should be persisted');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -333,28 +367,32 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'ELEITO DIRETO',
         NR_CPF_CANDIDATO: cpfEleito,
-        SG_UF: 'SP', SG_PARTIDO: 'PT',
+        SG_UF: 'SP',
+        SG_PARTIDO: 'PT',
         DS_SIT_TOT_TURNO: 'ELEITO',
       }),
       buildCandidateRow({
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'ELEITO POR QP',
         NR_CPF_CANDIDATO: cpfEleitoPorQP,
-        SG_UF: 'SP', SG_PARTIDO: 'PT',
+        SG_UF: 'SP',
+        SG_PARTIDO: 'PT',
         DS_SIT_TOT_TURNO: 'ELEITO POR QP',
       }),
       buildCandidateRow({
         DS_CARGO: 'SENADOR',
         NM_URNA_CANDIDATO: 'ELEITO POR MEDIA',
         NR_CPF_CANDIDATO: cpfEleitoPorMedia,
-        SG_UF: 'RJ', SG_PARTIDO: 'MDB',
+        SG_UF: 'RJ',
+        SG_PARTIDO: 'MDB',
         DS_SIT_TOT_TURNO: 'ELEITO POR MÉDIA',
       }),
       buildCandidateRow({
         DS_CARGO: 'SENADOR',
         NM_URNA_CANDIDATO: 'SUPLENTE SENADOR',
         NR_CPF_CANDIDATO: cpfSuplente,
-        SG_UF: 'RJ', SG_PARTIDO: 'MDB',
+        SG_UF: 'RJ',
+        SG_PARTIDO: 'MDB',
         DS_SIT_TOT_TURNO: 'SUPLENTE',
       }),
     ];
@@ -364,20 +402,37 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const pipeline = new TSE2022ElectionResultsPipeline(db);
     await pipeline.execute(true);
 
-    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
-    assert.strictEqual(totalCount, 4, 'All four valid elected-status candidates should be persisted');
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow)
+      .cnt;
+    assert.strictEqual(
+      totalCount,
+      4,
+      'All four valid elected-status candidates should be persisted',
+    );
 
-    const eleito = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfEleito) as { elected_as: string } | undefined;
-    assert.ok(eleito); assert.strictEqual(eleito.elected_as, 'ELEITO');
+    const eleito = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfEleito) as
+      | { elected_as: string }
+      | undefined;
+    assert.ok(eleito);
+    assert.strictEqual(eleito.elected_as, 'ELEITO');
 
-    const eleitoPorQP = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfEleitoPorQP) as { elected_as: string } | undefined;
-    assert.ok(eleitoPorQP); assert.strictEqual(eleitoPorQP.elected_as, 'ELEITO_POR_QP');
+    const eleitoPorQP = db
+      .prepare('SELECT elected_as FROM politicians WHERE cpf = ?')
+      .get(cpfEleitoPorQP) as { elected_as: string } | undefined;
+    assert.ok(eleitoPorQP);
+    assert.strictEqual(eleitoPorQP.elected_as, 'ELEITO_POR_QP');
 
-    const eleitoPorMedia = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfEleitoPorMedia) as { elected_as: string } | undefined;
-    assert.ok(eleitoPorMedia); assert.strictEqual(eleitoPorMedia.elected_as, 'ELEITO_POR_MEDIA');
+    const eleitoPorMedia = db
+      .prepare('SELECT elected_as FROM politicians WHERE cpf = ?')
+      .get(cpfEleitoPorMedia) as { elected_as: string } | undefined;
+    assert.ok(eleitoPorMedia);
+    assert.strictEqual(eleitoPorMedia.elected_as, 'ELEITO_POR_MEDIA');
 
-    const suplente = db.prepare('SELECT elected_as FROM politicians WHERE cpf = ?').get(cpfSuplente) as { elected_as: string } | undefined;
-    assert.ok(suplente); assert.strictEqual(suplente.elected_as, 'SUPLENTE');
+    const suplente = db
+      .prepare('SELECT elected_as FROM politicians WHERE cpf = ?')
+      .get(cpfSuplente) as { elected_as: string } | undefined;
+    assert.ok(suplente);
+    assert.strictEqual(suplente.elected_as, 'SUPLENTE');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -386,10 +441,14 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const db = getDb().db;
 
     // Pre-seed a deputy so shouldDownload() would normally return false
-    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
+    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
+      'pt',
+      'PT',
+      'PT',
+    );
     db.prepare(
       `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES (?, NULL, ?, 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')`
+       VALUES (?, NULL, ?, 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')`,
     ).run(makeCPF(30), 'Pre-existing Deputy');
 
     const newCpf = makeCPF(31);
@@ -398,7 +457,8 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'NOVO DEPUTADO',
         NR_CPF_CANDIDATO: newCpf,
-        SG_UF: 'SC', SG_PARTIDO: 'PSD',
+        SG_UF: 'SC',
+        SG_PARTIDO: 'PSD',
         DS_SIT_TOT_TURNO: 'ELEITO',
       }),
     ];
@@ -409,10 +469,13 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     await pipeline.execute(true); // forceDownload = true
 
     // Both the pre-existing and the newly added politician should be in the table
-    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow).cnt;
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow)
+      .cnt;
     assert.strictEqual(totalCount, 2, 'Both pre-existing and new politician should be present');
 
-    const newDeputy = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(newCpf) as PoliticianRow | undefined;
+    const newDeputy = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(newCpf) as
+      | PoliticianRow
+      | undefined;
     assert.ok(newDeputy, 'New politician from force-download should be persisted');
     assert.strictEqual(newDeputy.name, 'NOVO DEPUTADO');
     assert.strictEqual(newDeputy.uf, 'SC');

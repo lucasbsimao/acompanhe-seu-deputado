@@ -36,8 +36,10 @@ export class VendorEmpresasCacheRepository {
   }
 
   findByBasicCnpj(cnpjBasic: string): VendorEmpresaCacheRow | undefined {
-    return this.db.prepare(
-      'SELECT cnpj_basic, legal_name, company_size FROM vendor_companies_cache WHERE cnpj_basic = ?'
-    ).get(cnpjBasic) as VendorEmpresaCacheRow | undefined;
+    return this.db
+      .prepare(
+        'SELECT cnpj_basic, legal_name, company_size FROM vendor_companies_cache WHERE cnpj_basic = ?',
+      )
+      .get(cnpjBasic) as VendorEmpresaCacheRow | undefined;
   }
 }

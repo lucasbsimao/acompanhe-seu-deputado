@@ -12,7 +12,10 @@ export interface RetryConfig {
 export class HttpClient {
   private client: AxiosInstance;
 
-  constructor(private readonly retryConfig: RetryConfig, timeoutMs: number = 4000) {
+  constructor(
+    private readonly retryConfig: RetryConfig,
+    timeoutMs: number = 4000,
+  ) {
     this.client = axios.create({
       timeout: timeoutMs,
     });
@@ -20,14 +23,14 @@ export class HttpClient {
     axiosRetry(this.client, {
       retries: retryConfig.maxRetries,
       shouldResetTimeout: true,
-      retryCondition: (error) => this.shouldRetry(error),
+      retryCondition: error => this.shouldRetry(error),
       retryDelay: (retryCount, error) => this.calculateBackoff(retryCount, error),
     });
   }
 
   async request(
     url: string,
-    options?: { headers?: Record<string, string> }
+    options?: { headers?: Record<string, string> },
   ): Promise<{ data: unknown; headers: Record<string, string> }> {
     const response = await this.client.get(url, {
       headers: options?.headers,
@@ -40,7 +43,7 @@ export class HttpClient {
 
   async requestStream(
     url: string,
-    options?: { auth?: { username: string; password: string } }
+    options?: { auth?: { username: string; password: string } },
   ): Promise<AxiosResponse<Readable>> {
     return this.client.get<Readable>(url, {
       responseType: 'stream',

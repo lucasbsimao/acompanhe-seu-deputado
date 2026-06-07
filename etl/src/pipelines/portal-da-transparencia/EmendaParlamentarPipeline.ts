@@ -69,7 +69,7 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
 
     for (const e of items) {
       const politicianCpf = this.lookupService.findCpfByNormalizedName(e.autor);
-      
+
       if (!politicianCpf) {
         unmatchedCount++;
         if (unmatchedCount <= 5) {
@@ -127,13 +127,17 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
         combinationIndex++;
 
         process.stdout.write('\x1B[2J\x1B[H');
-        process.stdout.write(`Processing ${combinationIndex}/${totalCombinations}: Year ${this.currentYear}, Type: ${this.currentType}\n`);
+        process.stdout.write(
+          `Processing ${combinationIndex}/${totalCombinations}: Year ${this.currentYear}, Type: ${this.currentType}\n`,
+        );
 
         await super.execute(forceDownload);
       }
     }
 
     process.stdout.write('\x1B[2J\x1B[H');
-    console.log(`All ${totalCombinations} combinations (${totalYears} years × ${totalTypes} types) processed successfully`);
+    console.log(
+      `All ${totalCombinations} combinations (${totalYears} years × ${totalTypes} types) processed successfully`,
+    );
   }
 }

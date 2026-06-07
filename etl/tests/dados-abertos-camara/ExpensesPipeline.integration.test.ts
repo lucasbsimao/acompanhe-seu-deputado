@@ -10,7 +10,10 @@ const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 const DEPUTY_API_ID = '12345';
 const DEPUTY_CPF = '12345678901';
 
-function createMockExpense(codDocumento: string, overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function createMockExpense(
+  codDocumento: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     ano: 2026,
     mes: 1,
@@ -46,10 +49,14 @@ function buildExpensesQuery(page: number, yearsToFetch = 4): Record<string, stri
 }
 
 function seedDeputy(db: Database.Database, cpf: string, apiId: string): void {
-  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
+  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
+    'pt',
+    'PT',
+    'PT',
+  );
   db.prepare(
     `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-     VALUES (?, ?, ?, 'SP', 'pt', ?, NULL, 'ELEITO_POR_QP')`
+     VALUES (?, ?, ?, 'SP', 'pt', ?, NULL, 'ELEITO_POR_QP')`,
   ).run(cpf, apiId, `Deputy ${cpf}`, PoliticianRole.DEPUTY);
 }
 
@@ -65,7 +72,9 @@ interface ExpenseRow {
   url_documento: string | null;
 }
 
-interface CountRow { cnt: number; }
+interface CountRow {
+  cnt: number;
+}
 
 describe('ExpensesPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
@@ -98,9 +107,17 @@ describe('ExpensesPipeline Integration Tests', () => {
     assert.strictEqual(rows[0].id, `${DEPUTY_CPF}_DOC001`, 'ID should be cpf_codDocumento');
     assert.strictEqual(rows[0].deputy_id, DEPUTY_CPF, 'deputy_id should match CPF');
     assert.strictEqual(rows[0].cod_documento, 'DOC001', 'cod_documento should match');
-    assert.strictEqual(rows[0].nome_fornecedor, 'Fornecedor Teste LTDA', 'nome_fornecedor should be set');
+    assert.strictEqual(
+      rows[0].nome_fornecedor,
+      'Fornecedor Teste LTDA',
+      'nome_fornecedor should be set',
+    );
     // cnpj_cpf_fornecedor is normalized to digits only
-    assert.strictEqual(rows[0].cnpj_cpf_fornecedor, '12345678000199', 'cnpj should be numeric only');
+    assert.strictEqual(
+      rows[0].cnpj_cpf_fornecedor,
+      '12345678000199',
+      'cnpj should be numeric only',
+    );
     // valor_liquido is stored in cents (1500.50 * 100 = 150050)
     assert.strictEqual(rows[0].valor_liquido, 150050, 'valor_liquido should be in cents');
     assert.strictEqual(rows[0].valor_glosa, 0, 'valor_glosa should be 0 cents');
@@ -124,7 +141,9 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    const row = db.prepare('SELECT tipo_despesa FROM expenses WHERE cod_documento = ?').get('DOC003') as { tipo_despesa: string } | undefined;
+    const row = db
+      .prepare('SELECT tipo_despesa FROM expenses WHERE cod_documento = ?')
+      .get('DOC003') as { tipo_despesa: string } | undefined;
     assert.ok(row, 'Expense row should exist');
     // normalizeLabel strips accents and non-alphanumeric chars (except spaces)
     assert.ok(!row.tipo_despesa.includes('Ã'), 'tipoDespesa should have accents stripped');
@@ -138,8 +157,12 @@ describe('ExpensesPipeline Integration Tests', () => {
     const db = getDb().db;
     seedDeputy(db, DEPUTY_CPF, DEPUTY_API_ID);
 
-    const page1Expenses = Array.from({ length: 100 }, (_, i) => createMockExpense(`DOC${String(i + 1).padStart(4, '0')}`));
-    const page2Expenses = Array.from({ length: 50 }, (_, i) => createMockExpense(`DOC${String(i + 101).padStart(4, '0')}`));
+    const page1Expenses = Array.from({ length: 100 }, (_, i) =>
+      createMockExpense(`DOC${String(i + 1).padStart(4, '0')}`),
+    );
+    const page2Expenses = Array.from({ length: 50 }, (_, i) =>
+      createMockExpense(`DOC${String(i + 101).padStart(4, '0')}`),
+    );
 
     nock(API_BASE_URL)
       .get(`/api/v2/deputados/${DEPUTY_API_ID}/despesas`)
@@ -169,10 +192,20 @@ describe('ExpensesPipeline Integration Tests', () => {
       `INSERT INTO expenses (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
         data_documento, num_documento, url_documento, nome_fornecedor, cnpj_cpf_fornecedor,
         valor_liquido, valor_glosa)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
-      `${DEPUTY_CPF}_EXISTING001`, DEPUTY_CPF, 'Despesa Existente', 'EXISTING001',
-      0, '2026-01-01', 'NF-EXISTING', null, 'Vendor Existing', '12345678000199', 10000, 0
+      `${DEPUTY_CPF}_EXISTING001`,
+      DEPUTY_CPF,
+      'Despesa Existente',
+      'EXISTING001',
+      0,
+      '2026-01-01',
+      'NF-EXISTING',
+      null,
+      'Vendor Existing',
+      '12345678000199',
+      10000,
+      0,
     );
 
     // No HTTP mock registered — any network call would fail
@@ -180,7 +213,11 @@ describe('ExpensesPipeline Integration Tests', () => {
     await pipeline.execute(); // forceDownload defaults to false
 
     const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as CountRow).cnt;
-    assert.strictEqual(count, 1, 'Should not have fetched new expenses — still just the pre-seeded one');
+    assert.strictEqual(
+      count,
+      1,
+      'Should not have fetched new expenses — still just the pre-seeded one',
+    );
     assert.ok(nock.isDone(), 'No HTTP calls should have been made');
   });
 
@@ -193,10 +230,20 @@ describe('ExpensesPipeline Integration Tests', () => {
       `INSERT INTO expenses (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
         data_documento, num_documento, url_documento, nome_fornecedor, cnpj_cpf_fornecedor,
         valor_liquido, valor_glosa)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
-      `${DEPUTY_CPF}_EXISTING001`, DEPUTY_CPF, 'Despesa Existente', 'EXISTING001',
-      0, '2026-01-01', 'NF-EXISTING', null, 'Vendor Existing', '12345678000199', 10000, 0
+      `${DEPUTY_CPF}_EXISTING001`,
+      DEPUTY_CPF,
+      'Despesa Existente',
+      'EXISTING001',
+      0,
+      '2026-01-01',
+      'NF-EXISTING',
+      null,
+      'Vendor Existing',
+      '12345678000199',
+      10000,
+      0,
     );
 
     const newExpense = createMockExpense('NEW001');
@@ -210,7 +257,11 @@ describe('ExpensesPipeline Integration Tests', () => {
     await pipeline.execute(true); // forceDownload = true
 
     const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as CountRow).cnt;
-    assert.strictEqual(count, 2, 'Should have EXISTING001 + NEW001 (INSERT OR REPLACE keeps both when IDs differ)');
+    assert.strictEqual(
+      count,
+      2,
+      'Should have EXISTING001 + NEW001 (INSERT OR REPLACE keeps both when IDs differ)',
+    );
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -240,8 +291,12 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    const dep1Count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses WHERE deputy_id = ?').get(cpf1) as CountRow).cnt;
-    const dep2Count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses WHERE deputy_id = ?').get(cpf2) as CountRow).cnt;
+    const dep1Count = (
+      db.prepare('SELECT COUNT(*) as cnt FROM expenses WHERE deputy_id = ?').get(cpf1) as CountRow
+    ).cnt;
+    const dep2Count = (
+      db.prepare('SELECT COUNT(*) as cnt FROM expenses WHERE deputy_id = ?').get(cpf2) as CountRow
+    ).cnt;
     assert.strictEqual(dep1Count, 1, 'Deputy 1 should have 1 expense');
     assert.strictEqual(dep2Count, 1, 'Deputy 2 should have 1 expense');
 
@@ -251,10 +306,14 @@ describe('ExpensesPipeline Integration Tests', () => {
   it('should skip deputies with no source_api_id', async () => {
     const db = getDb().db;
     // Deputy without source_api_id (NULL)
-    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
+    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
+      'pt',
+      'PT',
+      'PT',
+    );
     db.prepare(
       `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES (?, ?, ?, 'SP', 'pt', ?, NULL, 'ELEITO_POR_QP')`
+       VALUES (?, ?, ?, 'SP', 'pt', ?, NULL, 'ELEITO_POR_QP')`,
     ).run('99999999901', null, 'Deputy No API ID', PoliticianRole.DEPUTY);
 
     // No HTTP mock — any call would fail
@@ -309,7 +368,7 @@ describe('ExpensesPipeline Integration Tests', () => {
         assert.ok((error as Error).message.includes('500'), 'Error should mention status 500');
         return true;
       },
-      'Should throw after exhausting all retries'
+      'Should throw after exhausting all retries',
     );
   });
 
@@ -329,11 +388,11 @@ describe('ExpensesPipeline Integration Tests', () => {
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Missing X-Total-Count header'),
-          'Error should mention missing header'
+          'Error should mention missing header',
         );
         return true;
       },
-      'Should throw on missing X-Total-Count header'
+      'Should throw on missing X-Total-Count header',
     );
   });
 
@@ -353,11 +412,11 @@ describe('ExpensesPipeline Integration Tests', () => {
       (error: unknown) => {
         assert.ok(
           (error as Error).message.includes('Response does not contain dados array'),
-          'Error should mention invalid response format'
+          'Error should mention invalid response format',
         );
         return true;
       },
-      'Should throw on invalid response format'
+      'Should throw on invalid response format',
     );
   });
 
@@ -375,20 +434,32 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    let row = db.prepare('SELECT nome_fornecedor FROM expenses WHERE cod_documento = ?').get('DOC_DUPE') as { nome_fornecedor: string };
+    let row = db
+      .prepare('SELECT nome_fornecedor FROM expenses WHERE cod_documento = ?')
+      .get('DOC_DUPE') as { nome_fornecedor: string };
     assert.strictEqual(row.nome_fornecedor, 'Original Vendor', 'Initial vendor name should be set');
 
     // Re-run with updated data
     nock(API_BASE_URL)
       .get(`/api/v2/deputados/${DEPUTY_API_ID}/despesas`)
       .query(buildExpensesQuery(1))
-      .reply(200, { dados: [{ ...expense, nomeFornecedor: 'Updated Vendor' }] }, { 'x-total-count': '1' });
+      .reply(
+        200,
+        { dados: [{ ...expense, nomeFornecedor: 'Updated Vendor' }] },
+        { 'x-total-count': '1' },
+      );
 
     const pipeline2 = new ExpensesPipeline(db);
     await pipeline2.execute(true);
 
-    row = db.prepare('SELECT nome_fornecedor FROM expenses WHERE cod_documento = ?').get('DOC_DUPE') as { nome_fornecedor: string };
-    assert.strictEqual(row.nome_fornecedor, 'Updated Vendor', 'Vendor name should be updated via INSERT OR REPLACE');
+    row = db
+      .prepare('SELECT nome_fornecedor FROM expenses WHERE cod_documento = ?')
+      .get('DOC_DUPE') as { nome_fornecedor: string };
+    assert.strictEqual(
+      row.nome_fornecedor,
+      'Updated Vendor',
+      'Vendor name should be updated via INSERT OR REPLACE',
+    );
 
     const count = (db.prepare('SELECT COUNT(*) as cnt FROM expenses').get() as CountRow).cnt;
     assert.strictEqual(count, 1, 'Should still have only 1 expense row after upsert');
@@ -410,9 +481,15 @@ describe('ExpensesPipeline Integration Tests', () => {
     const pipeline = new ExpensesPipeline(db);
     await pipeline.execute(true);
 
-    const row = db.prepare('SELECT url_documento FROM expenses WHERE cod_documento = ?').get('DOC_NO_URL') as { url_documento: string | null } | undefined;
+    const row = db
+      .prepare('SELECT url_documento FROM expenses WHERE cod_documento = ?')
+      .get('DOC_NO_URL') as { url_documento: string | null } | undefined;
     assert.ok(row, 'Expense row should exist');
-    assert.strictEqual(row.url_documento, null, 'url_documento should be null when API returns empty string');
+    assert.strictEqual(
+      row.url_documento,
+      null,
+      'url_documento should be null when API returns empty string',
+    );
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });

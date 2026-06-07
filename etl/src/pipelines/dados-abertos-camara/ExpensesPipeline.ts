@@ -56,7 +56,10 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
   buildUrl(page: number, pageSize: number): Promise<string> {
     const url = new URL(`${this.apiEndpoint}/${this.currentApiId}/despesas`);
     const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: defaultConfig.expenses.yearsToFetch }, (_, i) => currentYear - i).join(',');
+    const years = Array.from(
+      { length: defaultConfig.expenses.yearsToFetch },
+      (_, i) => currentYear - i,
+    ).join(',');
 
     url.searchParams.set('ordem', 'ASC');
     url.searchParams.set('ano', years);
@@ -112,7 +115,7 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
         cnpjCpfFornecedor: normalizeNumericText(e.cnpjCpfFornecedor),
         valorLiquido: convertToCents(e.valorLiquido),
         valorGlosa: convertToCents(e.valorGlosa),
-      }))
+      })),
     );
     return Promise.resolve();
   }
@@ -146,7 +149,9 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
     process.stdout.write('\x1B[2J\x1B[H');
     console.log(`All ${total} deputies processed successfully`);
     if (skippedNoApiId > 0) {
-      console.log(`${skippedNoApiId} deputies skipped (expenses not fetched) due to missing API ID (deputy likely did not assume office during this legislature)`);
+      console.log(
+        `${skippedNoApiId} deputies skipped (expenses not fetched) due to missing API ID (deputy likely did not assume office during this legislature)`,
+      );
     }
   }
 }

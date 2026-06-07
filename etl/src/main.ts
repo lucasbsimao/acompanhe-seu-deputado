@@ -19,7 +19,7 @@ function setupSignalHandlers(): void {
 
 async function main(): Promise<void> {
   setupSignalHandlers();
-  
+
   const cli = new CliRunner();
   try {
     const options = cli.parseArguments(process.argv.slice(2));
@@ -29,11 +29,15 @@ async function main(): Promise<void> {
 
     const pipelines = await orchestrator.discoverPipelines();
     const selection = await cli.selectPipeline(pipelines);
-  
+
     if (selection.executeAll) {
       await orchestrator.executeAll(pipelines, options.forceDownload);
     } else if (selection.selectedPipeline) {
-      await orchestrator.executeSelected(pipelines, selection.selectedPipeline, options.forceDownload);
+      await orchestrator.executeSelected(
+        pipelines,
+        selection.selectedPipeline,
+        options.forceDownload,
+      );
     }
 
     dbManager.deploy();

@@ -16,11 +16,11 @@ export class PoliticianLookupService {
 
     for (const politician of politicians) {
       const normalizedName = normalizeNameForMatching(politician.name);
-      
+
       if (this.nameToCpfMap.has(normalizedName)) {
         console.warn(`Duplicate normalized name found: ${normalizedName} (${politician.name})`);
       }
-      
+
       this.nameToCpfMap.set(normalizedName, politician.cpf);
     }
 

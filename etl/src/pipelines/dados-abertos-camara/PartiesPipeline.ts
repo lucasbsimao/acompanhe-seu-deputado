@@ -78,7 +78,7 @@ export class PartiesPipeline extends BasePipeline<PartyData> {
         id: normalizeId(d.sigla),
         name: d.nome,
         acronym: d.sigla,
-      }))
+      })),
     );
     return Promise.resolve();
   }

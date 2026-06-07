@@ -18,7 +18,6 @@ const CNPJ_ORDEM = '0001';
 const CNPJ_DV = '99';
 const FULL_CNPJ = `${CNPJ_BASIC}${CNPJ_ORDEM}${CNPJ_DV}`; // 14 digits
 
-
 /**
  * Build a zip buffer containing a single CSV file with the given content.
  */
@@ -50,7 +49,7 @@ function buildEstabelecimentoCsvRow(
     uf?: string;
     municipio?: string;
     cnae?: string;
-  } = {}
+  } = {},
 ): string {
   const {
     situacaoCadastral = '02',
@@ -61,36 +60,36 @@ function buildEstabelecimentoCsvRow(
   } = options;
   // 30 columns total matching ESTABELECIMENTOS_COLUMNS
   return [
-    cnpjBasico,     // CNPJ_BASICO
-    cnpjOrdem,      // CNPJ_ORDEM
-    cnpjDv,         // CNPJ_DV
-    '1',            // TIPO_ESTABELECIMENTO
-    '',             // NOME_FANTASIA
+    cnpjBasico, // CNPJ_BASICO
+    cnpjOrdem, // CNPJ_ORDEM
+    cnpjDv, // CNPJ_DV
+    '1', // TIPO_ESTABELECIMENTO
+    '', // NOME_FANTASIA
     situacaoCadastral, // SITUACAO_CADASTRAL
-    '20200101',     // DATA_SITUACAO_CADASTRAL
-    '00',           // MOTIVO_SITUACAO_CADASTRAL
-    '',             // NOME_CIDADE_EXTERIOR
-    '',             // PAIS
-    dataInicio,     // DATA_INICIO_ATIVIDADE
-    cnae,           // CNAE_FISCAL_PRINCIPAL
-    '',             // CNAE_FISCAL_SECUNDARIA
-    'RUA',          // TIPO_LOGRADOURO
-    'TESTE',        // LOGRADOURO
-    '100',          // NUMERO
-    '',             // COMPLEMENTO
-    'CENTRO',       // BAIRRO
-    '01310100',     // CEP
-    uf,             // UF
-    municipio,      // MUNICIPIO
-    '11',           // DDD_1
-    '999999999',    // TELEFONE_1
-    '',             // DDD_2
-    '',             // TELEFONE_2
-    '',             // DDD_FAX
-    '',             // FAX
-    '',             // CORREIO_ELETRONICO
-    '',             // SITUACAO_ESPECIAL
-    '',             // DATA_SITUACAO_ESPECIAL
+    '20200101', // DATA_SITUACAO_CADASTRAL
+    '00', // MOTIVO_SITUACAO_CADASTRAL
+    '', // NOME_CIDADE_EXTERIOR
+    '', // PAIS
+    dataInicio, // DATA_INICIO_ATIVIDADE
+    cnae, // CNAE_FISCAL_PRINCIPAL
+    '', // CNAE_FISCAL_SECUNDARIA
+    'RUA', // TIPO_LOGRADOURO
+    'TESTE', // LOGRADOURO
+    '100', // NUMERO
+    '', // COMPLEMENTO
+    'CENTRO', // BAIRRO
+    '01310100', // CEP
+    uf, // UF
+    municipio, // MUNICIPIO
+    '11', // DDD_1
+    '999999999', // TELEFONE_1
+    '', // DDD_2
+    '', // TELEFONE_2
+    '', // DDD_FAX
+    '', // FAX
+    '', // CORREIO_ELETRONICO
+    '', // SITUACAO_ESPECIAL
+    '', // DATA_SITUACAO_ESPECIAL
   ].join(';');
 }
 
@@ -102,20 +101,20 @@ function buildSocioCsvRow(
   cnpjBasico: string,
   nomeSocio: string,
   cnpjCpfSocio: string,
-  qualificacao = '49'
+  qualificacao = '49',
 ): string {
   return [
-    cnpjBasico,    // CNPJ_BASICO
-    '2',           // IDENTIFICADOR_DE_SOCIO
-    nomeSocio,     // NOME_SOCIO
+    cnpjBasico, // CNPJ_BASICO
+    '2', // IDENTIFICADOR_DE_SOCIO
+    nomeSocio, // NOME_SOCIO
     cnpjCpfSocio, // CNPJ_CPF_DO_SOCIO
-    qualificacao,  // QUALIFICACAO_SOCIO
-    '20100101',    // DATA_ENTRADA_SOCIEDADE
-    '',            // PAIS
-    '',            // REPRESENTANTE_LEGAL
-    '',            // NOME_DO_REPRESENTANTE
-    '',            // QUALIFICACAO_REPRESENTANTE_LEGAL
-    '3',           // FAIXA_ETARIA
+    qualificacao, // QUALIFICACAO_SOCIO
+    '20100101', // DATA_ENTRADA_SOCIEDADE
+    '', // PAIS
+    '', // REPRESENTANTE_LEGAL
+    '', // NOME_DO_REPRESENTANTE
+    '', // QUALIFICACAO_REPRESENTANTE_LEGAL
+    '3', // FAIXA_ETARIA
   ].join(';');
 }
 
@@ -124,17 +123,21 @@ function buildSocioCsvRow(
  */
 function seedExpenseWithCnpj(db: Database.Database, cnpj: string, suffix = '001'): void {
   // Seed minimal required parent records
-  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('pt', 'PT', 'PT');
+  db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
+    'pt',
+    'PT',
+    'PT',
+  );
   db.prepare(
     `INSERT OR IGNORE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-     VALUES ('12345678901', '12345', 'Deputy Test', 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')`
+     VALUES ('12345678901', '12345', 'Deputy Test', 'SP', 'pt', 'DEPUTY', NULL, 'ELEITO_POR_QP')`,
   ).run();
   db.prepare(
     `INSERT OR IGNORE INTO expenses
       (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
        data_documento, num_documento, url_documento, nome_fornecedor,
        cnpj_cpf_fornecedor, valor_liquido, valor_glosa)
-     VALUES (?, '12345678901', 'Despesa Teste', ?, 0, '2026-01-01', 'NF-${suffix}', NULL, 'Fornecedor Teste', ?, 10000, 0)`
+     VALUES (?, '12345678901', 'Despesa Teste', ?, 0, '2026-01-01', 'NF-${suffix}', NULL, 'Fornecedor Teste', ?, 10000, 0)`,
   ).run(`12345678901_${suffix}`, suffix, cnpj);
 }
 
@@ -153,11 +156,7 @@ function stubEmptyZip(scope: nock.Scope, filePath: string): void {
  * Stub all FILE_COUNT zips for a given file type with empty content, except for the given index
  * which gets the provided zip buffer.
  */
-function stubAllZipsForType(
-  fileTypeName: string,
-  dataIndex: number,
-  dataZipBuffer: Buffer
-): void {
+function stubAllZipsForType(fileTypeName: string, dataIndex: number, dataZipBuffer: Buffer): void {
   const scope = nock(WEBDAV_BASE);
   for (let i = 0; i < FILE_COUNT; i++) {
     const filePath = `${WEBDAV_PATH_PREFIX}/${fileTypeName}${i}.zip`;
@@ -190,7 +189,9 @@ interface PartnerRow {
   partner_role: string;
 }
 
-interface CountRow { cnt: number; }
+interface CountRow {
+  cnt: number;
+}
 
 describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();
@@ -216,13 +217,14 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const empresasZip = buildZipBuffer('Empresas0.csv', empresaCsv);
 
     // Build Establishments zip: contains our full CNPJ
-    const estabCsv = buildEstabelecimentoCsvRow(CNPJ_BASIC, CNPJ_ORDEM, CNPJ_DV, {
-      situacaoCadastral: '02',
-      dataInicio: '20150101',
-      uf: 'SP',
-      municipio: '7107',
-      cnae: '6201501',
-    }) + '\n';
+    const estabCsv =
+      buildEstabelecimentoCsvRow(CNPJ_BASIC, CNPJ_ORDEM, CNPJ_DV, {
+        situacaoCadastral: '02',
+        dataInicio: '20150101',
+        uf: 'SP',
+        municipio: '7107',
+        cnae: '6201501',
+      }) + '\n';
     const estabZip = buildZipBuffer('Estabelecimentos0.csv', estabCsv);
 
     // Build Partners zip: partner is a person with a CPF (11-digit, filtered unless in known basic CNPJs)
@@ -240,26 +242,42 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     await pipeline.execute(true);
 
     // Assert vendor row persisted
-    const vendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as VendorRow | undefined;
+    const vendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as
+      | VendorRow
+      | undefined;
     assert.ok(vendor, 'Vendor row should be persisted');
     assert.strictEqual(vendor.cnpj, FULL_CNPJ, 'CNPJ should match');
-    assert.strictEqual(vendor.legal_name, 'EMPRESA TESTE LTDA', 'Legal name should come from Companies file');
+    assert.strictEqual(
+      vendor.legal_name,
+      'EMPRESA TESTE LTDA',
+      'Legal name should come from Companies file',
+    );
     assert.strictEqual(vendor.uf, 'SP', 'UF should come from Establishments file');
     assert.strictEqual(vendor.municipio, '7107', 'Municipio should come from Establishments file');
     assert.strictEqual(vendor.primary_cnae, '6201501', 'CNAE should come from Establishments file');
-    assert.strictEqual(vendor.opening_date, '20150101', 'Opening date should come from Establishments file');
+    assert.strictEqual(
+      vendor.opening_date,
+      '20150101',
+      'Opening date should come from Establishments file',
+    );
     assert.strictEqual(vendor.registration_status, '02', 'Registration status should be persisted');
     assert.strictEqual(vendor.company_size, '05', 'Company size should come from Companies file');
 
     // Assert vendor_partners row persisted
-    const partner = db.prepare('SELECT * FROM vendor_partners WHERE cnpj = ?').get(FULL_CNPJ) as PartnerRow | undefined;
+    const partner = db.prepare('SELECT * FROM vendor_partners WHERE cnpj = ?').get(FULL_CNPJ) as
+      | PartnerRow
+      | undefined;
     assert.ok(partner, 'Partner row should be persisted');
     assert.strictEqual(partner.partner_name, 'SOCIO TESTE', 'Partner name should match');
     assert.strictEqual(partner.partner_cpf_cnpj, partnerCnpj, 'Partner CNPJ should match');
     assert.strictEqual(partner.partner_role, '49', 'Partner role should match');
 
     // Staging table should be cleaned up
-    const stagingExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='vendor_companies_cache'").get();
+    const stagingExists = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='vendor_companies_cache'",
+      )
+      .get();
     assert.ok(!stagingExists, 'Staging table should be dropped after pipeline completes');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -269,9 +287,10 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const db = getDb().db;
 
     // Pre-seed a vendor row so hasAnyVendors() returns true
-    db.prepare(
-      `INSERT INTO vendors (cnpj, legal_name) VALUES (?, ?)`
-    ).run(FULL_CNPJ, 'Existing Vendor LTDA');
+    db.prepare(`INSERT INTO vendors (cnpj, legal_name) VALUES (?, ?)`).run(
+      FULL_CNPJ,
+      'Existing Vendor LTDA',
+    );
 
     // No HTTP mocks — any network call would throw
     const pipeline = new ReceitaFederalCNPJPipeline(db);
@@ -286,17 +305,21 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const db = getDb().db;
 
     // Seed an expense with a CPF (11 digits) — not a CNPJ, should be ignored
-    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run('mdb', 'MDB', 'MDB');
+    db.prepare('INSERT OR IGNORE INTO parties (id, name, acronym) VALUES (?, ?, ?)').run(
+      'mdb',
+      'MDB',
+      'MDB',
+    );
     db.prepare(
       `INSERT OR IGNORE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES ('99999999901', '99999', 'Deputy CPF Only', 'RJ', 'mdb', 'DEPUTY', NULL, 'ELEITO_POR_QP')`
+       VALUES ('99999999901', '99999', 'Deputy CPF Only', 'RJ', 'mdb', 'DEPUTY', NULL, 'ELEITO_POR_QP')`,
     ).run();
     db.prepare(
       `INSERT INTO expenses
         (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
          data_documento, num_documento, url_documento, nome_fornecedor,
          cnpj_cpf_fornecedor, valor_liquido, valor_glosa)
-       VALUES (?, '99999999901', 'Despesa CPF', 'DOCX01', 0, '2026-01-01', 'NF-X', NULL, 'Pessoa Fisica', ?, 5000, 0)`
+       VALUES (?, '99999999901', 'Despesa CPF', 'DOCX01', 0, '2026-01-01', 'NF-X', NULL, 'Pessoa Fisica', ?, 5000, 0)`,
     ).run('99999999901_DOCX01', '99999999901'); // 11-digit CPF, excluded by getDistinctCnpjs filter
 
     // No HTTP mocks — any network call would throw
@@ -304,7 +327,11 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     await pipeline.execute(true);
 
     const vendorCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendors').get() as CountRow).cnt;
-    assert.strictEqual(vendorCount, 0, 'No vendors should be inserted when no CNPJs exist in expenses');
+    assert.strictEqual(
+      vendorCount,
+      0,
+      'No vendors should be inserted when no CNPJs exist in expenses',
+    );
     assert.ok(nock.isDone(), 'No HTTP calls should have been made');
   });
 
@@ -331,12 +358,18 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const pipeline = new ReceitaFederalCNPJPipeline(db);
     await pipeline.execute(true);
 
-    const vendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as VendorRow | undefined;
+    const vendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as
+      | VendorRow
+      | undefined;
     assert.ok(vendor, 'Vendor should be persisted even without partners');
     assert.strictEqual(vendor.legal_name, 'EMPRESA SEM SOCIOS LTDA');
     assert.strictEqual(vendor.company_size, '01');
 
-    const partnerCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendor_partners WHERE cnpj = ?').get(FULL_CNPJ) as CountRow).cnt;
+    const partnerCount = (
+      db
+        .prepare('SELECT COUNT(*) as cnt FROM vendor_partners WHERE cnpj = ?')
+        .get(FULL_CNPJ) as CountRow
+    ).cnt;
     assert.strictEqual(partnerCount, 0, 'No partners should be inserted');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -367,7 +400,11 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     await pipeline.execute(true);
 
     const vendorCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendors').get() as CountRow).cnt;
-    assert.strictEqual(vendorCount, 0, 'No vendor should be inserted if CNPJ is not in Establishments');
+    assert.strictEqual(
+      vendorCount,
+      0,
+      'No vendor should be inserted if CNPJ is not in Establishments',
+    );
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -395,10 +432,14 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const pipeline = new ReceitaFederalCNPJPipeline(db);
     await pipeline.execute(true);
 
-    const vendor = db.prepare('SELECT cnpj FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as { cnpj: string } | undefined;
+    const vendor = db.prepare('SELECT cnpj FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as
+      | { cnpj: string }
+      | undefined;
     assert.ok(vendor, 'Vendor should still be persisted');
 
-    const partnerCount = (db.prepare('SELECT COUNT(*) as cnt FROM vendor_partners').get() as CountRow).cnt;
+    const partnerCount = (
+      db.prepare('SELECT COUNT(*) as cnt FROM vendor_partners').get() as CountRow
+    ).cnt;
     assert.strictEqual(partnerCount, 0, 'Partner with unrelated CNPJ basic should be filtered out');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
@@ -408,7 +449,10 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const db = getDb().db;
 
     // Pre-seed a vendor row so hasAnyVendors() would return true
-    db.prepare('INSERT INTO vendors (cnpj, legal_name) VALUES (?, ?)').run('00000000000000', 'Existing Vendor');
+    db.prepare('INSERT INTO vendors (cnpj, legal_name) VALUES (?, ?)').run(
+      '00000000000000',
+      'Existing Vendor',
+    );
 
     seedExpenseWithCnpj(db, FULL_CNPJ, 'DOC005');
 
@@ -428,7 +472,9 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     const pipeline = new ReceitaFederalCNPJPipeline(db);
     await pipeline.execute(true); // forceDownload = true bypasses shouldSkip
 
-    const newVendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as VendorRow | undefined;
+    const newVendor = db.prepare('SELECT * FROM vendors WHERE cnpj = ?').get(FULL_CNPJ) as
+      | VendorRow
+      | undefined;
     assert.ok(newVendor, 'New vendor should be inserted via force-download');
     assert.strictEqual(newVendor.legal_name, 'NOVA EMPRESA LTDA');
 

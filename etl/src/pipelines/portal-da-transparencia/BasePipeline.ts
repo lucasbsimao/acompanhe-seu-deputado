@@ -21,9 +21,8 @@ export abstract class BasePipeline<T> {
     }
     this.apiKey = key;
 
-    this.pageSize = config.pageSize && config.pageSize > 0
-      ? config.pageSize
-      : defaultConfig.pagination.pageSize;
+    this.pageSize =
+      config.pageSize && config.pageSize > 0 ? config.pageSize : defaultConfig.pagination.pageSize;
 
     this.httpClient = new HttpClient(
       {
@@ -31,7 +30,7 @@ export abstract class BasePipeline<T> {
         retryWaitMin: config.retryWaitMin ?? defaultConfig.pagination.retryWaitMin,
         retryWaitMax: config.retryWaitMax ?? defaultConfig.pagination.retryWaitMax,
       },
-      config.timeoutMs ?? defaultConfig.pagination.timeoutMs
+      config.timeoutMs ?? defaultConfig.pagination.timeoutMs,
     );
   }
 

@@ -37,7 +37,10 @@ interface LegislaturaResponse {
 }
 
 export class DeputiesPipeline extends BasePipeline<PoliticianData> {
-  static readonly dependencies: readonly IPipelineDepChain[] = [TSE2022ElectionResultsPipeline, PartiesPipeline];
+  static readonly dependencies: readonly IPipelineDepChain[] = [
+    TSE2022ElectionResultsPipeline,
+    PartiesPipeline,
+  ];
 
   private readonly apiEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/deputados';
   private readonly legislaturasEndpoint = 'https://dadosabertos.camara.leg.br/api/v2/legislaturas';
@@ -123,7 +126,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
   async onPageFetched(items: PoliticianData[]): Promise<void> {
     const unique = Array.from(new Map(items.map(d => [d.id, d])).values());
     const detailedDeputies = await Promise.all(
-      unique.map(async (d) => {
+      unique.map(async d => {
         const detailUrl = `${this.apiEndpoint}/${d.id}`;
         const { data } = await this.httpClient.request(detailUrl);
         const detail = data as DeputyDetail;
@@ -136,7 +139,7 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
           role: PoliticianRole.DEPUTY,
           photoUrl: d.urlFoto || null,
         };
-      })
+      }),
     );
 
     this.repo.updateBatch(detailedDeputies.filter(d => isValidCPF(d.cpf)));
