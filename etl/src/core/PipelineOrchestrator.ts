@@ -2,14 +2,21 @@ import type Database from 'better-sqlite3';
 import type { PipelineInfo, IPipelineClass } from '../types/Pipeline';
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
+import { PipelineRunsRepository } from '../repositories/PipelineRunsRepository';
 
 export class PipelineOrchestrator {
-  constructor(private readonly db: Database.Database) {}
+  private readonly pipelineRunsRepo: PipelineRunsRepository;
+
+  constructor(private readonly db: Database.Database) {
+    this.pipelineRunsRepo = new PipelineRunsRepository(db);
+  }
 
   async executeOne(importPath: string, forceDownload: boolean): Promise<void> {
     const PipelineClass = await this.loadPipelineClass(importPath);
+    const className = importPath.split('/').at(-1) ?? importPath;
     const pipeline = new PipelineClass(this.db);
     await pipeline.execute(forceDownload);
+    this.pipelineRunsRepo.recordRun(className, 0);
   }
 
   async executeAll(pipelines: PipelineInfo[], forceDownload: boolean): Promise<void> {

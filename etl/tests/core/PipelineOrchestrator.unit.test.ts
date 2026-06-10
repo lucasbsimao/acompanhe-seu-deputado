@@ -46,6 +46,8 @@ describe('PipelineOrchestrator.executeAll', () => {
     mock.method(orchestrator, 'loadPipelineClass', (importPath: string) =>
       Promise.resolve(makeFakeClass(log, importPath)),
     );
+    // Mock recordRun to avoid DB dependency in unit tests
+    mock.method(orchestrator['pipelineRunsRepo'], 'recordRun', () => {});
 
     const d = makeInfo('D', []);
     const b = makeInfo('B', ['D']);
@@ -79,6 +81,8 @@ describe('PipelineOrchestrator.executeSelected', () => {
     mock.method(orchestrator, 'loadPipelineClass', (importPath: string) =>
       Promise.resolve(makeFakeClass(log, importPath)),
     );
+    // Mock recordRun to avoid DB dependency in unit tests
+    mock.method(orchestrator['pipelineRunsRepo'], 'recordRun', () => {});
 
     const d = makeInfo('D', []);
     const b = makeInfo('B', ['D']);
