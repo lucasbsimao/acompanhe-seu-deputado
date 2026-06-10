@@ -81,4 +81,29 @@ export class ForensicFlagsRepository {
       )
       .run(flagName, score, statusesJson);
   }
+
+  insertCnpjMissingEstablishment(flagName: ForensicFlag, pipelineDependency: string): void {
+    const score = FORENSIC_FLAG_SCORES[flagName];
+    this.db
+      .prepare(
+        `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           ? AS score,
+           NULL AS metadata
+         FROM expenses e
+         WHERE length(e.cnpj_cpf_fornecedor) = 14
+           AND NOT EXISTS (
+             SELECT 1 FROM vendors v WHERE v.cnpj = e.cnpj_cpf_fornecedor
+           )
+           AND EXISTS (
+             SELECT 1 FROM pipeline_runs
+             WHERE pipeline_name = ?
+               AND completed_at >= date('now', '-45 days')
+           )`,
+      )
+      .run(flagName, score, pipelineDependency);
+  }
 }
