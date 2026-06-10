@@ -106,4 +106,44 @@ export class ForensicFlagsRepository {
       )
       .run(flagName, score, pipelineDependency);
   }
+
+  insertFreshlyRegisteredVendor(flagName: ForensicFlag): void {
+    this.db
+      .prepare(
+        `WITH vendor_first_expense AS (
+           SELECT cnpj_cpf_fornecedor,
+                  MIN(data_documento) AS first_expense_date
+           FROM expenses
+           WHERE length(cnpj_cpf_fornecedor) = 14
+           GROUP BY cnpj_cpf_fornecedor
+         ),
+         flagged AS (
+           SELECT v.cnpj,
+                  CAST(julianday(vfe.first_expense_date) - julianday(v.opening_date) AS INTEGER) AS gap_days
+           FROM vendors v
+           JOIN vendor_first_expense vfe ON v.cnpj = vfe.cnpj_cpf_fornecedor
+           WHERE v.opening_date IS NOT NULL
+             AND CAST(julianday(vfe.first_expense_date) - julianday(v.opening_date) AS INTEGER) >= 0
+             AND CAST(julianday(vfe.first_expense_date) - julianday(v.opening_date) AS INTEGER) < 90
+         )
+         INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           CASE WHEN f.gap_days <= 7 THEN 50 ELSE 25 END AS score,
+           json_object(
+             'gap_days', f.gap_days,
+             'range', CASE
+               WHEN f.gap_days <= 7  THEN '0-7'
+               WHEN f.gap_days <= 30 THEN '8-30'
+               ELSE '31-90'
+             END
+           ) AS metadata
+         FROM expenses e
+         JOIN flagged f ON e.cnpj_cpf_fornecedor = f.cnpj
+         WHERE length(e.cnpj_cpf_fornecedor) = 14`,
+      )
+      .run(flagName);
+  }
 }
