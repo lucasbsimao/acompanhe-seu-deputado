@@ -6,21 +6,29 @@ export interface TestExpenseSeed {
   cnpj: string;
   numDocumento?: string;
   dataDocumento?: string;
+  tipoDespesa?: string;
 }
 
 export class TestExpensesRepository {
   constructor(private readonly db: Database.Database) {}
 
   seedExpense(seed: TestExpenseSeed): void {
-    const { id, deputyId, cnpj, numDocumento = 'NF-1', dataDocumento = '2024-01-01' } = seed;
+    const {
+      id,
+      deputyId,
+      cnpj,
+      numDocumento = 'NF-1',
+      dataDocumento = '2024-01-01',
+      tipoDespesa = 'MANUTENCAO',
+    } = seed;
     this.db
       .prepare(
         `INSERT INTO expenses (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
           data_documento, num_documento, url_documento, nome_fornecedor, cnpj_cpf_fornecedor,
           valor_liquido, valor_glosa)
-         VALUES (?, ?, 'MANUTENCAO', ?, 0, ?, ?, NULL, 'Vendor LTDA', ?, 10000, 0)`,
+         VALUES (?, ?, ?, ?, 0, ?, ?, NULL, 'Vendor LTDA', ?, 10000, 0)`,
       )
-      .run(id, deputyId, id, dataDocumento, numDocumento, cnpj);
+      .run(id, deputyId, tipoDespesa, id, dataDocumento, numDocumento, cnpj);
   }
 
   seedExpenseWithCnpj(cnpj: string, suffix: string = '001'): void {
