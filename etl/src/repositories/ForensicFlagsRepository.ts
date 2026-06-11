@@ -107,6 +107,35 @@ export class ForensicFlagsRepository {
       .run(flagName, score, pipelineDependency);
   }
 
+  insertVendorCnaeMismatch(
+    flagName: ForensicFlag,
+    incompatibleExpenseTypes: readonly string[],
+  ): void {
+    const score = FORENSIC_FLAG_SCORES[flagName];
+    const expenseTypesJson = JSON.stringify(incompatibleExpenseTypes);
+    this.db
+      .prepare(
+        `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           ? AS score,
+           json_object('primary_cnae', v.primary_cnae, 'tipo_despesa', e.tipo_despesa) AS metadata
+         FROM expenses e
+         JOIN vendors v ON e.cnpj_cpf_fornecedor = v.cnpj
+         WHERE length(e.cnpj_cpf_fornecedor) = 14
+           AND v.primary_cnae IS NOT NULL
+           AND e.tipo_despesa IN (SELECT value FROM json_each(?))
+           AND (
+             CAST(SUBSTR(v.primary_cnae, 1, 2) AS INTEGER) BETWEEN 1 AND 3
+             OR CAST(SUBSTR(v.primary_cnae, 1, 2) AS INTEGER) BETWEEN 5 AND 9
+             OR CAST(SUBSTR(v.primary_cnae, 1, 2) AS INTEGER) BETWEEN 10 AND 33
+           )`,
+      )
+      .run(flagName, score, expenseTypesJson);
+  }
+
   insertFreshlyRegisteredVendor(flagName: ForensicFlag): void {
     this.db
       .prepare(

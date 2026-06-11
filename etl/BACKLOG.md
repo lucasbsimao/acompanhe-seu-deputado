@@ -15,7 +15,7 @@ All required data is in the `vendors` table from the existing `ReceitaFederalCNP
 - **Signal**: High — 25 pt
 - **Data**: `vendors.primary_cnae` (already populated)
 - Curate incompatibility list per `tipo_despesa` using CNAE divisions (§6.3 disambiguation principle — unambiguous mismatches only, not a generic "not in expected set" approach)
-  - CNAE divisions 01–03 (agriculture/fishing), 05–09 (mining), 10–25 (manufacturing) → incompatible with MANUTENCAO DE ESCRITORIO, LOCACAO VEICULOS, SEGURANCA
+  - CNAE divisions 01–03 (agriculture/fishing), 05–09 (mining), 10–33 (manufacturing, full CNAE Section C) → incompatible with MANUTENCAO DE ESCRITORIO, LOCACAO VEICULOS, SEGURANCA
 - **Empirically validated in corpus**: three agribusiness/cattle companies (CNAE 0151-2 Bovinocultura, 0162-8 Atividades de apoio à pecuária) billed R$14.25M under `MANUTENCAO DE ESCRITORIO`; one of them is in _recuperação judicial_
 - Also contributes to the §6 composite escalation rule (see `POLITICALLY_CONNECTED_VENDOR` item #4)
 
