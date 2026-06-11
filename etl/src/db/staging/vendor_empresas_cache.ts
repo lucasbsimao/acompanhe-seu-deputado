@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 export const vendorCompaniesCache = {
   name: 'vendor_companies_cache',
   createSql: `

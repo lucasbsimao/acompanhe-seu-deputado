@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import type { Uf } from '../domain/uf';
 

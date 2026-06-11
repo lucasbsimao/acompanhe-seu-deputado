@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { PoliticianService } from '../../../../src/modules/politicians/services/politicianService';
 import { PoliticianRepository } from '../../../../src/modules/politicians/repositories/politicianRepository';
 import type { Politician } from '../../../../src/modules/politicians/domain/politician';
@@ -9,7 +11,6 @@ describe('PoliticianService Integration Tests', () => {
   let service: PoliticianService;
   let repository: PoliticianRepository;
   let testRepository: PoliticianTestRepository;
-
 
   beforeEach(() => {
     repository = new PoliticianRepository(getDb().db);

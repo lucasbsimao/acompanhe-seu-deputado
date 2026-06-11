@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import type Database from 'better-sqlite3';
 import type { PipelineInfo, IPipelineClass } from '../types/Pipeline';
 import { readdirSync, statSync } from 'fs';

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import * as assert from 'node:assert';
 import { describe, it, beforeEach } from 'node:test';
 import { VendorNoEmployeesPipeline } from '../../src/pipelines/forensics/VendorNoEmployeesPipeline';

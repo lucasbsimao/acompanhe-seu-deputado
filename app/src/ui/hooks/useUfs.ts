@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { useEffect, useMemo, useState } from 'react';
 import { useDb } from '../../shared/db/DbProvider';
 import { UfService } from '../../modules/ufs/services/ufService';

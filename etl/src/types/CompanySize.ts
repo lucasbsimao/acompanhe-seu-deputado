@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 /**
  * Receita Federal company size codes (Porte da Empresa)
  * as found in the 'Empresas' CSV file.

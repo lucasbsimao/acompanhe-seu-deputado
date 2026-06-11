@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import type Database from 'better-sqlite3';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';

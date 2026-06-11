@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import type Database from 'better-sqlite3';
 import type { ForensicFlag } from '../pipelines/forensics/ForensicFlag';
 import { FORENSIC_FLAG_SCORES } from '../pipelines/forensics/ForensicFlag';

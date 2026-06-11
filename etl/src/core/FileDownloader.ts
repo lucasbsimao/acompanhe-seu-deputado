@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { createWriteStream, mkdirSync, existsSync } from 'fs';
 import { pipeline } from 'stream/promises';
 import { execFileSync } from 'child_process';

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import type { Politician } from '../domain/politician';
 
@@ -8,9 +10,7 @@ export class PoliticianRepository {
     const distinctPartyIds = [...new Set(politicians.map(p => p.partyId))];
 
     const [existingPartiesResult] = await this.db.executeSql(
-      `SELECT id FROM parties WHERE id IN (${distinctPartyIds
-        .map(() => '?')
-        .join(',')})`,
+      `SELECT id FROM parties WHERE id IN (${distinctPartyIds.map(() => '?').join(',')})`,
       distinctPartyIds,
     );
 
@@ -20,16 +20,15 @@ export class PoliticianRepository {
       existingPartyIds.add(row.id);
     }
 
-    const newPartyIds = distinctPartyIds.filter(
-      id => !existingPartyIds.has(id),
-    );
+    const newPartyIds = distinctPartyIds.filter(id => !existingPartyIds.has(id));
 
     await this.db.transaction(tx => {
       for (const partyId of newPartyIds) {
-        tx.executeSql(
-          'INSERT INTO parties (id, name, acronym) VALUES (?, ?, ?)',
-          [partyId, partyId, partyId],
-        );
+        tx.executeSql('INSERT INTO parties (id, name, acronym) VALUES (?, ?, ?)', [
+          partyId,
+          partyId,
+          partyId,
+        ]);
       }
 
       for (const p of politicians) {
@@ -42,9 +41,7 @@ export class PoliticianRepository {
   }
 
   async findAllIds(): Promise<string[]> {
-    const [result] = await this.db.executeSql(
-      'SELECT cpf FROM politicians ORDER BY cpf',
-    );
+    const [result] = await this.db.executeSql('SELECT cpf FROM politicians ORDER BY cpf');
     const ids: string[] = [];
     for (let i = 0; i < result.rows.length; i += 1) {
       const row = result.rows.item(i) as { cpf: string };

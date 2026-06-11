@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useUfs } from '../hooks/useUfs';
@@ -12,7 +14,7 @@ export function UfsScreen() {
       {error && <Text style={styles.error}>Erro: {error}</Text>}
       <FlatList
         data={ufs}
-        keyExtractor={(item) => item.uf}
+        keyExtractor={item => item.uf}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <View style={styles.row}>

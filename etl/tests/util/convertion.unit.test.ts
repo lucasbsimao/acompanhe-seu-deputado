@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 import { convertToCents } from '../../src/util/convertion.util';

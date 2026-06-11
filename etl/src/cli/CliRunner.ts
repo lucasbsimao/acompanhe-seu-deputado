@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import prompts from 'prompts';
 import type { PipelineInfo } from '../types/Pipeline';
 import { UserCancelledError } from '../core/errors';

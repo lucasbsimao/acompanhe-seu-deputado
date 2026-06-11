@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import * as assert from 'node:assert';
 import { describe, it, mock, afterEach } from 'node:test';
 import { PipelineOrchestrator } from '../../src/core/PipelineOrchestrator';

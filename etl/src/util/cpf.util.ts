@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 export function normalizeCPF(cpf: string): string {
   return cpf.replace(/\D/g, '');
 }

@@ -2,6 +2,7 @@
   "name": "AcompanheSeuDeputado",
   "version": "0.0.1",
   "private": true,
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "start": "react-native start",
     "android": "npx react-native run-android",

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import { migrations } from './migrations';
 
@@ -29,8 +31,6 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
     for (const statement of statements) {
       await db.executeSql(statement);
     }
-    await db.executeSql('INSERT INTO schema_migrations (version) VALUES (?)', [
-      migration.version,
-    ]);
+    await db.executeSql('INSERT INTO schema_migrations (version) VALUES (?)', [migration.version]);
   }
 }

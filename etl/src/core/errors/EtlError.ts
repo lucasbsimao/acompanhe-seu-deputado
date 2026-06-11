@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 export enum EtlErrorCode {
   USER_CANCELLED = 'USER_CANCELLED',
   DATABASE_ERROR = 'DATABASE_ERROR',

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { HttpClient } from '../../core/HttpClient';
 import defaultConfig from '../../config/defaults.json';
 

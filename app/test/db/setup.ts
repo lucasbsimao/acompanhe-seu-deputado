@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import Database from 'better-sqlite3';
 import { migrations } from '../../src/shared/db/migrations';
 
@@ -8,7 +10,10 @@ export interface SQLiteTransaction {
 }
 
 export interface SQLiteDatabase {
-  executeSql(sql: string, params?: unknown[]): Promise<[{ rows: { length: number; item: (index: number) => unknown } }]>;
+  executeSql(
+    sql: string,
+    params?: unknown[],
+  ): Promise<[{ rows: { length: number; item: (index: number) => unknown } }]>;
   transaction(fn: (tx: SQLiteTransaction) => void): Promise<void>;
 }
 
@@ -31,7 +36,10 @@ class BetterSqlite3Adapter implements SQLiteDatabase {
     return Promise.resolve();
   }
 
-  async executeSql(sql: string, params: unknown[] = []): Promise<[{ rows: { length: number; item: (index: number) => unknown } }]> {
+  async executeSql(
+    sql: string,
+    params: unknown[] = [],
+  ): Promise<[{ rows: { length: number; item: (index: number) => unknown } }]> {
     try {
       if (!this.db.open) {
         throw new Error('Database is closed');
@@ -79,14 +87,16 @@ const createSchemaMigrationsTable = `CREATE TABLE IF NOT EXISTS schema_migration
 const splitStatements = (sql: string): string[] =>
   sql
     .split(';')
-    .map((statement) => statement.trim())
+    .map(statement => statement.trim())
     .filter(Boolean);
 
 function runMigrationsSync(db: Database.Database): void {
   db.exec(createSchemaMigrationsTable);
 
-  const result = db.prepare('SELECT version FROM schema_migrations').all() as Array<{ version: string }>;
-  const applied = new Set<string>(result.map((row) => row.version));
+  const result = db.prepare('SELECT version FROM schema_migrations').all() as Array<{
+    version: string;
+  }>;
+  const applied = new Set<string>(result.map(row => row.version));
 
   for (const migration of migrations) {
     if (applied.has(migration.version)) {

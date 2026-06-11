@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import type Database from 'better-sqlite3';
 import { existsSync, createReadStream, readdirSync, unlinkSync, rmdirSync } from 'fs';
 import { join } from 'path';

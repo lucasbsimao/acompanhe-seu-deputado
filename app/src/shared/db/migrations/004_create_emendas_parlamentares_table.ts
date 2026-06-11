@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { Migration } from '../migrations';
 
 export const migration004: Migration = {
