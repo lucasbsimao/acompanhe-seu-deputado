@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { ForensicFlag } from '../pipelines/forensics/ForensicFlag';
 import { FORENSIC_FLAG_SCORES } from '../pipelines/forensics/ForensicFlag';
+import { CompanySize } from '../types/CompanySize';
 
 export class ForensicFlagsRepository {
   private readonly db: Database.Database;
@@ -200,9 +201,9 @@ export class ForensicFlagsRepository {
            AND e.tipo_despesa IN (SELECT value FROM json_each(?))
            AND (
              v.employee_count = 0
-             OR (v.employee_count IS NULL AND v.company_size = '01')
+             OR (v.employee_count IS NULL AND v.company_size = ?)
            )`,
       )
-      .run(flagName, expenseTypesJson);
+      .run(flagName, expenseTypesJson, CompanySize.MICRO_EMPRESA);
   }
 }

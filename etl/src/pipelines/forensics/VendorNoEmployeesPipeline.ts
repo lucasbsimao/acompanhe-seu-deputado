@@ -21,7 +21,7 @@ const TARGET_EXPENSE_TYPES = [
  *
  * Scoring logic:
  * - 20 pt: Confirmed zero employees (employee_count = 0 from SIMPLES/RAIS data)
- * - 10 pt: Proxy signal (company_size = '01' Micro-empresa and employee_count IS NULL)
+ * - 10 pt: Proxy signal (company_size = CompanySize.MICRO_EMPRESA ('01') and employee_count IS NULL)
  *
  * Restricted to specific expense types where zero employees is operationally implausible.
  */
