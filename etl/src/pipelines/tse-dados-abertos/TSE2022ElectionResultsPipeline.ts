@@ -2,28 +2,14 @@ import type Database from 'better-sqlite3';
 import { FileDownloader } from '../../core/FileDownloader';
 import { HttpClient } from '../../core/HttpClient';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
+import { ElectedPoliticiansStep } from './steps/ElectedPoliticiansStep';
+import { AllCargoCandidatesStep } from './steps/AllCargoCandidatesStep';
+import type { TSECandidate } from '../../types/TSECandidate';
 import { PoliticianRole } from '../../types/PoliticianRole';
-import { TSECargo } from '../../types/TSECargo';
-import {
-  TSEElectionResultStatus,
-  tseElectionResultStatusFromValue,
-  type TSEElectionResultStatusKey,
-} from '../../types/TSEElectionResultStatus';
-import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
-import { normalizeId } from '../../util/normalization.util';
 import { parse } from 'csv-parse/sync';
 import { readFileSync, readdirSync, unlinkSync, rmdirSync } from 'fs';
 import { join } from 'path';
 import type { IPipelineDepChain } from '../../types/Pipeline';
-
-interface TSECandidate {
-  DS_CARGO: string;
-  NR_CPF_CANDIDATO: string;
-  NM_URNA_CANDIDATO: string;
-  SG_UF: string;
-  SG_PARTIDO: string;
-  DS_SIT_TOT_TURNO: string;
-}
 
 export class TSE2022ElectionResultsPipeline {
   static readonly dependencies: readonly IPipelineDepChain[] = [];
@@ -35,9 +21,13 @@ export class TSE2022ElectionResultsPipeline {
   private readonly extractPath = join(this.tempDir, 'extracted');
   private readonly downloader: FileDownloader;
   private readonly repo: PoliticianRepository;
+  private readonly electedStep: ElectedPoliticiansStep;
+  private readonly allCandidatesStep: AllCargoCandidatesStep;
 
   constructor(db: Database.Database) {
     this.repo = new PoliticianRepository(db);
+    this.electedStep = new ElectedPoliticiansStep(db);
+    this.allCandidatesStep = new AllCargoCandidatesStep(db);
     const httpClient = new HttpClient(
       { maxRetries: 3, retryWaitMin: 250, retryWaitMax: 2000 },
       60000,
@@ -73,10 +63,9 @@ export class TSE2022ElectionResultsPipeline {
         allCandidates.push(...candidates);
       }
 
-      const elected = this.filterElected(allCandidates);
-      console.log(`Filtered ${elected.length} elected politicians`);
-
-      this.storePoliticians(elected);
+      console.log(`Processing ${allCandidates.length} candidates`);
+      this.electedStep.run(allCandidates);
+      this.allCandidatesStep.run(allCandidates);
       console.log('TSE 2022 data stored successfully');
     } finally {
       this.cleanup();
@@ -99,44 +88,6 @@ export class TSE2022ElectionResultsPipeline {
       relax_quotes: true,
     }) as TSECandidate[];
     return records;
-  }
-
-  private filterElected(candidates: TSECandidate[]): TSECandidate[] {
-    const validCargos = [TSECargo.DEPUTADO_FEDERAL, TSECargo.SENADOR];
-    const validStatuses = [
-      TSEElectionResultStatus.ELEITO,
-      TSEElectionResultStatus.ELEITO_POR_QP,
-      TSEElectionResultStatus.ELEITO_POR_MEDIA,
-      TSEElectionResultStatus.SUPLENTE,
-    ];
-
-    return candidates.filter(
-      c =>
-        (validCargos as string[]).includes(c.DS_CARGO) &&
-        (validStatuses as string[]).includes(c.DS_SIT_TOT_TURNO),
-    );
-  }
-
-  private storePoliticians(candidates: TSECandidate[]): void {
-    const rows = candidates
-      .filter(c => isValidCPF(c.NR_CPF_CANDIDATO))
-      .map(c => ({
-        cpf: normalizeCPF(c.NR_CPF_CANDIDATO),
-        sourceApiId: null,
-        name: c.NM_URNA_CANDIDATO,
-        uf: c.SG_UF,
-        partyId: normalizeId(c.SG_PARTIDO),
-        role:
-          c.DS_CARGO === (TSECargo.DEPUTADO_FEDERAL as string)
-            ? PoliticianRole.DEPUTY
-            : PoliticianRole.SENATOR,
-        photoUrl: null,
-        electedAs: tseElectionResultStatusFromValue(
-          c.DS_SIT_TOT_TURNO,
-        ) as TSEElectionResultStatusKey,
-      }));
-
-    this.repo.insertBatch(rows);
   }
 
   private cleanup(): void {

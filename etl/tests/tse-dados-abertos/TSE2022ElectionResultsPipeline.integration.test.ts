@@ -3,6 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import AdmZip from 'adm-zip';
 import { TSE2022ElectionResultsPipeline } from '../../src/pipelines/tse-dados-abertos/TSE2022ElectionResultsPipeline';
+import { TseCandidatesRepository } from '../../src/repositories/TseCandidatesRepository';
 import { useTestDatabase } from '../db/setup';
 import { TestPoliticianRepository, makeCPF } from '../db/TestPoliticianRepository';
 
@@ -24,11 +25,13 @@ function buildCandidateRow(opts: {
   SG_UF: string;
   SG_PARTIDO: string;
   DS_SIT_TOT_TURNO: string;
+  ANO_ELEICAO: string;
 }): string {
   // Column positions (0-based) in the 54-column header that the pipeline reads:
-  // SG_UF=10, DS_CARGO=14, NM_URNA_CANDIDATO=17, NR_CPF_CANDIDATO=19,
+  // ANO_ELEICAO=2, SG_UF=10, DS_CARGO=14, NM_URNA_CANDIDATO=17, NR_CPF_CANDIDATO=19,
   // SG_PARTIDO=27, DS_SIT_TOT_TURNO=53
   const cols = Array(54).fill('');
+  cols[2] = opts.ANO_ELEICAO;
   cols[10] = opts.SG_UF;
   cols[14] = opts.DS_CARGO;
   cols[17] = opts.NM_URNA_CANDIDATO;
@@ -97,6 +100,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const rows = [
       // Elected federal deputy
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'DEPUTADO TESTE',
         NR_CPF_CANDIDATO: deputyCpf,
@@ -106,6 +110,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       }),
       // Elected senator
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'SENADOR',
         NM_URNA_CANDIDATO: 'SENADOR TESTE',
         NR_CPF_CANDIDATO: senatorCpf,
@@ -119,6 +124,21 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
 
     const pipeline = new TSE2022ElectionResultsPipeline(db);
     await pipeline.execute(true);
+
+    // Assert tse_candidates populated
+    const tseCandidatesRepo = new TseCandidatesRepository(db);
+    assert.strictEqual(
+      tseCandidatesRepo.count(),
+      2,
+      'Should persist 2 candidates in tse_candidates',
+    );
+
+    const tseDeputy = db
+      .prepare('SELECT * FROM tse_candidates WHERE cpf = ?')
+      .get(deputyCpf) as any;
+    assert.ok(tseDeputy, 'Deputy should be in tse_candidates');
+    assert.strictEqual(tseDeputy.cargo, 'DEPUTADO FEDERAL');
+    assert.strictEqual(tseDeputy.ano_eleicao, '2022');
 
     // Assert deputy persisted
     const deputy = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(deputyCpf) as
@@ -185,6 +205,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const rows = [
       // Valid elected status
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'ELEITO CANDIDATO',
         NR_CPF_CANDIDATO: electedCpf,
@@ -194,6 +215,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       }),
       // Non-elected status — should be filtered out
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'NAO ELEITO CANDIDATO',
         NR_CPF_CANDIDATO: nonElectedCpf,
@@ -233,6 +255,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const rows = [
       // Valid cargo — federal deputy
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'DEPUTADO FEDERAL ELEITO',
         NR_CPF_CANDIDATO: deputadoFederalCpf,
@@ -242,6 +265,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       }),
       // Invalid cargo — state deputy (should be filtered)
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO ESTADUAL',
         NM_URNA_CANDIDATO: 'DEPUTADO ESTADUAL ELEITO',
         NR_CPF_CANDIDATO: deputadoEstadualCpf,
@@ -251,6 +275,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       }),
       // Invalid cargo — governor (should be filtered)
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'GOVERNADOR',
         NM_URNA_CANDIDATO: 'GOVERNADOR ELEITO',
         NR_CPF_CANDIDATO: governadorCpf,
@@ -284,6 +309,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const rows = [
       // Valid CPF — should be stored
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'CPF VALIDO',
         NR_CPF_CANDIDATO: validCpf,
@@ -293,6 +319,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       }),
       // Invalid CPF (all same digit) — should be filtered by isValidCPF
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'SENADOR',
         NM_URNA_CANDIDATO: 'CPF INVALIDO',
         NR_CPF_CANDIDATO: '00000000000',
@@ -327,6 +354,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
 
     const rows = [
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'ELEITO DIRETO',
         NR_CPF_CANDIDATO: cpfEleito,
@@ -335,6 +363,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
         DS_SIT_TOT_TURNO: 'ELEITO',
       }),
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'ELEITO POR QP',
         NR_CPF_CANDIDATO: cpfEleitoPorQP,
@@ -343,6 +372,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
         DS_SIT_TOT_TURNO: 'ELEITO POR QP',
       }),
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'SENADOR',
         NM_URNA_CANDIDATO: 'ELEITO POR MEDIA',
         NR_CPF_CANDIDATO: cpfEleitoPorMedia,
@@ -351,6 +381,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
         DS_SIT_TOT_TURNO: 'ELEITO POR MÉDIA',
       }),
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'SENADOR',
         NM_URNA_CANDIDATO: 'SUPLENTE SENADOR',
         NR_CPF_CANDIDATO: cpfSuplente,
@@ -407,6 +438,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     const newCpf = makeCPF(31);
     const rows = [
       buildCandidateRow({
+        ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
         NM_URNA_CANDIDATO: 'NOVO DEPUTADO',
         NR_CPF_CANDIDATO: newCpf,
