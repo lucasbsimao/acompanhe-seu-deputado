@@ -40,4 +40,18 @@ export class TestVendorRepository {
       )
       .run(cnpj, primaryCnae);
   }
+
+  seedVendorWithCompanySize(
+    cnpj: string,
+    companySize: string | null,
+    employeeCount: number | null = null,
+  ): void {
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO vendors (cnpj, legal_name, primary_cnae, uf, municipio, opening_date,
+          registration_status, registration_status_date, company_size, employee_count)
+         VALUES (?, 'Vendor LTDA', NULL, NULL, NULL, NULL, NULL, NULL, ?, ?)`,
+      )
+      .run(cnpj, companySize, employeeCount);
+  }
 }

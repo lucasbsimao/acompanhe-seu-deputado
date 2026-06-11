@@ -5,6 +5,7 @@ import { migration004 } from './migrations/004_create_emendas_parlamentares_tabl
 import { migration005 } from './migrations/005_create_vendors_tables';
 import { migration006 } from './migrations/006_create_forensic_flags_table';
 import { migration007 } from './migrations/007_create_pipeline_runs_table';
+import { migration008 } from './migrations/008_add_employee_count_to_vendors';
 
 export type Migration = {
   version: string;
@@ -19,4 +20,5 @@ export const migrations: Migration[] = [
   migration005,
   migration006,
   migration007,
+  migration008,
 ];

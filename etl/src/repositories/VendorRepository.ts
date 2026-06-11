@@ -10,6 +10,7 @@ export interface Vendor {
   registration_status?: string;
   registration_status_date?: string;
   company_size?: string;
+  employee_count?: number;
 }
 
 export interface VendorPartner {
@@ -86,5 +87,19 @@ export class VendorRepository {
   hasAnyVendors(): boolean {
     const row = this.db.prepare('SELECT 1 FROM vendors LIMIT 1').get();
     return row !== undefined;
+  }
+
+  updateEmployeeCountByBasicCnpjBatch(rows: { cnpjBasic: string }[]): void {
+    if (rows.length === 0) return;
+
+    const stmt = this.db.prepare('UPDATE vendors SET employee_count = 0 WHERE cnpj LIKE ?');
+
+    const transaction = this.db.transaction(() => {
+      for (const row of rows) {
+        stmt.run(row.cnpjBasic + '%');
+      }
+    });
+
+    transaction();
   }
 }

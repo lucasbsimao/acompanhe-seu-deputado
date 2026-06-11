@@ -24,6 +24,7 @@
     "webdavBase": "https://arquivos.receitafederal.gov.br/public.php/webdav",
     "shareToken": "YggdBLfdninEJX9",
     "fileCount": 10,
-    "referenceYearMonth": "2026-05"
+    "referenceYearMonth": "2026-05",
+    "simplesFileName": "Simples.zip"
   }
 }

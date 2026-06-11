@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { ForensicFlag } from '../pipelines/forensics/ForensicFlag';
 import { FORENSIC_FLAG_SCORES } from '../pipelines/forensics/ForensicFlag';
+import { CompanySize } from '../types/CompanySize';
 
 export class ForensicFlagsRepository {
   private readonly db: Database.Database;
@@ -174,5 +175,35 @@ export class ForensicFlagsRepository {
          WHERE length(e.cnpj_cpf_fornecedor) = 14`,
       )
       .run(flagName);
+  }
+
+  insertVendorNoEmployees(flagName: ForensicFlag, expenseTypes: readonly string[]): void {
+    const expenseTypesJson = JSON.stringify(expenseTypes);
+    this.db
+      .prepare(
+        `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           CASE
+             WHEN v.employee_count = 0 THEN 20
+             ELSE 10
+           END AS score,
+           json_object(
+             'employee_count', v.employee_count,
+             'company_size', v.company_size,
+             'tipo_despesa', e.tipo_despesa
+           ) AS metadata
+         FROM expenses e
+         JOIN vendors v ON e.cnpj_cpf_fornecedor = v.cnpj
+         WHERE length(e.cnpj_cpf_fornecedor) = 14
+           AND e.tipo_despesa IN (SELECT value FROM json_each(?))
+           AND (
+             v.employee_count = 0
+             OR (v.employee_count IS NULL AND v.company_size = ?)
+           )`,
+      )
+      .run(flagName, expenseTypesJson, CompanySize.MICRO_EMPRESA);
   }
 }

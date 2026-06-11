@@ -3,6 +3,7 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import AdmZip from 'adm-zip';
 import { ReceitaFederalCNPJPipeline } from '../../src/pipelines/receita-federal/ReceitaFederalCNPJPipeline';
+import { CompanySize } from '../../src/types/CompanySize';
 import { useTestDatabase } from '../db/setup';
 import { TestExpensesRepository } from '../db/TestExpensesRepository';
 import { TestVendorRepository } from '../db/TestVendorRepository';
@@ -33,7 +34,11 @@ function buildZipBuffer(filename: string, csvContent: string): Buffer {
  * Build a Companies (Empresas) CSV row.
  * Columns: CNPJ_BASICO;RAZAO_SOCIAL;NATUREZA_JURIDICA;QUALIFICACAO_DO_RESPONSAVEL;CAPITAL_SOCIAL;PORTE_EMPRESA;ENTE_FEDERATIVO_RESPONSAVEL
  */
-function buildEmpresaCsvRow(cnpjBasico: string, razaoSocial: string, porte = '05'): string {
+function buildEmpresaCsvRow(
+  cnpjBasico: string,
+  razaoSocial: string,
+  porte = CompanySize.DEMAIS,
+): string {
   return `${cnpjBasico};${razaoSocial};2062;50;100000.00;${porte};`;
 }
 
@@ -199,7 +204,8 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     expensesRepo.seedExpenseWithCnpj(FULL_CNPJ, 'DOC001');
 
     // Build Companies zip: contains our CNPJ_BASIC
-    const empresaCsv = buildEmpresaCsvRow(CNPJ_BASIC, 'EMPRESA TESTE LTDA', '05') + '\n';
+    const empresaCsv =
+      buildEmpresaCsvRow(CNPJ_BASIC, 'EMPRESA TESTE LTDA', CompanySize.DEMAIS) + '\n';
     const empresasZip = buildZipBuffer('Empresas0.csv', empresaCsv);
 
     // Build Establishments zip: contains our full CNPJ
@@ -312,7 +318,8 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
   it('inserts vendor without partner when no matching partners exist in Socios files', async () => {
     expensesRepo.seedExpenseWithCnpj(FULL_CNPJ, 'DOC002');
 
-    const empresaCsv = buildEmpresaCsvRow(CNPJ_BASIC, 'EMPRESA SEM SOCIOS LTDA', '01') + '\n';
+    const empresaCsv =
+      buildEmpresaCsvRow(CNPJ_BASIC, 'EMPRESA SEM SOCIOS LTDA', CompanySize.MICRO_EMPRESA) + '\n';
     const empresasZip = buildZipBuffer('Empresas0.csv', empresaCsv);
 
     const estabCsv = buildEstabelecimentoCsvRow(CNPJ_BASIC, CNPJ_ORDEM, CNPJ_DV) + '\n';
@@ -335,7 +342,7 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
       | undefined;
     assert.ok(vendor, 'Vendor should be persisted even without partners');
     assert.strictEqual(vendor.legal_name, 'EMPRESA SEM SOCIOS LTDA');
-    assert.strictEqual(vendor.company_size, '01');
+    assert.strictEqual(vendor.company_size, CompanySize.MICRO_EMPRESA);
 
     const partnerCount = (
       db
