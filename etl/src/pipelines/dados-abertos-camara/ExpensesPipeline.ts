@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { BasePipeline } from './BasePipeline';
 import { DeputiesPipeline } from './DeputiesPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';

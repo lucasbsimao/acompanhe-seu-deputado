@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 export const enum ForensicFlag {
   CROSS_DEPUTY_INVOICE_REUSE = 'CROSS_DEPUTY_INVOICE_REUSE',
   SINGLE_CLIENT_VENDOR = 'SINGLE_CLIENT_VENDOR',

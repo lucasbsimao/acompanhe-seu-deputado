@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import type { Database } from 'better-sqlite3';
 import { vendorCompaniesCache } from '../db/staging/vendor_empresas_cache';
 

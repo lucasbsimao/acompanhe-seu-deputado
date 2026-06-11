@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { BasePipeline } from './BasePipeline';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import type Database from 'better-sqlite3';

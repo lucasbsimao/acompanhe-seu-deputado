@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import type { SQLiteDatabase } from '../../../db/setup';
 
 export class PoliticianTestRepository {

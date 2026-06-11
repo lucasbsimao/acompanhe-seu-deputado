@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import SQLite, { SQLiteDatabase } from 'react-native-sqlite-storage';
 import { applyPragmas } from './pragma';
 

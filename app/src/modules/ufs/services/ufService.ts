@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import type { Uf } from '../domain/uf';
 import { UfRepository } from '../repositories/ufRepository';
 import { NotFoundError } from '../../../shared/errors';

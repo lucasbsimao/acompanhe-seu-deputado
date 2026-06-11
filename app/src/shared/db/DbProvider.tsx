@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { SQLiteDatabase } from 'react-native-sqlite-storage';
 import { openDb } from './openDb';

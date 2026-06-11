@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import * as assert from 'node:assert';
 import { describe, it } from 'node:test';
 import { normalizeNameForMatching } from '../../src/util/normalization.util';

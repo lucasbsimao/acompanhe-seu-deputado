@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { BasePipeline } from './BasePipeline';
 import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';

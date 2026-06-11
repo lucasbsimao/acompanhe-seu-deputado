@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';

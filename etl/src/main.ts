@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 import { PipelineOrchestrator } from './core/PipelineOrchestrator';
 import { DatabaseManager } from './db/DatabaseManager';
 import { CliRunner } from './cli/CliRunner';
