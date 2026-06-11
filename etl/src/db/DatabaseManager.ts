@@ -34,8 +34,30 @@ export class DatabaseManager {
     this.db = new Database(this.dbPath);
     this.db.pragma('foreign_keys = ON');
     this.db.pragma('journal_mode = WAL');
-    for (const { sql } of migrations) {
+
+    // Create migrations table if it doesn't exist
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        version TEXT PRIMARY KEY,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Get applied migrations
+    const applied = new Set(
+      (this.db.prepare('SELECT version FROM schema_migrations').all() as { version: string }[]).map(
+        row => row.version,
+      ),
+    );
+
+    for (const { version, sql } of migrations) {
+      if (applied.has(version)) {
+        continue;
+      }
+
+      console.log(`Applying migration: ${version}`);
       this.db.exec(sql);
+      this.db.prepare('INSERT INTO schema_migrations (version) VALUES (?)').run(version);
     }
 
     return this.db;
