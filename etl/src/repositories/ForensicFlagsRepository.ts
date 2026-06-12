@@ -208,4 +208,24 @@ export class ForensicFlagsRepository {
       )
       .run(flagName, expenseTypesJson, CompanySize.MICRO_EMPRESA);
   }
+
+  insertPoliticallyConnectedVendor(flagName: ForensicFlag): void {
+    const score = FORENSIC_FLAG_SCORES[flagName];
+    this.db
+      .prepare(
+        `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           ? AS score,
+           json_object('partner_cpf', vp.partner_cpf_cnpj, 'partner_name', vp.partner_name) AS metadata
+         FROM expenses e
+         JOIN vendor_partners vp ON vp.cnpj = e.cnpj_cpf_fornecedor
+         WHERE EXISTS (
+           SELECT 1 FROM tse_candidates tc WHERE tc.cpf = vp.partner_cpf_cnpj
+         )`,
+      )
+      .run(flagName, score);
+  }
 }
