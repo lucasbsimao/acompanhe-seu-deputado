@@ -9,6 +9,7 @@ import { migration006 } from './migrations/006_create_forensic_flags_table';
 import { migration007 } from './migrations/007_create_pipeline_runs_table';
 import { migration008 } from './migrations/008_add_employee_count_to_vendors';
 import { migration009 } from './migrations/009_create_tse_candidates_table';
+import { migration010 } from './migrations/010_add_performance_indexes';
 
 export type Migration = {
   version: string;
@@ -25,4 +26,5 @@ export const migrations: Migration[] = [
   migration007,
   migration008,
   migration009,
+  migration010,
 ];
