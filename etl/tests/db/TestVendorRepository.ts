@@ -56,4 +56,13 @@ export class TestVendorRepository {
       )
       .run(cnpj, companySize, employeeCount);
   }
+
+  seedPartner(cnpj: string, partnerCpfCnpj: string, partnerName: string): void {
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO vendor_partners (cnpj, partner_cpf_cnpj, partner_name)
+         VALUES (?, ?, ?)`,
+      )
+      .run(cnpj, partnerCpfCnpj, partnerName);
+  }
 }
