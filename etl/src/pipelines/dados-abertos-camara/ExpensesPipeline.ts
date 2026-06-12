@@ -9,6 +9,7 @@ import type Database from 'better-sqlite3';
 import { normalizeNumericText, normalizeLabel } from '../../util/normalization.util';
 import { convertToCents } from '../../util/convertion.util';
 import defaultConfig from '../../config/defaults.json';
+import { CodTipoDocumento } from '../../types/CodTipoDocumento';
 
 interface ExpenseData {
   ano: number;
@@ -16,7 +17,7 @@ interface ExpenseData {
   tipoDespesa: string;
   codDocumento: string;
   tipoDocumento: string;
-  codTipoDocumento: number;
+  codTipoDocumento: CodTipoDocumento;
   dataDocumento: string;
   numDocumento: string;
   valorDocumento: number;

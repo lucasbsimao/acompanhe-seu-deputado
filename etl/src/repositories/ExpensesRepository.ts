@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type Database from 'better-sqlite3';
+import { CodTipoDocumento } from '../types/CodTipoDocumento';
 
 export interface ExpenseRow {
   id: string;
   deputyId: string;
   tipoDespesa: string;
   codDocumento: string;
-  codTipoDocumento: number;
+  codTipoDocumento: CodTipoDocumento;
   dataDocumento: string;
   numDocumento: string;
   urlDocumento: string | null;
