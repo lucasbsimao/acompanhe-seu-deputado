@@ -53,4 +53,12 @@ export class TestExpensesRepository {
       )
       .run(`12345678901_${suffix}`, suffix, `NF-${suffix}`, cnpj);
   }
+
+  getAllExpenses(): any[] {
+    return this.db.prepare('SELECT * FROM expenses ORDER BY id').all();
+  }
+
+  countExpenses(): number {
+    return (this.db.prepare('SELECT COUNT(*) as count FROM expenses').get() as any).count;
+  }
 }

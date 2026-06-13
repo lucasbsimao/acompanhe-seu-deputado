@@ -47,56 +47,67 @@ export class CeapsExpensesPipeline {
     const yearsToFetch = defaultConfig.senateExpenses.yearsToFetch;
     const currentYear = new Date().getFullYear();
 
-    for (let i = 0; i < yearsToFetch; i++) {
-      const year = currentYear - i;
+    const years = Array.from({ length: yearsToFetch }, (_, i) => currentYear - i);
+    const maxParallelism = 10;
 
-      if (!forceDownload && this.expensesRepo.hasExpensesForSenatorYear(year)) {
-        console.log(`Skipping CEAPS expenses for year ${year} (already exists)`);
-        continue;
-      }
+    for (let i = 0; i < years.length; i += maxParallelism) {
+      const batch = years.slice(i, i + maxParallelism);
+      await Promise.all(
+        batch.map(year => this.fetchAndPersistYear(year, senatorMap, forceDownload)),
+      );
+    }
+  }
 
-      console.log(`Fetching CEAPS expenses for year ${year}...`);
-      const url = `https://adm.senado.gov.br/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`;
+  private async fetchAndPersistYear(
+    year: number,
+    senatorMap: Map<string, string>,
+    forceDownload: boolean,
+  ): Promise<void> {
+    if (!forceDownload && this.expensesRepo.hasExpensesForSenatorYear(year)) {
+      console.log(`Skipping CEAPS expenses for year ${year} (already exists)`);
+      return;
+    }
 
-      try {
-        const response = await this.httpClient.request(url);
-        const records = (response.data as { despesasCeaps: CeapsExpenseDto[] }).despesasCeaps;
+    console.log(`Fetching CEAPS expenses for year ${year}...`);
+    const url = `https://adm.senado.gov.br/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`;
 
-        const rows: ExpenseRow[] = [];
-        for (const expense of records) {
-          const senatorCpf = senatorMap.get(String(expense.codSenador));
+    try {
+      const response = await this.httpClient.request(url);
+      const records = (response.data as { despesasCeaps: CeapsExpenseDto[] }).despesasCeaps;
 
-          if (!senatorCpf) {
-            console.warn(
-              `Unknown senator code: ${expense.codSenador} for expense ID ${expense.id}`,
-            );
-            continue;
-          }
+      const rows: ExpenseRow[] = [];
+      for (const expense of records) {
+        const senatorCpf = senatorMap.get(String(expense.codSenador));
 
-          rows.push({
-            id: String(expense.id),
-            deputyId: senatorCpf,
-            tipoDespesa: normalizeLabel(expense.tipoDespesa),
-            codDocumento: String(expense.id),
-            codTipoDocumento: mapCeapsDocumentType(expense.tipoDocumento),
-            dataDocumento: expense.data,
-            numDocumento: expense.documento,
-            urlDocumento: null,
-            nomeFornecedor: expense.fornecedor,
-            cnpjCpfFornecedor: normalizeNumericText(expense.cpfCnpj),
-            valorLiquido: Math.round(expense.valorReembolsado * 100),
-            valorGlosa: 0,
-          });
+        if (!senatorCpf) {
+          console.warn(`Unknown senator code: ${expense.codSenador} for expense ID ${expense.id}`);
+          continue;
         }
 
-        if (rows.length > 0) {
-          this.expensesRepo.insertBatch(rows);
-          console.log(`Inserted ${rows.length} CEAPS expenses for year ${year}`);
-        }
-      } catch (error) {
-        console.error(`Failed to fetch CEAPS expenses for year ${year}:`, error);
-        throw error;
+        rows.push({
+          id: String(expense.id),
+          deputyId: senatorCpf,
+          tipoDespesa: normalizeLabel(expense.tipoDespesa),
+          codDocumento: String(expense.id),
+          codTipoDocumento: mapCeapsDocumentType(expense.tipoDocumento),
+          dataDocumento: expense.data,
+          numDocumento: expense.documento,
+          urlDocumento: null,
+          nomeFornecedor: expense.fornecedor,
+          cnpjCpfFornecedor: normalizeNumericText(expense.cpfCnpj),
+          valorLiquido: Math.round(expense.valorReembolsado * 100),
+          valorGlosa: 0,
+        });
       }
+
+      if (rows.length > 0) {
+        this.expensesRepo.insertBatch(rows);
+        console.log(`Inserted ${rows.length} CEAPS expenses for year ${year}`);
+      }
+    } catch (error) {
+      const message = `Failed to fetch CEAPS expenses for year ${year}`;
+      console.error(`${message}:`, error);
+      throw new Error(`${message}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

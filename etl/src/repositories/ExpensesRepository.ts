@@ -2,6 +2,7 @@
 
 import type Database from 'better-sqlite3';
 import { CodTipoDocumento } from '../types/CodTipoDocumento';
+import { PoliticianRole } from '../types/PoliticianRole';
 
 export interface ExpenseRow {
   id: string;
@@ -38,7 +39,7 @@ export class ExpensesRepository {
     this.hasExpensesQuery = db.prepare('SELECT 1 FROM expenses WHERE deputy_id = ? LIMIT 1');
     this.hasExpensesForSenatorYearQuery = db.prepare(`
       SELECT 1 FROM expenses
-      WHERE deputy_id IN (SELECT cpf FROM politicians WHERE role = 'SENATOR')
+      WHERE deputy_id IN (SELECT cpf FROM politicians WHERE role = ?)
         AND data_documento LIKE ?
       LIMIT 1
     `);
@@ -74,7 +75,9 @@ export class ExpensesRepository {
   }
 
   hasExpensesForSenatorYear(year: number): boolean {
-    return this.hasExpensesForSenatorYearQuery.get(`${year}-%`) !== undefined;
+    return (
+      this.hasExpensesForSenatorYearQuery.get(PoliticianRole.SENATOR, `${year}-%`) !== undefined
+    );
   }
 
   countByDeputy(deputyId: string): number {
