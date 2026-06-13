@@ -41,4 +41,9 @@ export class TseCandidatesRepository {
     };
     return result.count;
   }
+
+  getAllCpfs(): Set<string> {
+    const rows = this.db.prepare('SELECT cpf FROM tse_candidates').all() as { cpf: string }[];
+    return new Set(rows.map(r => r.cpf));
+  }
 }
