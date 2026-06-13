@@ -85,4 +85,15 @@ export class PoliticianRepository {
     const query = this.db.prepare('SELECT cpf, name FROM politicians');
     return query.all() as Array<{ cpf: string; name: string }>;
   }
+
+  getSenatorCodeToCpfMap(): Map<string, string> {
+    //TODO: Avoid hardcoding 'SENATOR' as it has its own enum
+    const rows = this.db
+      .prepare(
+        "SELECT cpf, source_api_id FROM politicians WHERE role = 'SENATOR' AND source_api_id IS NOT NULL",
+      )
+      .all() as Array<{ cpf: string; source_api_id: string }>;
+
+    return new Map(rows.map(r => [r.source_api_id, r.cpf]));
+  }
 }

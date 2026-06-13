@@ -31,6 +31,7 @@ export interface SeedDeputyOptions {
 
 export interface SeedSenatorOptions {
   name?: string;
+  sourceApiId?: string | null;
   uf?: string;
   electedAs?: string;
 }
@@ -56,14 +57,19 @@ export class TestPoliticianRepository {
   }
 
   seedSenator(cpf: string, options: SeedSenatorOptions = {}): void {
-    const { name = `Senator ${cpf}`, uf = 'SP', electedAs = 'ELEITO' } = options;
+    const {
+      name = `Senator ${cpf}`,
+      sourceApiId = null,
+      uf = 'SP',
+      electedAs = 'ELEITO',
+    } = options;
     this.seedParty();
     this.db
       .prepare(
         `INSERT OR IGNORE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-         VALUES (?, NULL, ?, ?, 'pt', ?, NULL, ?)`,
+         VALUES (?, ?, ?, ?, 'pt', ?, NULL, ?)`,
       )
-      .run(cpf, name, uf, PoliticianRole.SENATOR, electedAs);
+      .run(cpf, sourceApiId, name, uf, PoliticianRole.SENATOR, electedAs);
   }
 
   seedTSEDeputyRows(count: number): void {

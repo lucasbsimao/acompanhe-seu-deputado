@@ -29,5 +29,8 @@
   },
   "tseDonations": {
     "electionYears": [2022]
+  },
+  "senateExpenses": {
+    "yearsToFetch": 4
   }
 }
