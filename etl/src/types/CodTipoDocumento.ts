@@ -46,36 +46,34 @@ export enum CodTipoDocumento {
   NOTA_FISCAL_ELETRONICA = 4,
 
   // CEAPS-only codes (Senate, string-based labels)
-  CUPOM_FISCAL = 10, // CEAPS "Cupom Fiscal"
-  FATURA = 11, // CEAPS "Fatura"
-  BOLETO = 12, // CEAPS "Boleto"
-  PASSAGEM = 13, // CEAPS "Passagem / Bilhete / Código Localizador"
-  //TODO: Why is RECIBO distinct from RECIBOS_OUTROS?
-  RECIBO = 14, // CEAPS "Recibo" (distinct from RECIBOS_OUTROS catch-all)
-  OTHER = 99, // Unmapped CEAPS string — emits console.warn
-}
 
-export const CEAPS_DOCUMENT_TYPE_MAP: Record<string, CodTipoDocumento> = {
-  'Nota Fiscal': CodTipoDocumento.NOTA_FISCAL,
-  'Nota Fiscal Eletrônica': CodTipoDocumento.NOTA_FISCAL_ELETRONICA,
-  'Cupom Fiscal': CodTipoDocumento.CUPOM_FISCAL,
-  Fatura: CodTipoDocumento.FATURA,
-  Boleto: CodTipoDocumento.BOLETO,
-  'Passagem / Bilhete / Código Localizador': CodTipoDocumento.PASSAGEM,
-  Recibo: CodTipoDocumento.RECIBO,
-};
+  /** Cupom Fiscal — consumer fiscal coupon issued at point of sale. */
+  CUPOM_FISCAL = 10,
 
-/**
- * TODO: This function should reside inside a types module?
- * Maps CEAPS document type labels to their numeric codes.
- * Returns CodTipoDocumento.OTHER and warns if the label is unmapped.
- */
-export function mapCeapsDocumentType(label: string): CodTipoDocumento {
-  const code = CEAPS_DOCUMENT_TYPE_MAP[label];
-  if (code !== undefined) {
-    return code;
-  }
+  /** Fatura — itemised bill (utilities, telecom, credit card statement). */
+  FATURA = 11,
 
-  console.warn(`Unmapped CEAPS document type: "${label}"`);
-  return CodTipoDocumento.OTHER;
+  /** Boleto — Brazilian bank slip used as a payment document. */
+  BOLETO = 12,
+
+  /**
+   * Passagem / Bilhete / Código Localizador — travel ticket or booking
+   * reference (flight, bus, train).
+   */
+  PASSAGEM = 13,
+
+  /**
+   * Recibo — a plain receipt, as classified by the Senate's CEAPS system.
+   *
+   * Distinct from {@link RECIBOS_OUTROS}: that Câmara code (1) is a compound
+   * catch-all ("Recibos/Outros") that bundles receipts together with any
+   * document the Câmara API cannot otherwise classify. The Senate treats
+   * "Recibo" as a precise, standalone category, so mapping it to
+   * RECIBOS_OUTROS would conflate a specific document type with an
+   * uncategorized-documents bucket.
+   */
+  RECIBO = 14,
+
+  /** Sentinel for any CEAPS label not yet mapped; logs a console.warn. */
+  OTHER = 99,
 }
