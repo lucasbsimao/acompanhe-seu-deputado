@@ -7,7 +7,7 @@ import { ExpensesRepository, type ExpenseRow } from '../../repositories/Expenses
 import { SenatorsPipeline } from './SenatorsPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import { normalizeLabel, normalizeNumericText } from '../../util/normalization.util';
-import { mapCeapsDocumentType } from '../../types/CodTipoDocumento';
+import { mapCeapsDocumentType } from '../../mappers/CodTipoDocumento.mapper';
 import defaultConfig from '../../config/defaults.json';
 
 interface CeapsExpenseDto {
