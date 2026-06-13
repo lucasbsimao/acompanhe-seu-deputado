@@ -26,5 +26,8 @@
     "fileCount": 10,
     "referenceYearMonth": "2026-05",
     "simplesFileName": "Simples.zip"
+  },
+  "tseDonations": {
+    "electionYears": [2022]
   }
 }
