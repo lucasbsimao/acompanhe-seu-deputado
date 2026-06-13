@@ -41,7 +41,7 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 - **Signal**: Medium — 20 pt
 - **Data**: CEAP only
 - **Depends on**: `forensic_flags` infrastructure (to be added)
-- Post-ingestion SQL: vendors with exactly 1 distinct `deputy_id` across ≥ 5 total expenses
+- Post-ingestion SQL: vendors with exactly 1 distinct `politician_id` across ≥ 5 total expenses
 - ≥ 5 minimum avoids penalising genuine one-off vendors
 - Signal is strongest when combined with `VENDOR_IS_CPF` or `RECIBO_DOCUMENT`
 - Corpus: 91,718 affected expenses (13.8% prevalence) — Medium tier is appropriate
@@ -51,10 +51,10 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 - **Signal**: Medium-High — 40 pt
 - **Data**: CEAP only (no external datasets)
 - **Depends on**: `forensic_flags` infrastructure (to be added)
-- Same `(cnpj_cpf_fornecedor, num_documento)` pair appears in ≥ 2 expenses for the **same `deputy_id`**
+- Same `(cnpj_cpf_fornecedor, num_documento)` pair appears in ≥ 2 expenses for the **same `politician_id`**
 - Apply S/N placeholder exclusion before comparison (TRIM + UPPER normalisation): `S/N`, `s/n`, `SN`, `sn`, `S.N.`, `S/Nº`, `00`, `000`, `0`, `-`, blank — 1,111 of 6,777 raw duplicate pairs are S/N placeholders; without exclusion the 40 pt weight causes any S/N receipt to immediately exceed the "high suspicion" threshold on its own
-- Apply same S/N exclusion list as `CROSS_DEPUTY_INVOICE_REUSE` (to be added as a separate task)
-- Does **not** auto-escalate — same-deputy duplicate has a non-zero FPR: a data correction or amended-expense re-submission can produce identical `(cnpj, num_documento)` values under the same deputy. Unlike `CROSS_DEPUTY_INVOICE_REUSE`, there is no definitively fraudulent interpretation.
+- Apply same S/N exclusion list as `CROSS_POLITICIAN_INVOICE_REUSE` (to be added as a separate task)
+- Does **not** auto-escalate — same-politician duplicate has a non-zero FPR: a data correction or amended-expense re-submission can produce identical `(cnpj, num_documento)` values under the same politician. Unlike `CROSS_POLITICIAN_INVOICE_REUSE`, there is no definitively fraudulent interpretation.
 - Corpus: ~5,666 true duplicate pairs after S/N exclusion (~1.7% of corpus)
 
 ### 6. Fix `EXTREME_AMOUNT` guardrails
@@ -65,8 +65,8 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
   - MANUTENCAO: 25.9% flagged due to geographic rent variance (min R$102 → max R$19,499 per deputy)
   - SEGURANCA: bimodal distribution — monthly contracts vs individual bookings; 39.7% flagged
 - Required changes:
-  - Use **per-deputy median** for same `tipo_despesa` (not global median)
-  - Minimum **5 prior expenses** per deputy per category before using per-deputy median; fall back to global P75 if below threshold
+  - Use **per-politician median** for same `tipo_despesa` (not global median)
+  - Minimum **5 prior expenses** per politician per category before using per-politician median; fall back to global P75 if below threshold
   - Use **5× multiplier** (instead of 3×) for: TAXI, MANUTENCAO DE ESCRITORIO, DIVULGACAO DA ATIVIDADE PARLAMENTAR, SERVICO DE SEGURANCA
 
 ---
@@ -180,7 +180,7 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
   |---|:---:|:---:|---|
   | Review (yellow) | ≥ 25 | ~2.5% (~16,400 exp.) | DUPLICATE+RECIBO, EXPENSE_ABROAD + any co-signal |
   | Priority (orange) | ≥ 32 | ~0.66% (~4,400 exp.) | Three or more co-occurring meaningful signals |
-  | Escalate (red) | bypass | ~0% | `CROSS_DEPUTY_INVOICE` |
+  | Escalate (red) | bypass | ~0% | `CROSS_POLITICIAN_INVOICE` |
 - **Thresholds must be re-simulated after each new flag is added** — every external-data flag shifts the distribution rightward and increases alert rates
 
 ---
@@ -189,7 +189,7 @@ Unlocks the "Esquema de Locação Fantasma" composite from §6. `vendor_partners
 
 ```
 forensic_flags table — TO BE ADDED BACK
- └─► CROSS_DEPUTY_INVOICE_REUSE — TO BE ADDED BACK
+ └─► CROSS_POLITICIAN_INVOICE_REUSE — TO BE ADDED BACK
  └─► #5 SINGLE_CLIENT_VENDOR
  └─► #6 DUPLICATE_INVOICE
 

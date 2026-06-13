@@ -100,14 +100,14 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
   }
 
   shouldDownload(): Promise<boolean> {
-    return Promise.resolve(!this.repo.hasExpensesForDeputy(this.currentCpf));
+    return Promise.resolve(!this.repo.hasExpensesForPolitician(this.currentCpf));
   }
 
   onPageFetched(items: ExpenseData[]): Promise<void> {
     this.repo.insertBatch(
       items.map(e => ({
         id: `${this.currentCpf}_${e.codDocumento}`,
-        deputyId: this.currentCpf,
+        politicianId: this.currentCpf,
         tipoDespesa: normalizeLabel(e.tipoDespesa),
         codDocumento: e.codDocumento,
         codTipoDocumento: e.codTipoDocumento,

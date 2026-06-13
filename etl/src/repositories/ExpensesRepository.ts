@@ -2,10 +2,11 @@
 
 import type Database from 'better-sqlite3';
 import { CodTipoDocumento } from '../types/CodTipoDocumento';
+import { PoliticianRole } from '../types/PoliticianRole';
 
 export interface ExpenseRow {
   id: string;
-  deputyId: string;
+  politicianId: string;
   tipoDespesa: string;
   codDocumento: string;
   codTipoDocumento: CodTipoDocumento;
@@ -23,26 +24,33 @@ export class ExpensesRepository {
   private readonly insertExpense: Database.Statement;
   private readonly insertAll: (rows: ExpenseRow[]) => void;
   private readonly hasExpensesQuery: Database.Statement;
-  private readonly countByDeputyQuery: Database.Statement;
+  private readonly hasExpensesForSenatorYearQuery: Database.Statement;
+  private readonly countByPoliticianQuery: Database.Statement;
 
   constructor(db: Database.Database) {
     this.db = db;
     this.insertExpense = db.prepare(
       `INSERT OR REPLACE INTO expenses (
-        id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
+        id, politician_id, tipo_despesa, cod_documento, cod_tipo_documento,
         data_documento, num_documento, url_documento, nome_fornecedor,
         cnpj_cpf_fornecedor, valor_liquido, valor_glosa
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
-    this.hasExpensesQuery = db.prepare('SELECT 1 FROM expenses WHERE deputy_id = ? LIMIT 1');
-    this.countByDeputyQuery = db.prepare(
-      'SELECT COUNT(*) as count FROM expenses WHERE deputy_id = ?',
+    this.hasExpensesQuery = db.prepare('SELECT 1 FROM expenses WHERE politician_id = ? LIMIT 1');
+    this.hasExpensesForSenatorYearQuery = db.prepare(`
+      SELECT 1 FROM expenses
+      WHERE politician_id IN (SELECT cpf FROM politicians WHERE role = ?)
+        AND data_documento LIKE ?
+      LIMIT 1
+    `);
+    this.countByPoliticianQuery = db.prepare(
+      'SELECT COUNT(*) as count FROM expenses WHERE politician_id = ?',
     );
     this.insertAll = db.transaction((rows: ExpenseRow[]) => {
       for (const r of rows) {
         this.insertExpense.run(
           r.id,
-          r.deputyId,
+          r.politicianId,
           r.tipoDespesa,
           r.codDocumento,
           r.codTipoDocumento,
@@ -62,12 +70,18 @@ export class ExpensesRepository {
     this.insertAll(rows);
   }
 
-  hasExpensesForDeputy(deputyId: string): boolean {
-    return this.hasExpensesQuery.get(deputyId) !== undefined;
+  hasExpensesForPolitician(politicianId: string): boolean {
+    return this.hasExpensesQuery.get(politicianId) !== undefined;
   }
 
-  countByDeputy(deputyId: string): number {
-    const result = this.countByDeputyQuery.get(deputyId) as { count: number };
+  hasExpensesForSenatorYear(year: number): boolean {
+    return (
+      this.hasExpensesForSenatorYearQuery.get(PoliticianRole.SENATOR, `${year}-%`) !== undefined
+    );
+  }
+
+  countByPolitician(politicianId: string): number {
+    const result = this.countByPoliticianQuery.get(politicianId) as { count: number };
     return result.count;
   }
 

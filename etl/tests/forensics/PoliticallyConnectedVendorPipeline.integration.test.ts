@@ -39,7 +39,7 @@ describe('PoliticallyConnectedVendorPipeline Integration Tests', () => {
     vendorRepoTest.seedMinimalVendor(cnpj, 'VENDOR LTDA');
     expensesRepoTest.seedExpense({
       id: 'EXP-1',
-      deputyId: 'DEPUTY001',
+      politicianId: 'DEPUTY001',
       cnpj: cnpj,
     });
     vendorRepoTest.seedPartner(cnpj, partnerCpf, partnerName);
@@ -67,7 +67,7 @@ describe('PoliticallyConnectedVendorPipeline Integration Tests', () => {
     vendorRepoTest.seedMinimalVendor(cnpj, 'VENDOR LTDA');
     expensesRepoTest.seedExpense({
       id: 'EXP-2',
-      deputyId: 'DEPUTY001',
+      politicianId: 'DEPUTY001',
       cnpj: cnpj,
     });
     vendorRepoTest.seedPartner(cnpj, partnerCpf, 'NON CANDIDATE');
@@ -87,7 +87,7 @@ describe('PoliticallyConnectedVendorPipeline Integration Tests', () => {
     vendorRepoTest.seedMinimalVendor(cnpj, 'VENDOR LTDA');
     expensesRepoTest.seedExpense({
       id: 'EXP-3',
-      deputyId: 'DEPUTY001',
+      politicianId: 'DEPUTY001',
       cnpj: cnpj,
     });
     vendorRepoTest.seedPartner(cnpj, partnerCpf, 'JOAO DA SILVA');
@@ -107,7 +107,7 @@ describe('PoliticallyConnectedVendorPipeline Integration Tests', () => {
     politicianRepoTest.seedDeputy('DEPUTY001');
     expensesRepoTest.seedExpense({
       id: 'EXP-4',
-      deputyId: 'DEPUTY001',
+      politicianId: 'DEPUTY001',
       cnpj: cnpj,
     });
     // No seedPartner call

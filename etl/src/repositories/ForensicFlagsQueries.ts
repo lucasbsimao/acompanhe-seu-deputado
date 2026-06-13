@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-export const CROSS_DEPUTY_INVOICE_REUSE_SQL = `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+export const CROSS_POLITICIAN_INVOICE_REUSE_SQL = `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
          SELECT
            'expenses' AS source_table,
            e.id AS entity_id,
@@ -16,7 +16,7 @@ export const CROSS_DEPUTY_INVOICE_REUSE_SQL = `INSERT OR REPLACE INTO forensic_f
              WHERE TRIM(UPPER(num_documento)) NOT IN (SELECT value FROM json_each(?))
                AND cnpj_cpf_fornecedor != ''
              GROUP BY cnpj_cpf_fornecedor, num_documento
-             HAVING COUNT(DISTINCT deputy_id) >= 2
+             HAVING COUNT(DISTINCT politician_id) >= 2
            )`;
 
 export const CNPJ_POSTDATES_EXPENSE_SQL = `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)

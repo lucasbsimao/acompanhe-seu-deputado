@@ -31,7 +31,7 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       tipoDespesa: 'MANUTENCAO DE ESCRITORIO',
     });
@@ -54,7 +54,7 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       tipoDespesa: 'LOCACAO OU FRETAMENTO DE VEICULOS',
     });
@@ -73,7 +73,7 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       tipoDespesa: 'MANUTENCAO DE ESCRITORIO',
     });
@@ -91,7 +91,7 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       tipoDespesa: 'SERVICO DE SEGURANCA',
     });
@@ -109,7 +109,7 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       tipoDespesa: 'MANUTENCAO DE ESCRITORIO',
     });
@@ -126,7 +126,7 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       tipoDespesa: 'MANUTENCAO DE ESCRITORIO',
     });
@@ -143,7 +143,7 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       tipoDespesa: 'COMBUSTIVEIS E LUBRIFICANTES',
     });
@@ -160,7 +160,7 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '12345678901',
       tipoDespesa: 'MANUTENCAO DE ESCRITORIO',
     });
@@ -177,7 +177,7 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       tipoDespesa: 'MANUTENCAO DE ESCRITORIO',
     });
@@ -195,13 +195,13 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF002');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       tipoDespesa: 'MANUTENCAO DE ESCRITORIO',
     });
     expensesRepo.seedExpense({
       id: 'EXP-2',
-      deputyId: 'CPF002',
+      politicianId: 'CPF002',
       cnpj: '11222333000181',
       tipoDespesa: 'SERVICO DE SEGURANCA',
     });
@@ -222,7 +222,7 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       tipoDespesa: 'MANUTENCAO DE ESCRITORIO',
     });

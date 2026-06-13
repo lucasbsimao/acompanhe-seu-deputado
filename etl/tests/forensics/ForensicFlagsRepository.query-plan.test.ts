@@ -8,7 +8,7 @@ import { ForensicFlagsRepository } from '../../src/repositories/ForensicFlagsRep
 import { ForensicFlag } from '../../src/pipelines/forensics/ForensicFlag';
 import { CompanySize } from '../../src/types/CompanySize';
 import {
-  CROSS_DEPUTY_INVOICE_REUSE_SQL,
+  CROSS_POLITICIAN_INVOICE_REUSE_SQL,
   CNPJ_POSTDATES_EXPENSE_SQL,
   CNPJ_INACTIVE_AT_EXPENSE_SQL,
   CNPJ_MISSING_ESTABLISHMENT_SQL,
@@ -51,7 +51,7 @@ function seedVolumeData(db: Database.Database): void {
 
   const insertExpense = db.prepare(
     `INSERT OR IGNORE INTO expenses
-       (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
+       (id, politician_id, tipo_despesa, cod_documento, cod_tipo_documento,
         data_documento, num_documento, nome_fornecedor, cnpj_cpf_fornecedor, valor_liquido, valor_glosa)
      VALUES (?, 'DEPUTY001', ?, ?, 0, '2023-06-01', ?, 'Vendor', ?, 10000, 0)`,
   );
@@ -117,8 +117,8 @@ describe('ForensicFlagsRepository — query plan', () => {
       }
 
       assertNoUnindexedJoinScan(
-        explainPlan(CROSS_DEPUTY_INVOICE_REUSE_SQL),
-        'insertCrossDeputyInvoiceReuse',
+        explainPlan(CROSS_POLITICIAN_INVOICE_REUSE_SQL),
+        'insertCrossPoliticianInvoiceReuse',
       );
       assertNoUnindexedJoinScan(
         explainPlan(CNPJ_POSTDATES_EXPENSE_SQL),
@@ -153,8 +153,9 @@ describe('ForensicFlagsRepository — query plan', () => {
 
       const cases: Array<[string, () => void]> = [
         [
-          'insertCrossDeputyInvoiceReuse',
-          () => repo.insertCrossDeputyInvoiceReuse(ForensicFlag.CROSS_DEPUTY_INVOICE_REUSE, []),
+          'insertCrossPoliticianInvoiceReuse',
+          () =>
+            repo.insertCrossPoliticianInvoiceReuse(ForensicFlag.CROSS_POLITICIAN_INVOICE_REUSE, []),
         ],
         [
           'insertCnpjPostdatesExpense',

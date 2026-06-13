@@ -6,9 +6,9 @@ import { PoliticianRole } from '../../../types/PoliticianRole';
 import { TSECargo } from '../../../types/TSECargo';
 import {
   TSEElectionResultStatus,
-  tseElectionResultStatusFromValue,
   type TSEElectionResultStatusKey,
 } from '../../../types/TSEElectionResultStatus';
+import { tseElectionResultStatusFromValue } from '../../../mappers/TSEElectionResultStatus.mapper';
 import { normalizeCPF, isValidCPF } from '../../../util/cpf.util';
 import { normalizeId } from '../../../util/normalization.util';
 import type { TSECandidate } from '../../../types/TSECandidate';

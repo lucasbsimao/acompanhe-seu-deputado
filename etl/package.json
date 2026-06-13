@@ -5,10 +5,11 @@
   "license": "AGPL-3.0-or-later",
   "main": "dist/etl/src/main.js",
   "scripts": {
+    "clean": "rm -rf dist",
     "build": "tsc",
     "start": "npm run build && node dist/etl/src/main.js",
     "dev": "ts-node src/main.ts",
-    "test": "npm run build && node --test 'dist/etl/tests/**/*.test.js'",
+    "test": "npm run clean && npm run build && node --test 'dist/etl/tests/**/*.test.js'",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",

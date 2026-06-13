@@ -31,7 +31,7 @@ describe('CnpjPostdatesExpensePipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-01',
     });
@@ -53,7 +53,7 @@ describe('CnpjPostdatesExpensePipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-2',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-15',
     });
@@ -70,7 +70,7 @@ describe('CnpjPostdatesExpensePipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-3',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-07-01',
     });
@@ -87,7 +87,7 @@ describe('CnpjPostdatesExpensePipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-4',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-01',
     });
@@ -104,7 +104,7 @@ describe('CnpjPostdatesExpensePipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-5',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '12345678901',
       dataDocumento: '2023-06-01',
     });
@@ -121,7 +121,7 @@ describe('CnpjPostdatesExpensePipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-6',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-01',
     });
@@ -137,7 +137,7 @@ describe('CnpjPostdatesExpensePipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-7',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-01',
     });

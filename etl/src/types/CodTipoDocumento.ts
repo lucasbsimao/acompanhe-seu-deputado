@@ -44,4 +44,36 @@ export enum CodTipoDocumento {
    * Brazil's NF-e mandate.
    */
   NOTA_FISCAL_ELETRONICA = 4,
+
+  // CEAPS-only codes (Senate, string-based labels)
+
+  /** Cupom Fiscal — consumer fiscal coupon issued at point of sale. */
+  CUPOM_FISCAL = 10,
+
+  /** Fatura — itemised bill (utilities, telecom, credit card statement). */
+  FATURA = 11,
+
+  /** Boleto — Brazilian bank slip used as a payment document. */
+  BOLETO = 12,
+
+  /**
+   * Passagem / Bilhete / Código Localizador — travel ticket or booking
+   * reference (flight, bus, train).
+   */
+  PASSAGEM = 13,
+
+  /**
+   * Recibo — a plain receipt, as classified by the Senate's CEAPS system.
+   *
+   * Distinct from {@link RECIBOS_OUTROS}: that Câmara code (1) is a compound
+   * catch-all ("Recibos/Outros") that bundles receipts together with any
+   * document the Câmara API cannot otherwise classify. The Senate treats
+   * "Recibo" as a precise, standalone category, so mapping it to
+   * RECIBOS_OUTROS would conflate a specific document type with an
+   * uncategorized-documents bucket.
+   */
+  RECIBO = 14,
+
+  /** Sentinel for any CEAPS label not yet mapped; logs a console.warn. */
+  OTHER = 99,
 }

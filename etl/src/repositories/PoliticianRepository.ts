@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type Database from 'better-sqlite3';
-import type { PoliticianRole } from '../types/PoliticianRole';
+import { PoliticianRole } from '../types/PoliticianRole';
 import type { TSEElectionResultStatusKey } from '../types/TSEElectionResultStatus';
 
 export interface PoliticianRow {
@@ -84,5 +84,15 @@ export class PoliticianRepository {
   getAllForLookup(): Array<{ cpf: string; name: string }> {
     const query = this.db.prepare('SELECT cpf, name FROM politicians');
     return query.all() as Array<{ cpf: string; name: string }>;
+  }
+
+  getSenatorCodeToCpfMap(): Map<string, string> {
+    const rows = this.db
+      .prepare(
+        'SELECT cpf, source_api_id FROM politicians WHERE role = ? AND source_api_id IS NOT NULL',
+      )
+      .all(PoliticianRole.SENATOR) as Array<{ cpf: string; source_api_id: string }>;
+
+    return new Map(rows.map(r => [r.source_api_id, r.cpf]));
   }
 }
