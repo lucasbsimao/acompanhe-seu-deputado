@@ -56,6 +56,8 @@ export function createTestDatabase(): TestDatabase {
         db.exec('DELETE FROM emendas_parlamentares');
         db.exec('DELETE FROM politicians');
         db.exec('DELETE FROM parties');
+        db.exec('DELETE FROM tse_candidates');
+        db.exec('DELETE FROM tse_donations');
         db.exec('DELETE FROM pipeline_runs');
       }
     },
