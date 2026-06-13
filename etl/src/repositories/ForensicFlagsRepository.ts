@@ -5,7 +5,7 @@ import type { ForensicFlag } from '../pipelines/forensics/ForensicFlag';
 import { FORENSIC_FLAG_SCORES } from '../pipelines/forensics/ForensicFlag';
 import { CompanySize } from '../types/CompanySize';
 import {
-  CROSS_DEPUTY_INVOICE_REUSE_SQL,
+  CROSS_POLITICIAN_INVOICE_REUSE_SQL,
   CNPJ_POSTDATES_EXPENSE_SQL,
   CNPJ_INACTIVE_AT_EXPENSE_SQL,
   CNPJ_MISSING_ESTABLISHMENT_SQL,
@@ -22,13 +22,13 @@ export class ForensicFlagsRepository {
     this.db = db;
   }
 
-  insertCrossDeputyInvoiceReuse(
+  insertCrossPoliticianInvoiceReuse(
     flagName: ForensicFlag,
     excludedSerialNumbers: readonly string[],
   ): void {
     const score = FORENSIC_FLAG_SCORES[flagName];
     const snJson = JSON.stringify(excludedSerialNumbers);
-    this.db.prepare(CROSS_DEPUTY_INVOICE_REUSE_SQL).run(flagName, score, snJson, snJson);
+    this.db.prepare(CROSS_POLITICIAN_INVOICE_REUSE_SQL).run(flagName, score, snJson, snJson);
   }
 
   insertCnpjPostdatesExpense(flagName: ForensicFlag): void {

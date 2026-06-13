@@ -4,7 +4,7 @@ import type Database from 'better-sqlite3';
 
 export interface TestExpenseSeed {
   id: string;
-  deputyId: string;
+  politicianId: string;
   cnpj: string;
   numDocumento?: string;
   dataDocumento?: string;
@@ -17,7 +17,7 @@ export class TestExpensesRepository {
   seedExpense(seed: TestExpenseSeed): void {
     const {
       id,
-      deputyId,
+      politicianId,
       cnpj,
       numDocumento = 'NF-1',
       dataDocumento = '2024-01-01',
@@ -25,12 +25,12 @@ export class TestExpensesRepository {
     } = seed;
     this.db
       .prepare(
-        `INSERT INTO expenses (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
+        `INSERT INTO expenses (id, politician_id, tipo_despesa, cod_documento, cod_tipo_documento,
           data_documento, num_documento, url_documento, nome_fornecedor, cnpj_cpf_fornecedor,
           valor_liquido, valor_glosa)
          VALUES (?, ?, ?, ?, 0, ?, ?, NULL, 'Vendor LTDA', ?, 10000, 0)`,
       )
-      .run(id, deputyId, tipoDespesa, id, dataDocumento, numDocumento, cnpj);
+      .run(id, politicianId, tipoDespesa, id, dataDocumento, numDocumento, cnpj);
   }
 
   seedExpenseWithCnpj(cnpj: string, suffix: string = '001'): void {
@@ -46,7 +46,7 @@ export class TestExpensesRepository {
     this.db
       .prepare(
         `INSERT OR IGNORE INTO expenses
-          (id, deputy_id, tipo_despesa, cod_documento, cod_tipo_documento,
+          (id, politician_id, tipo_despesa, cod_documento, cod_tipo_documento,
            data_documento, num_documento, url_documento, nome_fornecedor,
            cnpj_cpf_fornecedor, valor_liquido, valor_glosa)
          VALUES (?, '12345678901', 'Despesa Teste', ?, 0, '2026-01-01', ?, NULL, 'Fornecedor Teste', ?, 10000, 0)`,

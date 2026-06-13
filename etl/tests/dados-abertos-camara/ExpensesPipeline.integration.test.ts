@@ -52,7 +52,7 @@ function buildExpensesQuery(page: number, yearsToFetch = 4): Record<string, stri
 
 interface ExpenseRow {
   id: string;
-  deputy_id: string;
+  politician_id: string;
   tipo_despesa: string;
   cod_documento: string;
   nome_fornecedor: string;
@@ -101,7 +101,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     assert.strictEqual(rows.length, 2, 'Should contain 2 expense rows');
 
     assert.strictEqual(rows[0].id, `${DEPUTY_CPF}_DOC001`, 'ID should be cpf_codDocumento');
-    assert.strictEqual(rows[0].deputy_id, DEPUTY_CPF, 'deputy_id should match CPF');
+    assert.strictEqual(rows[0].politician_id, DEPUTY_CPF, 'politician_id should match CPF');
     assert.strictEqual(rows[0].cod_documento, 'DOC001', 'cod_documento should match');
     assert.strictEqual(
       rows[0].nome_fornecedor,
@@ -183,7 +183,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     // Pre-seed an existing expense so shouldDownload() returns false
     expensesRepo.seedExpense({
       id: `${DEPUTY_CPF}_EXISTING001`,
-      deputyId: DEPUTY_CPF,
+      politicianId: DEPUTY_CPF,
       cnpj: '12345678000199',
       numDocumento: 'NF-EXISTING',
     });
@@ -207,7 +207,7 @@ describe('ExpensesPipeline Integration Tests', () => {
     // Pre-seed an existing expense
     expensesRepo.seedExpense({
       id: `${DEPUTY_CPF}_EXISTING001`,
-      deputyId: DEPUTY_CPF,
+      politicianId: DEPUTY_CPF,
       cnpj: '12345678000199',
       numDocumento: 'NF-EXISTING',
     });
@@ -257,10 +257,14 @@ describe('ExpensesPipeline Integration Tests', () => {
     await pipeline.execute(true);
 
     const dep1Count = (
-      db.prepare('SELECT COUNT(*) as cnt FROM expenses WHERE deputy_id = ?').get(cpf1) as CountRow
+      db
+        .prepare('SELECT COUNT(*) as cnt FROM expenses WHERE politician_id = ?')
+        .get(cpf1) as CountRow
     ).cnt;
     const dep2Count = (
-      db.prepare('SELECT COUNT(*) as cnt FROM expenses WHERE deputy_id = ?').get(cpf2) as CountRow
+      db
+        .prepare('SELECT COUNT(*) as cnt FROM expenses WHERE politician_id = ?')
+        .get(cpf2) as CountRow
     ).cnt;
     assert.strictEqual(dep1Count, 1, 'Deputy 1 should have 1 expense');
     assert.strictEqual(dep2Count, 1, 'Deputy 2 should have 1 expense');

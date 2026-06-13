@@ -86,7 +86,7 @@ export class CeapsExpensesPipeline {
 
         rows.push({
           id: String(expense.id),
-          deputyId: senatorCpf,
+          politicianId: senatorCpf,
           tipoDespesa: normalizeLabel(expense.tipoDespesa),
           codDocumento: String(expense.id),
           codTipoDocumento: mapCeapsDocumentType(expense.tipoDocumento),

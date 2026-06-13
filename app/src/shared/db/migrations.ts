@@ -11,6 +11,7 @@ import { migration008 } from './migrations/008_add_employee_count_to_vendors';
 import { migration009 } from './migrations/009_create_tse_candidates_table';
 import { migration010 } from './migrations/010_add_performance_indexes';
 import { migration011 } from './migrations/011_create_tse_donations_table';
+import { migration012 } from './migrations/012_rename_deputy_id_to_politician_id_in_expenses';
 
 export type Migration = {
   version: string;
@@ -29,4 +30,5 @@ export const migrations: Migration[] = [
   migration009,
   migration010,
   migration011,
+  migration012,
 ];

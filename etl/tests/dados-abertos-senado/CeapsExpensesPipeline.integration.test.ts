@@ -14,7 +14,7 @@ const API_BASE_URL = 'https://adm.senado.gov.br';
 
 interface ExpenseRow {
   id: string;
-  deputy_id: string;
+  politician_id: string;
   tipo_despesa: string;
   cod_documento: string;
   cod_tipo_documento: number;
@@ -92,7 +92,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
     assert.strictEqual(result.length, 2);
 
     assert.strictEqual(result[0].id, '101');
-    assert.strictEqual(result[0].deputy_id, senatorCpf);
+    assert.strictEqual(result[0].politician_id, senatorCpf);
     assert.strictEqual(result[0].tipo_despesa, 'ALUGUEL DE IMOVEIS E DESPESAS CONDOMINIAIS');
     assert.strictEqual(result[0].cod_tipo_documento, CodTipoDocumento.NOTA_FISCAL);
     assert.strictEqual(result[0].valor_liquido, 150050);
@@ -159,7 +159,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
     politicianRepo.seedSenator(senatorCpf, { sourceApiId: '5672' });
     expensesRepo.seedExpense({
       id: '999',
-      deputyId: senatorCpf,
+      politicianId: senatorCpf,
       tipoDespesa: 'TEST',
       dataDocumento: `${year}-01-01`,
       numDocumento: 'DOC',

@@ -299,7 +299,7 @@ describe('ReceitaFederalCNPJPipeline Integration Tests', () => {
     });
     expensesRepo.seedExpense({
       id: '99999999901_DOCX01',
-      deputyId: '99999999901',
+      politicianId: '99999999901',
       cnpj: '99999999901',
       numDocumento: 'NF-X',
     }); // 11-digit CPF, excluded by getDistinctCnpjs filter

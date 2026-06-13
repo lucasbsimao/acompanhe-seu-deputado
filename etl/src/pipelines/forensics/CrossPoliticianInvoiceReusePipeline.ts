@@ -9,14 +9,14 @@ import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsReposit
 const SN_PLACEHOLDERS: readonly string[] = ['S/N', 'SN', 'S.N.', 'S/Nº', '00', '000', '0', '-', ''];
 
 /**
- * Forensic flag: CROSS_DEPUTY_INVOICE_REUSE
+ * Forensic flag: CROSS_POLITICIAN_INVOICE_REUSE
  *
  * Flags expenses where the same invoice number from the same vendor appears
- * under two or more distinct deputies in the CEAP database.
+ * under two or more distinct politicians in the CEAP database.
  * Known serial-number placeholders (S/N, SN, S.N., S/Nº, 00, 000, 0, -, "")
  * are excluded to avoid false positives on blank or zero invoice fields.
  *
- * A vendor can only legitimately issue each invoice once; reuse across deputies
+ * A vendor can only legitimately issue each invoice once; reuse across politicians
  * indicates double-billing by the vendor, coordinated ghost invoicing, or
  * expense entry errors involving the same physical document across different
  * political offices.
@@ -25,7 +25,7 @@ const SN_PLACEHOLDERS: readonly string[] = ['S/N', 'SN', 'S.N.', 'S/Nº', '00', 
  * services exclusively one party's caucus, suggesting coordinated over-billing
  * rather than clerical error.
  */
-export class CrossDeputyInvoiceReusePipeline {
+export class CrossPoliticianInvoiceReusePipeline {
   static readonly dependencies: readonly IPipelineDepChain[] = [ExpensesPipeline];
 
   private readonly repo: ForensicFlagsRepository;
@@ -35,11 +35,11 @@ export class CrossDeputyInvoiceReusePipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertCrossDeputyInvoiceReuse(
-      ForensicFlag.CROSS_DEPUTY_INVOICE_REUSE,
+    this.repo.insertCrossPoliticianInvoiceReuse(
+      ForensicFlag.CROSS_POLITICIAN_INVOICE_REUSE,
       SN_PLACEHOLDERS,
     );
-    console.log('CrossDeputyInvoiceReusePipeline completed');
+    console.log('CrossPoliticianInvoiceReusePipeline completed');
     return Promise.resolve();
   }
 }

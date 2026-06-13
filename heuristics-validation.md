@@ -8,13 +8,13 @@
 
 The DB stores `cod_tipo_documento` as an integer. Live API calls confirmed the labels:
 
-| Code | Label | Count | Avg value | S/N docs | CPF vendors | URL type |
-|------|-------|------:|----------:|---------:|------------:|----------|
-| 0 | Nota Fiscal | 346,334 | R$ 1,707 | 0.1% | 12 | Direct PDF |
-| 1 | **Recibos/Outros** | 108,631 | R$ 1,720 | **28.4%** | **5,945** | Direct PDF |
-| 2 | Despesa no Exterior | 301 | **R$ 5,688** | 8.6% | 0 | Direct PDF |
-| 3 | (Deprecated/Other) | 352 | R$ 654 | 1.7% | 0 | Direct PDF |
-| 4 | Nota Fiscal Eletrônica | 210,212 | R$ 315 | 0% | 0 | **HTML page (not PDF)** |
+| Code | Label                  |   Count |    Avg value |  S/N docs | CPF vendors | URL type                |
+| ---- | ---------------------- | ------: | -----------: | --------: | ----------: | ----------------------- |
+| 0    | Nota Fiscal            | 346,334 |     R$ 1,707 |      0.1% |          12 | Direct PDF              |
+| 1    | **Recibos/Outros**     | 108,631 |     R$ 1,720 | **28.4%** |   **5,945** | Direct PDF              |
+| 2    | Despesa no Exterior    |     301 | **R$ 5,688** |      8.6% |           0 | Direct PDF              |
+| 3    | (Deprecated/Other)     |     352 |       R$ 654 |      1.7% |           0 | Direct PDF              |
+| 4    | Nota Fiscal Eletrônica | 210,212 |       R$ 315 |        0% |           0 | **HTML page (not PDF)** |
 
 **Critical architectural note**: `cod_tipo_documento = 4` links to `nota-fiscal-eletronica?ideDocumentoFiscal=XXXXXX` — an HTML page, not a direct PDF. The pipeline plan assumes all `urlDocumento` values point to PDFs, which is false for 31.6% of expenses (210k rows).
 
@@ -26,36 +26,36 @@ The DB stores `cod_tipo_documento` as an integer. Live API calls confirmed the l
 
 ### Extraction rate by type
 
-| cod | Label | Sampled | pdf-parse extractable | Rate |
-|-----|-------|--------:|----------------------:|-----:|
-| 0 | Nota Fiscal | 16 | 4 | **25%** |
-| 1 | Recibos/Outros | 16 | 3 | **19%** |
-| 2 | Despesa no Exterior | 30 | 2 | **6.7%** (95% CI ≤ 10%) |
-| 3 | (Other) | 4 | 0 | **0%** |
-| **All** | | **58** | **9** | **15.5%** |
+| cod     | Label               | Sampled | pdf-parse extractable |                    Rate |
+| ------- | ------------------- | ------: | --------------------: | ----------------------: |
+| 0       | Nota Fiscal         |      16 |                     4 |                 **25%** |
+| 1       | Recibos/Outros      |      16 |                     3 |                 **19%** |
+| 2       | Despesa no Exterior |      30 |                     2 | **6.7%** (95% CI ≤ 10%) |
+| 3       | (Other)             |       4 |                     0 |                  **0%** |
+| **All** |                     |  **58** |                 **9** |               **15.5%** |
 
 ### PDF producer → extractability pattern
 
-| Producer/Creator | Extractable | Notes |
-|-----------------|:-----------:|-------|
-| `iText 2.1.7` | ✅ always | DANFSe (electronic service invoice), structured digital output |
-| `PDFsharp` | ✅ always | DANFSe digital invoices |
-| `PDFium` | ✅ always | Chrome/browser "Print to PDF" of digital receipt portals |
-| `iLovePDF` | ⚠️ sometimes | Passes through text if fed a text PDF; otherwise compresses scans |
-| `GPL Ghostscript` | ⚠️ rarely | May embed fonts but encodes content as images in most cases |
-| `HP Scan`, `Qt 4.8.7`, `Skia/PDF`, `iOS`, `Apache FOP`, `dompdf` | ❌ never | Scanner apps, mobile, rendering engines — always image-based |
-| `Microsoft: Print To PDF` | ❌ | Scanned original printed and re-PDF'd |
+| Producer/Creator                                                 | Extractable  | Notes                                                             |
+| ---------------------------------------------------------------- | :----------: | ----------------------------------------------------------------- |
+| `iText 2.1.7`                                                    |  ✅ always   | DANFSe (electronic service invoice), structured digital output    |
+| `PDFsharp`                                                       |  ✅ always   | DANFSe digital invoices                                           |
+| `PDFium`                                                         |  ✅ always   | Chrome/browser "Print to PDF" of digital receipt portals          |
+| `iLovePDF`                                                       | ⚠️ sometimes | Passes through text if fed a text PDF; otherwise compresses scans |
+| `GPL Ghostscript`                                                |  ⚠️ rarely   | May embed fonts but encodes content as images in most cases       |
+| `HP Scan`, `Qt 4.8.7`, `Skia/PDF`, `iOS`, `Apache FOP`, `dompdf` |   ❌ never   | Scanner apps, mobile, rendering engines — always image-based      |
+| `Microsoft: Print To PDF`                                        |      ❌      | Scanned original printed and re-PDF'd                             |
 
 ### Extractable text samples (confirms content quality for CATEGORY_MISMATCH)
 
-| File | cod | Producer | Extracted text |
-|------|-----|----------|---------------|
-| `7750228.pdf` | 1 (Recibo) | PDFium | "Contrato" |
-| `7583518.pdf` | 1 (Recibo) | PDFium | "ALUGUEL", "CONDOMINIO", "IPTU/2023 6/10" |
-| `7722961.pdf` | 0 (NF) | iText | "LIGGA TELECOMUNICACOES SA", "AV VICENTE MACHADO", "Anatel" |
-| `8044227.pdf` | 0 (NF) | PDFsharp | "DANFSe", "v1.0", "Documento" |
-| `7632525.pdf` | 0 (NF) | iText | "Competência", "Código de Verificação", "Número do RPS" |
-| `8061956.pdf` | 0 (NF) | iLovePDF | "DANFSe", "v1.0", "Documento" |
+| File          | cod        | Producer | Extracted text                                              |
+| ------------- | ---------- | -------- | ----------------------------------------------------------- |
+| `7750228.pdf` | 1 (Recibo) | PDFium   | "Contrato"                                                  |
+| `7583518.pdf` | 1 (Recibo) | PDFium   | "ALUGUEL", "CONDOMINIO", "IPTU/2023 6/10"                   |
+| `7722961.pdf` | 0 (NF)     | iText    | "LIGGA TELECOMUNICACOES SA", "AV VICENTE MACHADO", "Anatel" |
+| `8044227.pdf` | 0 (NF)     | PDFsharp | "DANFSe", "v1.0", "Documento"                               |
+| `7632525.pdf` | 0 (NF)     | iText    | "Competência", "Código de Verificação", "Número do RPS"     |
+| `8061956.pdf` | 0 (NF)     | iLovePDF | "DANFSe", "v1.0", "Documento"                               |
 
 **Findings**:
 
@@ -83,23 +83,23 @@ The DB stores `cod_tipo_documento` as an integer. Live API calls confirmed the l
 
 #### Per-category statistics (Q1 / Median / Q3 / P95 / Max, all in R$)
 
-| Category | Count | Q1 | Median | Q3 | P95 | Max | 3×Median | Extreme rows | Extreme % |
-|----------|------:|---:|-------:|---:|----:|----:|---------:|-------------:|----------:|
-| COMBUSTIVEIS E LUBRIFICANTES | 233,158 | 157 | 221 | 287 | 449 | 9,392 | 663 | 7,089 | 3.0% |
-| PASSAGEM AEREA SIGEPA | 123,922 | 896 | 1,378 | 1,791 | 2,643 | 6,829 | 4,134 | 181 | 0.1% |
-| SERVICO DE TAXI PEDAGIO E ESTACIONAMENTO | 67,243 | 12 | 21 | 43 | 164 | 2,700 | 63 | 10,053 | **15.0%** |
-| MANUTENCAO DE ESCRITORIO | 65,183 | 224 | 584 | 1,854 | 6,600 | 31,799 | 1,752 | 16,904 | **25.9%** |
-| DIVULGACAO DA ATIVIDADE PARLAMENTAR | 55,585 | 1,000 | 3,000 | 7,500 | 20,000 | 184,428 | 9,000 | 11,388 | **20.5%** |
-| FORNECIMENTO DE ALIMENTACAO | 34,078 | 37 | 58 | 88 | 152 | 829 | 174 | 1,027 | 3.0% |
-| HOSPEDAGEM | 24,285 | 190 | 290 | 500 | 1,343 | 24,509 | 870 | 2,695 | 11.1% |
-| LOCACAO OU FRETAMENTO DE VEICULOS | 23,598 | 3,500 | 4,934 | 7,500 | 12,500 | 18,970 | 14,805 | 111 | 0.5% |
-| SERVICO DE SEGURANCA | 1,556 | 260 | 510 | — | — | 8,700 | 1,530 | 617 | **39.7%** |
-| PASSAGEM AEREA RPA | 2,903 | — | 1,027 | — | — | — | 3,081 | 254 | 8.7% |
-| LOCACAO OU FRETAMENTO DE AERONAVES | 304 | — | 20,000 | — | — | — | 60,000 | 17 | 5.6% |
+| Category                                 |   Count |    Q1 | Median |    Q3 |    P95 |     Max | 3×Median | Extreme rows | Extreme % |
+| ---------------------------------------- | ------: | ----: | -----: | ----: | -----: | ------: | -------: | -----------: | --------: |
+| COMBUSTIVEIS E LUBRIFICANTES             | 233,158 |   157 |    221 |   287 |    449 |   9,392 |      663 |        7,089 |      3.0% |
+| PASSAGEM AEREA SIGEPA                    | 123,922 |   896 |  1,378 | 1,791 |  2,643 |   6,829 |    4,134 |          181 |      0.1% |
+| SERVICO DE TAXI PEDAGIO E ESTACIONAMENTO |  67,243 |    12 |     21 |    43 |    164 |   2,700 |       63 |       10,053 | **15.0%** |
+| MANUTENCAO DE ESCRITORIO                 |  65,183 |   224 |    584 | 1,854 |  6,600 |  31,799 |    1,752 |       16,904 | **25.9%** |
+| DIVULGACAO DA ATIVIDADE PARLAMENTAR      |  55,585 | 1,000 |  3,000 | 7,500 | 20,000 | 184,428 |    9,000 |       11,388 | **20.5%** |
+| FORNECIMENTO DE ALIMENTACAO              |  34,078 |    37 |     58 |    88 |    152 |     829 |      174 |        1,027 |      3.0% |
+| HOSPEDAGEM                               |  24,285 |   190 |    290 |   500 |  1,343 |  24,509 |      870 |        2,695 |     11.1% |
+| LOCACAO OU FRETAMENTO DE VEICULOS        |  23,598 | 3,500 |  4,934 | 7,500 | 12,500 |  18,970 |   14,805 |          111 |      0.5% |
+| SERVICO DE SEGURANCA                     |   1,556 |   260 |    510 |     — |      — |   8,700 |    1,530 |          617 | **39.7%** |
+| PASSAGEM AEREA RPA                       |   2,903 |     — |  1,027 |     — |      — |       — |    3,081 |          254 |      8.7% |
+| LOCACAO OU FRETAMENTO DE AERONAVES       |     304 |     — | 20,000 |     — |      — |       — |   60,000 |           17 |      5.6% |
 
 #### Critical problem: 3× global median is miscalibrated for high-variance categories
 
-**SERVICO DE TAXI** (15% flagged): Median is R$21. 3× = R$63 — that is *below* the Q3 (R$43) and well below P95 (R$164). Anything above R$63 gets flagged, meaning a quarter of all taxi expenses are "extreme". An airport taxi ride easily exceeds R$63.
+**SERVICO DE TAXI** (15% flagged): Median is R$21. 3× = R$63 — that is _below_ the Q3 (R$43) and well below P95 (R$164). Anything above R$63 gets flagged, meaning a quarter of all taxi expenses are "extreme". An airport taxi ride easily exceeds R$63.
 
 **MANUTENCAO DE ESCRITORIO** (25.9% flagged): Wide variance is geographic — office rent in São Paulo costs 10× more than in a small interior town. Per-deputy median range across 555 deputies: min R$102 → max R$19,499 (191× spread). A global median of R$584 is meaningless as a reference.
 
@@ -111,15 +111,15 @@ The DB stores `cod_tipo_documento` as an integer. Live API calls confirmed the l
 
 #### Per-deputy vs global median: the plan is ambiguous
 
-The plan says *"3× the per-deputy median for same tipoDespesa"* but the parenthetical adds *"computed across all expenses in DB"*, which is contradictory. The data strongly favours per-deputy:
+The plan says _"3× the per-deputy median for same tipoDespesa"_ but the parenthetical adds _"computed across all expenses in DB"_, which is contradictory. The data strongly favours per-deputy:
 
-| Category | Deputy median range | Conclusion |
-|----------|--------------------:|------------|
-| COMBUSTIVEIS | R$112 – R$8,934 (80×) | Must use per-deputy |
-| DIVULGACAO | R$105 – R$58,808 (560×) | Must use per-deputy |
-| MANUTENCAO | R$102 – R$19,499 (191×) | Must use per-deputy |
-| SEGURANCA | R$140 – R$8,700 (62×) | Must use per-deputy |
-| TAXI | R$6 – R$1,967 (328×) | Must use per-deputy |
+| Category     |     Deputy median range | Conclusion          |
+| ------------ | ----------------------: | ------------------- |
+| COMBUSTIVEIS |   R$112 – R$8,934 (80×) | Must use per-deputy |
+| DIVULGACAO   | R$105 – R$58,808 (560×) | Must use per-deputy |
+| MANUTENCAO   | R$102 – R$19,499 (191×) | Must use per-deputy |
+| SEGURANCA    |   R$140 – R$8,700 (62×) | Must use per-deputy |
+| TAXI         |    R$6 – R$1,967 (328×) | Must use per-deputy |
 
 Avg expenses per deputy per category varies widely: COMBUSTIVEIS (avg 392/deputy), TAXI (207), SIGEPA (204), ESCRITORIO (109) → viable. SEGURANCA (18/deputy), PASSAGEM RPA (11), ASSINATURA (10) → risky baseline. REEMBOLSO (3.4), CERTIFICADOS (1.4), CONSULTORIAS (1.0) → per-deputy median meaningless.
 
@@ -174,7 +174,7 @@ Avg expenses per deputy per category varies widely: COMBUSTIVEIS (avg 392/deputy
 
 - **Estimated affected rows**: ~84% of all expenses with direct PDF URLs (based on 44-PDF sample: 37/44 had no extractable text)
 - **Verdict: ⚠️ Weak signal as a general flag — refine scope**
-- 84% of CEAP documents are scanned or image-based, so yielding no text is the *baseline condition*, not an anomaly. However, the PDF producer/creator tag (embedded in the PDF header, readable without decompression) allows a useful refinement: documents produced by **iText, PDFsharp, PDFium** are known-digital and *should* have text. When they don't, that is a genuine signal.
+- 84% of CEAP documents are scanned or image-based, so yielding no text is the _baseline condition_, not an anomaly. However, the PDF producer/creator tag (embedded in the PDF header, readable without decompression) allows a useful refinement: documents produced by **iText, PDFsharp, PDFium** are known-digital and _should_ have text. When they don't, that is a genuine signal.
 - Conflating "unreachable URL" with "scanned document" loses signal. Split into two flags:
   - `PDF_UNREACHABLE` (**15 pts**): URL returns non-200 or non-PDF content — a broken link on a submitted expense is more suspicious.
   - `PDF_NO_TEXT` (**5 pts**): URL resolves to a valid PDF but yields no extractable text after both pdf-parse and OCR attempts — applies only when producer is a known digital tool (iText, PDFsharp, PDFium) where text should be present.
@@ -192,33 +192,34 @@ Only ~16% of PDFs have extractable text (§2). CATEGORY_MISMATCH can only fire f
 
 Cross-referencing the 6 PDFs with extracted text against their `tipo_despesa` in the DB:
 
-| File | Extracted keywords | Filed under | Mismatch? |
-|------|-------------------|-------------|----------|
-| `7722961.pdf` | "LIGGA TELECOMUNICACOES SA", "Anatel" | MANUTENCAO DE ESCRITORIO | ⚠️ Ambiguous — telecom filed as office maintenance is *allowed* under CEAP rules |
-| `7583518.pdf` | "ALUGUEL", "CONDOMINIO", "IPTU" | MANUTENCAO DE ESCRITORIO | ✅ Correct match |
-| `8044227.pdf` | "DANFSe", "Documento" | DIVULGACAO DA ATIVIDADE PARLAMENTAR | ➡️ Generic, cannot determine |
-| `7632525.pdf` | "Competência", "Código de Verificação" | DIVULGACAO DA ATIVIDADE PARLAMENTAR | ➡️ NFS-e metadata, cannot determine |
-| `8061956.pdf` | "DANFSe" | HOSPEDAGEM | ⚠️ Digital service invoice for R$165 filed as lodging — slightly suspicious |
-| `7750228.pdf` | "Contrato", "ALUGUEL", "CONDOMINIO" | LOCACAO OU FRETAMENTO DE VEICULOS | 🔴 **MISMATCH** — rent/condo keywords in a vehicle rental expense |
+| File          | Extracted keywords                     | Filed under                         | Mismatch?                                                                        |
+| ------------- | -------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------- |
+| `7722961.pdf` | "LIGGA TELECOMUNICACOES SA", "Anatel"  | MANUTENCAO DE ESCRITORIO            | ⚠️ Ambiguous — telecom filed as office maintenance is _allowed_ under CEAP rules |
+| `7583518.pdf` | "ALUGUEL", "CONDOMINIO", "IPTU"        | MANUTENCAO DE ESCRITORIO            | ✅ Correct match                                                                 |
+| `8044227.pdf` | "DANFSe", "Documento"                  | DIVULGACAO DA ATIVIDADE PARLAMENTAR | ➡️ Generic, cannot determine                                                     |
+| `7632525.pdf` | "Competência", "Código de Verificação" | DIVULGACAO DA ATIVIDADE PARLAMENTAR | ➡️ NFS-e metadata, cannot determine                                              |
+| `8061956.pdf` | "DANFSe"                               | HOSPEDAGEM                          | ⚠️ Digital service invoice for R$165 filed as lodging — slightly suspicious      |
+| `7750228.pdf` | "Contrato", "ALUGUEL", "CONDOMINIO"    | LOCACAO OU FRETAMENTO DE VEICULOS   | 🔴 **MISMATCH** — rent/condo keywords in a vehicle rental expense                |
 
 Real mismatch found: `7750228.pdf` — a document with "ALUGUEL" and "CONDOMINIO" filed under vehicle leasing. This is exactly the flag's intent.
 
 #### CEAP ambiguity zones (must NOT flag as mismatch)
 
 Brazilian CEAP rules create legitimate overlaps that a naive keyword check would wrongly flag:
+
 - Office telecom/internet can be filed under **MANUTENCAO** or **TELEFONIA** (both valid)
 - Airport taxi can be filed under **TAXI** or adjacent to **PASSAGEM AEREA** expenses
 - NFS-e invoices ("DANFSe") are used across many categories — the tag alone is not diagnostic
 
 #### Proposed keyword mapping (unambiguous mismatches only)
 
-| Keyword group (in PDF text) | Should be filed under | Flag if filed under anything else |
-|-----------------------------|-----------------------|----------------------------------|
-| `gasolina`, `etanol`, `diesel`, `combustível`, `litros`, `abastecimento`, `posto` | COMBUSTIVEIS | HOSPEDAGEM, PASSAGEM AEREA, LOCACAO AERONAVES |
-| `hotel`, `hospedagem`, `diária`, `pernoite`, `check-in` | HOSPEDAGEM | COMBUSTIVEIS, TELEFONIA, PASSAGEM AEREA |
-| `passagem`, `voo`, `embarque`, `bilhete aéreo`, `GOL`, `LATAM`, `AZUL` | PASSAGEM AEREA | COMBUSTIVEIS, HOSPEDAGEM, ALIMENTACAO |
-| `refeição`, `restaurante`, `alimentação`, `lanche`, `almoço`, `jantar` | ALIMENTACAO | HOSPEDAGEM, COMBUSTIVEIS, PASSAGEM AEREA |
-| `correios`, `SEDEX`, `PAC`, `encomenda postal` | SERVICOS POSTAIS | HOSPEDAGEM, COMBUSTIVEIS, ALIMENTACAO |
+| Keyword group (in PDF text)                                                       | Should be filed under | Flag if filed under anything else             |
+| --------------------------------------------------------------------------------- | --------------------- | --------------------------------------------- |
+| `gasolina`, `etanol`, `diesel`, `combustível`, `litros`, `abastecimento`, `posto` | COMBUSTIVEIS          | HOSPEDAGEM, PASSAGEM AEREA, LOCACAO AERONAVES |
+| `hotel`, `hospedagem`, `diária`, `pernoite`, `check-in`                           | HOSPEDAGEM            | COMBUSTIVEIS, TELEFONIA, PASSAGEM AEREA       |
+| `passagem`, `voo`, `embarque`, `bilhete aéreo`, `GOL`, `LATAM`, `AZUL`            | PASSAGEM AEREA        | COMBUSTIVEIS, HOSPEDAGEM, ALIMENTACAO         |
+| `refeição`, `restaurante`, `alimentação`, `lanche`, `almoço`, `jantar`            | ALIMENTACAO           | HOSPEDAGEM, COMBUSTIVEIS, PASSAGEM AEREA      |
+| `correios`, `SEDEX`, `PAC`, `encomenda postal`                                    | SERVICOS POSTAIS      | HOSPEDAGEM, COMBUSTIVEIS, ALIMENTACAO         |
 
 Keyword groups for ALUGUEL/CONDOMINIO are deliberately **excluded** from mismatches — too many legitimate MANUTENCAO documents use these words, and LOCACAO DE VEICULOS can also have lease/contract language.
 
@@ -240,14 +241,15 @@ Keyword groups for ALUGUEL/CONDOMINIO are deliberately **excluded** from mismatc
 
 **The user's intuition is correct** — forensic analysts would pay more attention to receipts. The data strongly supports adding a dedicated flag:
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `RECIBO_DOCUMENT` |
-| **Points** | **20** |
-| **Logic** | `cod_tipo_documento = 1` |
+| Attribute     | Value                                                                                                                                                                                                                                                                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `RECIBO_DOCUMENT`                                                                                                                                                                                                                                                                                                                         |
+| **Points**    | **20**                                                                                                                                                                                                                                                                                                                                    |
+| **Logic**     | `cod_tipo_documento = 1`                                                                                                                                                                                                                                                                                                                  |
 | **Rationale** | Receipts ("Recibos/Outros") have no mandatory sequential numbering, can be self-issued by the service provider, are almost always scanned images (no verifiable digital trail), and account for 99.8% of CPF-vendor expenses. Unlike Nota Fiscal (NF/NFe), there is no government cross-validation of receipt amounts or vendor identity. |
 
 Supporting stats:
+
 - 28.4% of receipts use `S/N` (no document number)
 - 99.8% of CPF-vendor expenses are receipts
 - Average value (R$1,720) is 5.5× higher than NFe average (R$315)
@@ -257,11 +259,11 @@ Supporting stats:
 
 ## 5. Additional Flag Recommendation: EXPENSE_ABROAD
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `EXPENSE_ABROAD` |
-| **Points** | **25** |
-| **Logic** | `cod_tipo_documento = 2` |
+| Attribute     | Value                                                                                                                                                                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `EXPENSE_ABROAD`                                                                                                                                                                                                                                  |
+| **Points**    | **25**                                                                                                                                                                                                                                            |
+| **Logic**     | `cod_tipo_documento = 2`                                                                                                                                                                                                                          |
 | **Rationale** | "Despesa no Exterior" has the highest average value (R$5,688 — 3.3× the overall average of R$1,271). Foreign receipts are impossible to cross-check against Brazilian tax authorities, and the 301 occurrences in the DB warrant higher scrutiny. |
 
 ---
@@ -274,13 +276,13 @@ This is not a single flag — it is a **multi-source composite** where five co-o
 
 ### 6.1 The five components
 
-| # | Component | Detectable from CEAP alone? | Source required |
-|---|-----------|:--------------------------:|-----------------|
-| 1 | `cod_tipo_documento = 1` (Recibo) | ✅ | Current schema |
-| 2 | `tipo_despesa` = MANUTENCAO DE ESCRITORIO or LOCACAO OU FRETAMENTO DE VEICULOS | ✅ | Current schema |
-| 3 | Payment described as "em espécie" (cash) | ⚠️ OCR only | PDF text extraction (~19% Recibo coverage) |
-| 4 | Vendor CNAE principal ∉ real-estate / office services (e.g., livestock farming) | ❌ | Receita Federal CNPJ bulk dataset |
-| 5 | Vendor QSA partner CPF matches a TSE candidate record | ❌ | Receita Federal QSA × TSE electoral data |
+| #   | Component                                                                       | Detectable from CEAP alone? | Source required                            |
+| --- | ------------------------------------------------------------------------------- | :-------------------------: | ------------------------------------------ |
+| 1   | `cod_tipo_documento = 1` (Recibo)                                               |             ✅              | Current schema                             |
+| 2   | `tipo_despesa` = MANUTENCAO DE ESCRITORIO or LOCACAO OU FRETAMENTO DE VEICULOS  |             ✅              | Current schema                             |
+| 3   | Payment described as "em espécie" (cash)                                        |         ⚠️ OCR only         | PDF text extraction (~19% Recibo coverage) |
+| 4   | Vendor CNAE principal ∉ real-estate / office services (e.g., livestock farming) |             ❌              | Receita Federal CNPJ bulk dataset          |
+| 5   | Vendor QSA partner CPF matches a TSE candidate record                           |             ❌              | Receita Federal QSA × TSE electoral data   |
 
 ### 6.2 Why the combination is a smoking gun
 
@@ -293,14 +295,15 @@ The joint innocent probability approaches zero. This exact pattern is documented
 
 ### 6.3 Sub-flag definitions and scoring
 
-| Sub-flag | Points | Logic | Data source |
-|----------|:------:|-------|-------------|
-| `VENDOR_CNAE_MISMATCH` | **25** | Vendor CNAE principal code is incompatible with the `tipo_despesa` category (e.g., CNAE 0151-2 Bovinocultura for a MANUTENCAO DE ESCRITORIO expense) | Receita Federal CNPJ bulk dump |
-| `VENDOR_GEOGRAPHIC_ANOMALY` | **20** | Vendor registered address state differs from deputy's declared office state | Receita Federal CNPJ address + deputy state from politicians table |
-| `POLITICALLY_CONNECTED_VENDOR` | **50** | Any partner/administrator in vendor's QSA (quadro societário) has a CPF that appears in TSE electoral candidate records | Receita Federal QSA × TSE candidate database |
+| Sub-flag                       | Points | Logic                                                                                                                                                | Data source                                                        |
+| ------------------------------ | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `VENDOR_CNAE_MISMATCH`         | **25** | Vendor CNAE principal code is incompatible with the `tipo_despesa` category (e.g., CNAE 0151-2 Bovinocultura for a MANUTENCAO DE ESCRITORIO expense) | Receita Federal CNPJ bulk dump                                     |
+| `VENDOR_GEOGRAPHIC_ANOMALY`    | **20** | Vendor registered address state differs from deputy's declared office state                                                                          | Receita Federal CNPJ address + deputy state from politicians table |
+| `POLITICALLY_CONNECTED_VENDOR` | **50** | Any partner/administrator in vendor's QSA (quadro societário) has a CPF that appears in TSE electoral candidate records                              | Receita Federal QSA × TSE candidate database                       |
 
 **Implementation notes per sub-flag**:
-- `VENDOR_CNAE_MISMATCH`: Use a curated incompatibility list per category (e.g., CNAE divisions 01–03 = agriculture/fishing, 05–09 = mining, 10–25 = manufacturing unrelated to office services) — mirror the disambiguation principle from §3.8 (unambiguous mismatches only, not a generic "not in expected set" approach). **Validated in corpus**: three agribusiness/cattle companies (CNAE 0151-2 Bovinocultura, 0162-8 Atividades de apoio à pecuária) billed R$14.25M under MANUTENCAO DE ESCRITORIO; one of them is in *recuperação judicial*.
+
+- `VENDOR_CNAE_MISMATCH`: Use a curated incompatibility list per category (e.g., CNAE divisions 01–03 = agriculture/fishing, 05–09 = mining, 10–25 = manufacturing unrelated to office services) — mirror the disambiguation principle from §3.8 (unambiguous mismatches only, not a generic "not in expected set" approach). **Validated in corpus**: three agribusiness/cattle companies (CNAE 0151-2 Bovinocultura, 0162-8 Atividades de apoio à pecuária) billed R$14.25M under MANUTENCAO DE ESCRITORIO; one of them is in _recuperação judicial_.
 - `VENDOR_GEOGRAPHIC_ANOMALY`: Standalone FPR is 22–83% across categories — airlines, telecoms, and ride-hailing are structurally registered in SP/RJ, making cross-state the norm, not the anomaly. Forensic value is only in the §6 composite. The **rural municipality dimension** (vendor address in a rural municipality far from the deputy's office city) would be far more discriminating than UF mismatch alone, but requires geocoding not present in the current `vendors` schema (see checklist item 14).
 - `POLITICALLY_CONNECTED_VENDOR`: Infrastructure is ready — `vendor_partners` table fully populated (77,988 records, 89% of matched vendors). The only remaining step is the TSE candidate CPF cross-reference (checklist item 7).
 
@@ -322,58 +325,58 @@ If detected via OCR: add **15 pts** and record in audit trail.
 
 ## 7. CNPJ Lifecycle Anomaly Flags
 
-*All flags in this section require the Receita Federal CNPJ bulk dataset (registration date, status history, employee count).*
+_All flags in this section require the Receita Federal CNPJ bulk dataset (registration date, status history, employee count)._
 
 ### 7.1 CNPJ_POSTDATES_EXPENSE
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `CNPJ_POSTDATES_EXPENSE` |
-| **Points** | **escalate** |
-| **Logic** | Vendor CNPJ registration date > `data_documento` |
+| Attribute     | Value                                                                                                                                                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `CNPJ_POSTDATES_EXPENSE`                                                                                                                                                                                                            |
+| **Points**    | **escalate**                                                                                                                                                                                                                        |
+| **Logic**     | Vendor CNPJ registration date > `data_documento`                                                                                                                                                                                    |
 | **Rationale** | A company that did not legally exist on the invoice date makes the document definitively fraudulent. Zero false positive rate — no legitimate explanation exists. Must auto-escalate to mandatory review regardless of total score. |
 
 ### 7.2 CNPJ_INACTIVE_AT_EXPENSE
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `CNPJ_INACTIVE_AT_EXPENSE` |
-| **Points** | **escalate** |
-| **Logic** | Vendor CNPJ status was `INAPTA`, `BAIXADA`, or `SUSPENSA` on `data_documento` |
+| Attribute     | Value                                                                                                                                                                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Flag**      | `CNPJ_INACTIVE_AT_EXPENSE`                                                                                                                                                                                                                                               |
+| **Points**    | **escalate**                                                                                                                                                                                                                                                             |
+| **Logic**     | Vendor CNPJ status was `INAPTA`, `BAIXADA`, or `SUSPENSA` on `data_documento`                                                                                                                                                                                            |
 | **Rationale** | Payment to a legally dissolved or suspended company is definitively irregular under Brazilian tax and procurement law. The Receita Federal bulk dump includes both current status and historical status change dates. Same escalation logic as `CNPJ_POSTDATES_EXPENSE`. |
 
 > **⚠️ Implementation gate**: Do **not** check `registration_status` alone. Corpus measurement: 8,158 expenses match vendors now-BAIXADA, but only **580 were already BAIXADA on `data_documento`** (93% false-positive rate without a date anchor). The implementation **must** compare `registration_status_date ≤ data_documento` — this column is already populated in the `vendors` table. Same gate applies to INAPTA (119 true positives out of 362) and SUSPENSA (1 out of 357).
 
 ### 7.3 FRESHLY_REGISTERED_VENDOR
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `FRESHLY_REGISTERED_VENDOR` |
-| **Points** | **25** |
-| **Logic** | Vendor CNPJ registration date < 90 days before the first expense from any deputy to this vendor |
+| Attribute     | Value                                                                                                                                                                                                                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `FRESHLY_REGISTERED_VENDOR`                                                                                                                                                                                                                                                               |
+| **Points**    | **25**                                                                                                                                                                                                                                                                                    |
+| **Logic**     | Vendor CNPJ registration date < 90 days before the first expense from any deputy to this vendor                                                                                                                                                                                           |
 | **Rationale** | Companies created specifically to receive public funds ("empresa criada para o fim") are a documented Brazilian CEAP abuse pattern. The 90-day window covers the most acute risk period. Signal strengthens significantly when combined with `VENDOR_CNAE_MISMATCH` or `RECIBO_DOCUMENT`. |
 
 > **Empirical validation (seed.db)**: 818 vendors (2% of matched CNPJ vendors) had their first CEAP expense within 90 days of opening (avg gap: 38.8 days). Distribution: 0–7 days = 124 vendors, 8–30 = 236, 31–60 = 260, 61–90 = 198. DIVULGACAO DA ATIVIDADE PARLAMENTAR dominates with 5,890 expenses and **R$3.56B** — consistent with vendors incorporated specifically to channel CEAP advertising funds. **Consider escalating the 0–7 day sub-group** (124 vendors) to mandatory review regardless of total score: a company billed within one week of registration has no time to establish genuine commercial operations (see checklist item 15).
 
 ### 7.4 VENDOR_NO_EMPLOYEES
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `VENDOR_NO_EMPLOYEES` |
-| **Points** | **20** |
-| **Logic** | Vendor has zero declared employees (Receita Federal SIMEI/SIMPLES or RAIS cross-reference) and `tipo_despesa` ∈ {SERVICO DE SEGURANCA, MANUTENCAO DE ESCRITORIO, LOCACAO OU FRETAMENTO DE VEICULOS} |
+| Attribute     | Value                                                                                                                                                                                                                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `VENDOR_NO_EMPLOYEES`                                                                                                                                                                                                                                                                  |
+| **Points**    | **20**                                                                                                                                                                                                                                                                                 |
+| **Logic**     | Vendor has zero declared employees (Receita Federal SIMEI/SIMPLES or RAIS cross-reference) and `tipo_despesa` ∈ {SERVICO DE SEGURANCA, MANUTENCAO DE ESCRITORIO, LOCACAO OU FRETAMENTO DE VEICULOS}                                                                                    |
 | **Rationale** | A shell company with no staff providing services that operationally require personnel signals a fictitious vendor. Restricted to categories where zero employees is operationally implausible. Do not apply to individual CPF vendors or MEI sole traders providing personal services. |
 
 > **⚠️ Schema gap**: The current `vendors` table stores `company_size` (Receita Federal `PORTE_EMPRESA` tier: `01`=Micro, `03`=EPP, `05`=Demais) — a size bracket, not an employee count. Full implementation requires RAIS (Relação Anual de Informações Sociais) or SIMEI/SIMPLES cross-reference to confirm zero declared employees. An interim proxy using `company_size = '01'` (Micro-empresa) in the restricted categories is feasible but conflates small-with-employees and genuine zero-employee shells. Add an `employee_count` column to `vendors` (checklist item 13) before shipping at full 20pt weight; use 10pt with the size proxy in the interim.
 
 ### 7.5 CNPJ_MISSING_ESTABLISHMENT
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `CNPJ_MISSING_ESTABLISHMENT` |
-| **Points** | **escalate** |
-| **Logic** | Expense has a 14-digit `cnpj_cpf_fornecedor` with no corresponding record in the `vendors` table — i.e., the Receita Federal Estabelecimentos bulk data contains no entry for that full CNPJ |
-| **Rationale** | In Brazil's CNPJ system the 8-digit *CNPJ Básico* identifies the legal entity (Empresas), but the full 14-digit CNPJ identifies a specific *Estabelecimento* (branch/operating unit). Any lawful invoice must originate from a registered Estabelecimento. A CNPJ present on an expense document but absent from the Estabelecimentos dataset means either (1) the CNPJ was fabricated outright, (2) the company entity exists but that branch was never opened — it cannot legally issue fiscal documents — or (3) the establishment was registered and then purged, which Receita Federal does not do; baixadas remain in the dataset. All three interpretations make the document definitively irregular. This is distinct from `CNPJ_INACTIVE_AT_EXPENSE`: here there was never a valid operating establishment at all, not just one that later closed. |
+| Attribute     | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `CNPJ_MISSING_ESTABLISHMENT`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **Points**    | **escalate**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **Logic**     | Expense has a 14-digit `cnpj_cpf_fornecedor` with no corresponding record in the `vendors` table — i.e., the Receita Federal Estabelecimentos bulk data contains no entry for that full CNPJ                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **Rationale** | In Brazil's CNPJ system the 8-digit _CNPJ Básico_ identifies the legal entity (Empresas), but the full 14-digit CNPJ identifies a specific _Estabelecimento_ (branch/operating unit). Any lawful invoice must originate from a registered Estabelecimento. A CNPJ present on an expense document but absent from the Estabelecimentos dataset means either (1) the CNPJ was fabricated outright, (2) the company entity exists but that branch was never opened — it cannot legally issue fiscal documents — or (3) the establishment was registered and then purged, which Receita Federal does not do; baixadas remain in the dataset. All three interpretations make the document definitively irregular. This is distinct from `CNPJ_INACTIVE_AT_EXPENSE`: here there was never a valid operating establishment at all, not just one that later closed. |
 
 > **ETL invariant**: The `ReceitaFederalCNPJPipeline` already enforces this by skipping any CNPJ whose full 14-digit number is absent from the Estabelecimentos ZIP files — no vendor row is inserted. The scoring layer therefore detects this flag via a `LEFT JOIN vendors ON expenses.cnpj_cpf_fornecedor = vendors.cnpj WHERE vendors.id IS NULL AND length(expenses.cnpj_cpf_fornecedor) = 14`. **Prerequisite**: the Receita Federal pipeline must have completed a full run; a missing vendor row before that run is inconclusive and must not be scored.
 
@@ -383,76 +386,77 @@ If detected via OCR: add **15 pts** and record in audit trail.
 
 ## 8. Additional Detection Patterns
 
-### 8.1 CROSS_DEPUTY_INVOICE_REUSE
+### 8.1 CROSS_POLITICIAN_INVOICE_REUSE
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `CROSS_DEPUTY_INVOICE_REUSE` |
-| **Points** | **50** |
-| **Logic** | Same `(cnpj_cpf_fornecedor, num_documento)` pair appears in expenses from ≥ 2 distinct `deputy_id` values |
+| Attribute     | Value                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `CROSS_POLITICIAN_INVOICE_REUSE`                                                                                                                                                                                                                                                                                                                                              |
+| **Points**    | **50**                                                                                                                                                                                                                                                                                                                                                                        |
+| **Logic**     | Same `(cnpj_cpf_fornecedor, num_documento)` pair appears in expenses from ≥ 2 distinct `politician_id` values                                                                                                                                                                                                                                                                 |
 | **Rationale** | The existing `DUPLICATE_INVOICE` flag only catches reuse within a single deputy's records. The same invoice number submitted by two different deputies is definitively fraudulent — one document cannot justify two separate public reimbursements. **Detectable from current CEAP data alone.** Apply the same S/N placeholder exclusion list as `DUPLICATE_INVOICE` (§3.3). |
 
 ### 8.2 SINGLE_CLIENT_VENDOR
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `SINGLE_CLIENT_VENDOR` |
-| **Points** | **20** |
-| **Logic** | `cnpj_cpf_fornecedor` appears in expenses from exactly 1 distinct `deputy_id` across the entire corpus, with ≥ 5 total expenses |
+| Attribute     | Value                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `SINGLE_CLIENT_VENDOR`                                                                                                                                                                                                                                                                                                                                                                               |
+| **Points**    | **20**                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Logic**     | `cnpj_cpf_fornecedor` appears in expenses from exactly 1 distinct `politician_id` across the entire corpus, with ≥ 5 total expenses                                                                                                                                                                                                                                                                  |
 | **Rationale** | Legitimate service providers have multiple clients. A vendor whose entire CEAP presence is one deputy — especially across repeated transactions — is a structural red flag for a fictitious or captured vendor. The ≥ 5 minimum avoids penalising genuine one-off vendors. Signal is strongest when combined with `VENDOR_IS_CPF` or `RECIBO_DOCUMENT`. **Detectable from current CEAP data alone.** |
 
 ### 8.3 COMPETENCY_DATE_MISMATCH
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `COMPETENCY_DATE_MISMATCH` |
-| **Points** | **20** |
-| **Logic** | `data_documento` falls more than 90 days before the `ano`/`mes` competency period |
-| **Rationale** | CEAP rules (Resolução da Mesa nº 43/2009) require submission within 90 days of the expense date. Significant backdating suggests document fabrication or retroactive justification of already-spent funds. |
+| Attribute         | Value                                                                                                                                                                                                                                                                             |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**          | `COMPETENCY_DATE_MISMATCH`                                                                                                                                                                                                                                                        |
+| **Points**        | **20**                                                                                                                                                                                                                                                                            |
+| **Logic**         | `data_documento` falls more than 90 days before the `ano`/`mes` competency period                                                                                                                                                                                                 |
+| **Rationale**     | CEAP rules (Resolução da Mesa nº 43/2009) require submission within 90 days of the expense date. Significant backdating suggests document fabrication or retroactive justification of already-spent funds.                                                                        |
 | **⚠️ Schema gap** | `ano` and `mes` are returned by the Câmara API (`ExpenseData` interface in `ExpensesPipeline.ts`) but are **not stored** in the DB (`ExpenseRow`). Both fields must be added to the `expenses` table and ETL pipeline before this flag can be computed. See §10 checklist item 7. |
 
 ### 8.4 CAMPAIGN_DONOR_VENDOR
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `CAMPAIGN_DONOR_VENDOR` |
-| **Points** | **30** |
-| **Logic** | Any QSA partner/administrator of the vendor has donated to the paying deputy's electoral campaign in any cycle (TSE donation records) |
+| Attribute     | Value                                                                                                                                                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `CAMPAIGN_DONOR_VENDOR`                                                                                                                                                                                                                                                                                     |
+| **Points**    | **30**                                                                                                                                                                                                                                                                                                      |
+| **Logic**     | Any QSA partner/administrator of the vendor has donated to the paying deputy's electoral campaign in any cycle (TSE donation records)                                                                                                                                                                       |
 | **Rationale** | Narrower and more specific than `POLITICALLY_CONNECTED_VENDOR` (which covers any electoral candidate). A campaign donor has a direct financial interest in the deputy's re-election, making the payment a potential kickback channel. TSE donation data is publicly available at `dadosabertos.tse.jus.br`. |
 
 > **Pipeline status**: No TSE campaign donation pipeline exists yet — this flag is blocked on checklist item 8. The `vendor_partners` table is already populated and provides the donor-side CPFs. Dependency chain: `vendor_partners.partner_cpf_cnpj` → TSE `prestacao_de_contas` donation records → filtered to the paying deputy as recipient. A vendor partner who financially backed this specific deputy's campaign and then received CEAP money from them is a direct conflict-of-interest with kickback implications — more specific and legally actionable than `POLITICALLY_CONNECTED_VENDOR`.
 
 ### 8.5 VENDOR_FAMILY_MEMBER
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `VENDOR_FAMILY_MEMBER` |
-| **Points** | **15** |
-| **Logic** | A QSA partner/administrator shares the paying deputy's primary surname |
+| Attribute     | Value                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `VENDOR_FAMILY_MEMBER`                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Points**    | **15**                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Logic**     | A QSA partner/administrator shares the paying deputy's primary surname                                                                                                                                                                                                                                                                                                                                                                            |
 | **Rationale** | Catches spouses, siblings, and parents who are not themselves electoral candidates and would therefore be missed by `POLITICALLY_CONNECTED_VENDOR`. High false-positive risk on common Brazilian surnames (Silva, Santos, Oliveira) — weight kept low. Only contributes meaningfully when combined with other signals. Do not apply when the surname's match rate across the full vendor QSA corpus exceeds 5% (too common to be discriminating). |
 
 > **Implementation specifics**: (1) Apply NFD Unicode normalization and extract only the **last name token** before matching — do not match on full names. (2) The check must be **bilateral in direction**: does a token from the deputy's surname appear as a token in the partner name? (Not vice versa — a partner named "SILVA PEREIRA" should match deputy "SILVA", not match because "PEREIRA" happens to be a politician's surname.) (3) Enforce the 5% corpus frequency gate: compute each candidate surname's match rate across all `vendor_partners` records and suppress the flag for any surname exceeding that threshold. Corpus confirmation of noisiest surnames: PEREIRA (40 partner matches), OLIVEIRA (35), SILVA (20) — all must be gated.
 
 ### 8.6 FUEL_PRICE_ABOVE_ANP
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `FUEL_PRICE_ABOVE_ANP` |
-| **Points** | **25** |
-| **Logic** | For `tipo_despesa = COMBUSTIVEIS E LUBRIFICANTES`: `valor_liquido / extracted_liters > ANP regional P95 pump price` for the expense week and state |
-| **Rationale** | ANP (Agência Nacional do Petróleo) publishes weekly regional average and P95 pump prices per state at `dados.gov.br/dados/conjuntos-dados/serie-historica-de-precos-de-combustiveis-por-revenda`. COMBUSTIVEIS is the largest single category (233k rows, 35% of all expenses). A price-per-litre above the regional P95 indicates quantity inflation (fewer litres than claimed) or a fraudulent vendor markup. |
-| **Dependency** | Requires OCR extraction of fuel quantity (litres) from the document. Coverage limited to the ~25% of COMBUSTIVEIS PDFs that are text-extractable (§2). |
+| Attribute      | Value                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**       | `FUEL_PRICE_ABOVE_ANP`                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Points**     | **25**                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Logic**      | For `tipo_despesa = COMBUSTIVEIS E LUBRIFICANTES`: `valor_liquido / extracted_liters > ANP regional P95 pump price` for the expense week and state                                                                                                                                                                                                                                                               |
+| **Rationale**  | ANP (Agência Nacional do Petróleo) publishes weekly regional average and P95 pump prices per state at `dados.gov.br/dados/conjuntos-dados/serie-historica-de-precos-de-combustiveis-por-revenda`. COMBUSTIVEIS is the largest single category (233k rows, 35% of all expenses). A price-per-litre above the regional P95 indicates quantity inflation (fewer litres than claimed) or a fraudulent vendor markup. |
+| **Dependency** | Requires OCR extraction of fuel quantity (litres) from the document. Coverage limited to the ~25% of COMBUSTIVEIS PDFs that are text-extractable (§2).                                                                                                                                                                                                                                                           |
 
 ### 8.7 PASSENGER_NAME_MISMATCH
 
-| Attribute | Value |
-|-----------|-------|
-| **Flag** | `PASSENGER_NAME_MISMATCH` |
-| **Points** | **35 / escalate on `FAMILY_PASSENGER` sub-flag** |
-| **Logic** | `tipo_despesa` ∈ {PASSAGEM AEREA SIGEPA, PASSAGEM AEREA RPA}: OCR extracts a passenger name field that does not match the paying deputy's own name |
+| Attribute     | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flag**      | `PASSENGER_NAME_MISMATCH`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Points**    | **35 / escalate on `FAMILY_PASSENGER` sub-flag**                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Logic**     | `tipo_despesa` ∈ {PASSAGEM AEREA SIGEPA, PASSAGEM AEREA RPA}: OCR extracts a passenger name field that does not match the paying deputy's own name                                                                                                                                                                                                                                                                                                                                                                |
 | **Rationale** | CEAP is exclusively scoped to the deputy's own parliamentary activities. Neither family members nor parliamentary staff (assessores) are eligible — staff travel is covered by a separate Câmara administrative budget, not CEAP. A flight receipt under CEAP where the passenger is anyone other than the deputy is definitively irregular regardless of the third party's relationship to the deputy. The only plausible innocent explanation is an OCR parsing error, which keeps the false-positive rate low. |
 
 > **Two-tier scoring**:
+>
 > - **`PASSENGER_NAME_MISMATCH` (35 pts)**: OCR extracts a passenger name and it does not match the deputy's name (even partially). Fires regardless of who the passenger is — any non-deputy passenger is outside CEAP scope.
 > - **`FAMILY_PASSENGER` sub-flag (+15 pts, escalate)**: The mismatched passenger name surname-matches the deputy's surname. Apply the same NFD normalization, last-name-token extraction, and 5% corpus frequency gate from `VENDOR_FAMILY_MEMBER` (§8.5). The self-dealing interpretation (public funds for a relative's travel) overrides the administrative-error explanation and warrants mandatory review regardless of total score.
 
@@ -466,35 +470,35 @@ If detected via OCR: add **15 pts** and record in audit trail.
 
 Signal strength legend: **Definitive** = zero or near-zero false positive rate, auto-escalate; **High** = strong discriminator, fires rarely and nearly always warrants investigation; **Medium** = meaningful but context-dependent, best combined with other signals; **Low** = weak alone, contributes only in aggregate.
 
-| Flag | Original pts | Revised pts | Change | Signal Strength | Reason |
-|------|:-----------:|:-----------:|:------:|:---------------:|--------|
-| `ROUND_AMOUNT` | 10 | **5** | ↓ | Low | Fires on 16.9% of expenses; low signal |
-| `EXTREME_AMOUNT` | 30 | 30 | — | Medium | Per-deputy median + guardrails reduce noise; still wide in high-variance categories |
-| `DUPLICATE_INVOICE` | 50 | **40** | ↓ | High | Same invoice reused by one deputy; strong after S/N exclusion |
-| `VENDOR_IS_CPF` | 15 | 15 | — | Medium | Selective at 0.9%; not fraudulent alone but a genuine discriminator |
-| `HIGH_FREQ_VENDOR` | 20 | 20 (threshold **≥ 8**) | threshold ↑ | Medium | ≥ 4 fires on 19.1%; ≥ 8 is ~5× more selective |
-| `WEEKEND_DOCUMENT` | 25 | **10** | ↓ | Low | Fires on 13.4%; month-boundary receipts are routine |
-| `PDF_NO_TEXT` | 10 | **5** | ↓ | Low | 84% of docs are scans; no-text is the baseline, not an anomaly |
-| `PDF_UNREACHABLE` (new) | — | **15** | new | Medium | Broken URL on a submitted expense is more anomalous than a scanned doc |
-| `CATEGORY_MISMATCH` | 35 | 35 | — | High | Rare coverage (~16% of docs) but high precision on unambiguous keyword hits |
-| `ZERO_GLOSA_HIGH_VALUE` | 20 | 20 | — | Medium | 5.5% selectivity; no audit deduction on high-value claim is a genuine anomaly |
-| `RECIBO_DOCUMENT` **(new)** | — | **20** | new | Low | Contextual amplifier; not suspicious alone but elevates every co-occurring signal |
-| `EXPENSE_ABROAD` **(new)** | — | **25** | new | Medium | Highest avg value (R$5,688); no BR tax cross-check possible |
-| `VENDOR_CNAE_MISMATCH` **(new)** | — | **25** | new | High | Company billing outside its registered activity; use curated incompatibility list (§6.3 note). **Validated — real instances in corpus** (livestock companies billing R$14.25M for office maintenance) |
-| `VENDOR_GEOGRAPHIC_ANOMALY` **(new)** | — | **20** | new | Medium | 22–83% FPR standalone across categories; forensic value only in §6 composite. Rural municipality precision requires geocoding (checklist item 14) |
-| `POLITICALLY_CONNECTED_VENDOR` **(new)** | — | **50 / escalate** | new | High | Strong alone; **Definitive** under §6 composite (+ RECIBO + CNAE/geographic). Infrastructure ready; blocked on TSE candidates pipeline (item 7) |
-| `CNPJ_POSTDATES_EXPENSE` **(new)** | — | **escalate** | new | Definitive | Company didn't exist on invoice date; zero false positives |
-| `CNPJ_INACTIVE_AT_EXPENSE` **(new)** | — | **escalate** | new | Definitive | Payment to a dissolved/suspended company; definitively irregular |
-| `FRESHLY_REGISTERED_VENDOR` **(new)** | — | **25** | new | High | Documented "empresa criada para o fim" pattern; 90-day window is the acute risk period |
-| `VENDOR_NO_EMPLOYEES` **(new)** | — | **20 (10 interim)** | new | High | Zero-staff in service categories requiring personnel. Schema gap — needs RAIS data; ship at 10pt using `company_size='01'` proxy until `employee_count` added (item 13) |
-| `CNPJ_MISSING_ESTABLISHMENT` **(new)** | — | **escalate** | new | Definitive | Full 14-digit CNPJ absent from Receita Federal Estabelecimentos — the establishment was never registered; no legitimate invoice can originate from it. Distinct from `CNPJ_INACTIVE_AT_EXPENSE` (which was once valid). See §7.5. |
-| `CROSS_DEPUTY_INVOICE_REUSE` **(new)** | — | **50** | new | Definitive | One invoice cannot justify two reimbursements; zero innocent explanations |
-| `SINGLE_CLIENT_VENDOR` **(new)** | — | **20** | new | Medium | Unusual but possible for niche services; decisive when combined with RECIBO or CPF |
-| `COMPETENCY_DATE_MISMATCH` **(new)** | — | **20** | new | Medium | Backdating > 90 days is suspicious; administrative delays are a plausible excuse |
-| `CAMPAIGN_DONOR_VENDOR` **(new)** | — | **30** | new | High | Direct conflict-of-interest / kickback channel; more specific than POLITICALLY_CONNECTED_VENDOR. Blocked on TSE donation pipeline (item 8) |
-| `VENDOR_FAMILY_MEMBER` **(new)** | — | **15** | new | Low | High false-positive risk on common surnames; meaningful only in combination. NFD-normalize last name token only; bilateral direction check; gate at 5% corpus frequency |
-| `FUEL_PRICE_ABOVE_ANP` **(new)** | — | **25** | new | Medium | Strong when OCR confirms price/litre; limited to ~25% of COMBUSTIVEIS docs |
-| `PASSENGER_NAME_MISMATCH` **(new)** | — | **35 / escalate** | new | High / Definitive | CEAP is for the deputy only; any other passenger is outside scope. Escalates to Definitive (`FAMILY_PASSENGER` sub-flag, +15 pts) when surname-matches the deputy. OCR-gated; ~19–25% coverage on PASSAGEM AEREA docs |
+| Flag                                     | Original pts |      Revised pts       |   Change    |  Signal Strength  | Reason                                                                                                                                                                                                                            |
+| ---------------------------------------- | :----------: | :--------------------: | :---------: | :---------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ROUND_AMOUNT`                           |      10      |         **5**          |      ↓      |        Low        | Fires on 16.9% of expenses; low signal                                                                                                                                                                                            |
+| `EXTREME_AMOUNT`                         |      30      |           30           |      —      |      Medium       | Per-deputy median + guardrails reduce noise; still wide in high-variance categories                                                                                                                                               |
+| `DUPLICATE_INVOICE`                      |      50      |         **40**         |      ↓      |       High        | Same invoice reused by one deputy; strong after S/N exclusion                                                                                                                                                                     |
+| `VENDOR_IS_CPF`                          |      15      |           15           |      —      |      Medium       | Selective at 0.9%; not fraudulent alone but a genuine discriminator                                                                                                                                                               |
+| `HIGH_FREQ_VENDOR`                       |      20      | 20 (threshold **≥ 8**) | threshold ↑ |      Medium       | ≥ 4 fires on 19.1%; ≥ 8 is ~5× more selective                                                                                                                                                                                     |
+| `WEEKEND_DOCUMENT`                       |      25      |         **10**         |      ↓      |        Low        | Fires on 13.4%; month-boundary receipts are routine                                                                                                                                                                               |
+| `PDF_NO_TEXT`                            |      10      |         **5**          |      ↓      |        Low        | 84% of docs are scans; no-text is the baseline, not an anomaly                                                                                                                                                                    |
+| `PDF_UNREACHABLE` (new)                  |      —       |         **15**         |     new     |      Medium       | Broken URL on a submitted expense is more anomalous than a scanned doc                                                                                                                                                            |
+| `CATEGORY_MISMATCH`                      |      35      |           35           |      —      |       High        | Rare coverage (~16% of docs) but high precision on unambiguous keyword hits                                                                                                                                                       |
+| `ZERO_GLOSA_HIGH_VALUE`                  |      20      |           20           |      —      |      Medium       | 5.5% selectivity; no audit deduction on high-value claim is a genuine anomaly                                                                                                                                                     |
+| `RECIBO_DOCUMENT` **(new)**              |      —       |         **20**         |     new     |        Low        | Contextual amplifier; not suspicious alone but elevates every co-occurring signal                                                                                                                                                 |
+| `EXPENSE_ABROAD` **(new)**               |      —       |         **25**         |     new     |      Medium       | Highest avg value (R$5,688); no BR tax cross-check possible                                                                                                                                                                       |
+| `VENDOR_CNAE_MISMATCH` **(new)**         |      —       |         **25**         |     new     |       High        | Company billing outside its registered activity; use curated incompatibility list (§6.3 note). **Validated — real instances in corpus** (livestock companies billing R$14.25M for office maintenance)                             |
+| `VENDOR_GEOGRAPHIC_ANOMALY` **(new)**    |      —       |         **20**         |     new     |      Medium       | 22–83% FPR standalone across categories; forensic value only in §6 composite. Rural municipality precision requires geocoding (checklist item 14)                                                                                 |
+| `POLITICALLY_CONNECTED_VENDOR` **(new)** |      —       |   **50 / escalate**    |     new     |       High        | Strong alone; **Definitive** under §6 composite (+ RECIBO + CNAE/geographic). Infrastructure ready; blocked on TSE candidates pipeline (item 7)                                                                                   |
+| `CNPJ_POSTDATES_EXPENSE` **(new)**       |      —       |      **escalate**      |     new     |    Definitive     | Company didn't exist on invoice date; zero false positives                                                                                                                                                                        |
+| `CNPJ_INACTIVE_AT_EXPENSE` **(new)**     |      —       |      **escalate**      |     new     |    Definitive     | Payment to a dissolved/suspended company; definitively irregular                                                                                                                                                                  |
+| `FRESHLY_REGISTERED_VENDOR` **(new)**    |      —       |         **25**         |     new     |       High        | Documented "empresa criada para o fim" pattern; 90-day window is the acute risk period                                                                                                                                            |
+| `VENDOR_NO_EMPLOYEES` **(new)**          |      —       |  **20 (10 interim)**   |     new     |       High        | Zero-staff in service categories requiring personnel. Schema gap — needs RAIS data; ship at 10pt using `company_size='01'` proxy until `employee_count` added (item 13)                                                           |
+| `CNPJ_MISSING_ESTABLISHMENT` **(new)**   |      —       |      **escalate**      |     new     |    Definitive     | Full 14-digit CNPJ absent from Receita Federal Estabelecimentos — the establishment was never registered; no legitimate invoice can originate from it. Distinct from `CNPJ_INACTIVE_AT_EXPENSE` (which was once valid). See §7.5. |
+| `CROSS_DEPUTY_INVOICE_REUSE` **(new)**   |      —       |         **50**         |     new     |    Definitive     | One invoice cannot justify two reimbursements; zero innocent explanations                                                                                                                                                         |
+| `SINGLE_CLIENT_VENDOR` **(new)**         |      —       |         **20**         |     new     |      Medium       | Unusual but possible for niche services; decisive when combined with RECIBO or CPF                                                                                                                                                |
+| `COMPETENCY_DATE_MISMATCH` **(new)**     |      —       |         **20**         |     new     |      Medium       | Backdating > 90 days is suspicious; administrative delays are a plausible excuse                                                                                                                                                  |
+| `CAMPAIGN_DONOR_VENDOR` **(new)**        |      —       |         **30**         |     new     |       High        | Direct conflict-of-interest / kickback channel; more specific than POLITICALLY_CONNECTED_VENDOR. Blocked on TSE donation pipeline (item 8)                                                                                        |
+| `VENDOR_FAMILY_MEMBER` **(new)**         |      —       |         **15**         |     new     |        Low        | High false-positive risk on common surnames; meaningful only in combination. NFD-normalize last name token only; bilateral direction check; gate at 5% corpus frequency                                                           |
+| `FUEL_PRICE_ABOVE_ANP` **(new)**         |      —       |         **25**         |     new     |      Medium       | Strong when OCR confirms price/litre; limited to ~25% of COMBUSTIVEIS docs                                                                                                                                                        |
+| `PASSENGER_NAME_MISMATCH` **(new)**      |      —       |   **35 / escalate**    |     new     | High / Definitive | CEAP is for the deputy only; any other passenger is outside scope. Escalates to Definitive (`FAMILY_PASSENGER` sub-flag, +15 pts) when surname-matches the deputy. OCR-gated; ~19–25% coverage on PASSAGEM AEREA docs             |
 
 **Threshold recalibration**: With revised scoring, `>= 50` still marks high suspicion. A Recibo + CPF vendor + S/N excluded from DUPLICATE + round amount = 20+15+5 = 40 (medium). A Recibo + CPF vendor + high-freq + round amount + weekend = 20+15+20+5+10 = 70 (high) — which is more defensible.
 
@@ -520,30 +524,30 @@ k = 15 / ln(1 / 0.0089) = 3.18
 
 A qualitative signal-quality multiplier is then applied on top to account for known false-positive rates that prevalence alone cannot capture:
 
-| Quality tier | Multiplier | Meaning |
-|---|:---:|---|
-| Definitive | ×1.5 | Near-zero FPR; a single occurrence logically excludes innocent explanations |
-| High | ×1.0 | Strong discriminator; rare false positives exist but are the exception |
-| Medium | ×0.85 | Context-dependent; meaningful combined with other signals |
-| Low | ×0.6 | Noisy standalone; contributes only in aggregate |
+| Quality tier | Multiplier | Meaning                                                                     |
+| ------------ | :--------: | --------------------------------------------------------------------------- |
+| Definitive   |    ×1.5    | Near-zero FPR; a single occurrence logically excludes innocent explanations |
+| High         |    ×1.0    | Strong discriminator; rare false positives exist but are the exception      |
+| Medium       |   ×0.85    | Context-dependent; meaningful combined with other signals                   |
+| Low          |    ×0.6    | Noisy standalone; contributes only in aggregate                             |
 
 ### 10.2 Empirical calibration results
 
 All figures are from `seed.db`; `valor_liquido` is stored in centavos (R$1.00 = 100).
 
-| Flag | Measured rows | Prevalence | ln(1/p) | raw pts | quality | **empirical pts** | **current pts** | gap |
-|------|---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `ROUND_AMOUNT` (% 10 000 = 0) | 112,537 | 16.90% | 1.78 | 5.7 | Low ×0.6 | **3** | 5 | +2 |
-| `VENDOR_IS_CPF` | 5,957 | 0.89% | 4.72 | 15.0 | Medium ×0.85 | **13** | 15 | +2 ✅ |
-| `RECIBO_DOCUMENT` | 108,631 | 16.32% | 1.81 | 5.8 | Low ×0.6 | **3** | 20 | **+17** |
-| `EXPENSE_ABROAD` | 301 | 0.05% | 7.70 | 24.5 | Medium ×0.85 | **21** | 25 | +4 |
-| `WEEKEND_DOCUMENT` | 88,978 | 13.36% | 2.01 | 6.4 | Low ×0.6 | **4** | 10 | **+6** |
-| `ZERO_GLOSA_HIGH_VALUE` (≥R$5,050) | 36,283 | 5.45% | 2.91 | 9.3 | Medium ×0.85 | **8** | 20 | **+12** |
-| `DUPLICATE_INVOICE` | 20,550 | 3.09% | 3.48 | 11.0 | High ×1.0 | **11** | 40 | **+29** |
-| `CROSS_DEPUTY_INVOICE` | 10,016 | 1.50% | 4.20 | 13.3 | Definitive ×1.5 | **20** | 50 | **+30** |
-| `SINGLE_CLIENT_VENDOR` | 91,718 | 13.77% | 1.98 | 6.3 | Medium ×0.85 | **5** | 20 | **+15** |
-| `HIGH_FREQ_ge8` | 163,972 | 24.63% | 1.40 | 4.5 | Low ×0.6 | **3** | 20 | **+17** |
-| `HIGH_FREQ_ge12` | 109,964 | 16.52% | 1.80 | 5.7 | Medium ×0.85 | **5** | — | new |
+| Flag                               | Measured rows | Prevalence | ln(1/p) | raw pts |     quality     | **empirical pts** | **current pts** |   gap   |
+| ---------------------------------- | ------------: | :--------: | :-----: | :-----: | :-------------: | :---------------: | :-------------: | :-----: |
+| `ROUND_AMOUNT` (% 10 000 = 0)      |       112,537 |   16.90%   |  1.78   |   5.7   |    Low ×0.6     |       **3**       |        5        |   +2    |
+| `VENDOR_IS_CPF`                    |         5,957 |   0.89%    |  4.72   |  15.0   |  Medium ×0.85   |      **13**       |       15        |  +2 ✅  |
+| `RECIBO_DOCUMENT`                  |       108,631 |   16.32%   |  1.81   |   5.8   |    Low ×0.6     |       **3**       |       20        | **+17** |
+| `EXPENSE_ABROAD`                   |           301 |   0.05%    |  7.70   |  24.5   |  Medium ×0.85   |      **21**       |       25        |   +4    |
+| `WEEKEND_DOCUMENT`                 |        88,978 |   13.36%   |  2.01   |   6.4   |    Low ×0.6     |       **4**       |       10        | **+6**  |
+| `ZERO_GLOSA_HIGH_VALUE` (≥R$5,050) |        36,283 |   5.45%    |  2.91   |   9.3   |  Medium ×0.85   |       **8**       |       20        | **+12** |
+| `DUPLICATE_INVOICE`                |        20,550 |   3.09%    |  3.48   |  11.0   |    High ×1.0    |      **11**       |       40        | **+29** |
+| `CROSS_DEPUTY_INVOICE`             |        10,016 |   1.50%    |  4.20   |  13.3   | Definitive ×1.5 |      **20**       |       50        | **+30** |
+| `SINGLE_CLIENT_VENDOR`             |        91,718 |   13.77%   |  1.98   |   6.3   |  Medium ×0.85   |       **5**       |       20        | **+15** |
+| `HIGH_FREQ_ge8`                    |       163,972 |   24.63%   |  1.40   |   4.5   |    Low ×0.6     |       **3**       |       20        | **+17** |
+| `HIGH_FREQ_ge12`                   |       109,964 |   16.52%   |  1.80   |   5.7   |  Medium ×0.85   |       **5**       |        —        |   new   |
 
 ### 10.3 Interpretation rules
 
@@ -559,12 +563,12 @@ The empirical points are a **sanity-check floor, not a strict ceiling**. Three c
 
 The doc estimated 19.1% affected rows at ≥4/month using an earlier DB snapshot. Current measurement:
 
-| Threshold | Groups | Affected rows | Prevalence |
-|---|:---:|:---:|:---:|
-| ≥ 4/month | 28,926 | 251,250 | **37.7%** |
-| ≥ 8/month | 11,560 | 163,972 | **24.6%** |
-| ≥ 10/month | 8,116 | 134,840 | **20.3%** |
-| ≥ 12/month | — | 109,964 | **16.5%** |
+| Threshold  | Groups | Affected rows | Prevalence |
+| ---------- | :----: | :-----------: | :--------: |
+| ≥ 4/month  | 28,926 |    251,250    | **37.7%**  |
+| ≥ 8/month  | 11,560 |    163,972    | **24.6%**  |
+| ≥ 10/month | 8,116  |    134,840    | **20.3%**  |
+| ≥ 12/month |   —    |    109,964    | **16.5%**  |
 
 Even at ≥12/month, 1 in 6 expenses is flagged. At any of these thresholds the flag qualifies only as Low signal (log-floor ~5 pts). **Suggested**: raise to ≥15/month and cap at 8 pts, or retire `HIGH_FREQ_VENDOR` as a standalone flag and use it only as an input to the `SINGLE_CLIENT_VENDOR` composite.
 
@@ -572,11 +576,11 @@ Even at ≥12/month, 1 in 6 expenses is flagged. At any of these thresholds the 
 
 With the current weights, combinations of low-signal flags routinely exceed the ≥50 pt alert threshold:
 
-| Example combination | Current score | Empirical floor |
-|---|:---:|:---:|
-| `RECIBO` + `HIGH_FREQ` + `ROUND` + `WEEKEND` | 20+20+5+10 = **55** 🔴 | 3+3+3+4 = 13 |
-| `RECIBO` + `VENDOR_IS_CPF` + `WEEKEND` | 20+15+10 = **45** 🟡 | 3+13+4 = 20 |
-| `DUPLICATE_INVOICE` alone | **40** 🟡 | 11 |
+| Example combination                          |     Current score      | Empirical floor |
+| -------------------------------------------- | :--------------------: | :-------------: |
+| `RECIBO` + `HIGH_FREQ` + `ROUND` + `WEEKEND` | 20+20+5+10 = **55** 🔴 |  3+3+3+4 = 13   |
+| `RECIBO` + `VENDOR_IS_CPF` + `WEEKEND`       |  20+15+10 = **45** 🟡  |   3+13+4 = 20   |
+| `DUPLICATE_INVOICE` alone                    |       **40** 🟡        |       11        |
 
 The first combination (four low-signal flags) crosses the alert threshold under current scoring, despite having an empirical floor of 13 pts — well within normal business-expense territory.
 
@@ -595,32 +599,32 @@ Option A is statistically preferable. Option B is easier to ship with the existi
 
 **Simulation on seed.db** (Option A weights — 7 CEAP-only flags):
 
-| Score | Count | Cumulative from top |
-|---|---:|:---:|
-| 56 | 15 | 0.002% |
-| 53 | 24 | 0.006% |
-| 52 | 203 | 0.036% |
-| 49–44 | 558 | 0.116% |
-| 41–39 | 621 | 0.222% |
-| 36 | 512 | 0.299% |
-| 33–32 | 2,366 | 0.665% |
-| 31 | 626 | 0.759% |
-| **≥ 29** | **~5,500** | **0.83%** |
-| **25–27** | **300** | **0.045% in this band** ← natural valley |
-| **≥ 25** | **~16,440** | **2.47%** |
-| 21–24 | ~9,700 | 3.7% |
-| ≥ 12 | ~97,000 | 14.6% |
-| 0 | 388,409 | baseline (58.3% of all expenses) |
+| Score     |       Count |           Cumulative from top            |
+| --------- | ----------: | :--------------------------------------: |
+| 56        |          15 |                  0.002%                  |
+| 53        |          24 |                  0.006%                  |
+| 52        |         203 |                  0.036%                  |
+| 49–44     |         558 |                  0.116%                  |
+| 41–39     |         621 |                  0.222%                  |
+| 36        |         512 |                  0.299%                  |
+| 33–32     |       2,366 |                  0.665%                  |
+| 31        |         626 |                  0.759%                  |
+| **≥ 29**  |  **~5,500** |                **0.83%**                 |
+| **25–27** |     **300** | **0.045% in this band** ← natural valley |
+| **≥ 25**  | **~16,440** |                **2.47%**                 |
+| 21–24     |      ~9,700 |                   3.7%                   |
+| ≥ 12      |     ~97,000 |                  14.6%                   |
+| 0         |     388,409 |     baseline (58.3% of all expenses)     |
 
 **The natural valley at scores 25–27** contains only 300 expenses (0.045% of the corpus). This is where the distribution transitions from high-density single/double-flag combinations to sparse multi-flag combinations — the statistically correct place to draw the review boundary.
 
 **Recommended two-tier threshold system** (replaces the single 50 pt threshold):
 
-| Tier | Score threshold | Alert rate | Rationale |
-|---|:---:|:---:|---|
-| **Review** (yellow) | **≥ 25** | ~2.5% (~16,400 exp.) | Natural valley lower bound; catches DUPLICATE+RECIBO, EXPENSE_ABROAD + any co-signal, VENDOR_IS_CPF + RECIBO + 2 others |
-| **Priority** (orange) | **≥ 32** | ~0.66% (~4,400 exp.) | Three or more co-occurring meaningful signals; above the DUPLICATE+RECIBO+ROUND/WEEKEND baseline |
-| **Escalate** (red) | bypass score | ~0% | `CROSS_DEPUTY_INVOICE`, `CNPJ_POSTDATES_EXPENSE`, `CNPJ_INACTIVE_AT_EXPENSE` — definitively irregular, single occurrence is sufficient |
+| Tier                  | Score threshold |      Alert rate      | Rationale                                                                                                                              |
+| --------------------- | :-------------: | :------------------: | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Review** (yellow)   |    **≥ 25**     | ~2.5% (~16,400 exp.) | Natural valley lower bound; catches DUPLICATE+RECIBO, EXPENSE_ABROAD + any co-signal, VENDOR_IS_CPF + RECIBO + 2 others                |
+| **Priority** (orange) |    **≥ 32**     | ~0.66% (~4,400 exp.) | Three or more co-occurring meaningful signals; above the DUPLICATE+RECIBO+ROUND/WEEKEND baseline                                       |
+| **Escalate** (red)    |  bypass score   |         ~0%          | `CROSS_DEPUTY_INVOICE`, `CNPJ_POSTDATES_EXPENSE`, `CNPJ_INACTIVE_AT_EXPENSE` — definitively irregular, single occurrence is sufficient |
 
 **Why not a single threshold at 50**: With Option A weights the maximum achievable score from CEAP-only flags is 57 pts (all 7 flags co-firing: 3+13+8+21+4+8+20 — impossible in practice since `cod_tipo_documento` can only be one value). The top observed score is 56, affecting 15 expenses. A threshold of 50 under Option A weights would flag fewer than 250 expenses total — a useful "extremely suspicious" tier, but too narrow to serve as the primary review threshold.
 
@@ -651,10 +655,10 @@ cur = db.cursor()
 
 rows = cur.execute("""
   WITH dup_keys AS (
-    SELECT deputy_id, cnpj_cpf_fornecedor, num_documento
+    SELECT politician_id, cnpj_cpf_fornecedor, num_documento
     FROM expenses
     WHERE num_documento NOT IN ('','S/N','s/n','SN','sn','S.N.','S/Nº','00','000','0','-')
-    GROUP BY deputy_id, cnpj_cpf_fornecedor, num_documento
+    GROUP BY politician_id, cnpj_cpf_fornecedor, num_documento
     HAVING COUNT(*) > 1
   )
   SELECT
@@ -664,11 +668,11 @@ rows = cur.execute("""
   + (CASE WHEN e.cod_tipo_documento = 2                                THEN 21 ELSE 0 END)
   + (CASE WHEN strftime('%w', e.data_documento) IN ('0','6')           THEN 4  ELSE 0 END)
   + (CASE WHEN e.valor_glosa = 0 AND e.valor_liquido >= 505000         THEN 8  ELSE 0 END)
-  + (CASE WHEN d.deputy_id IS NOT NULL                                 THEN 20 ELSE 0 END)
+  + (CASE WHEN d.politician_id IS NOT NULL                                 THEN 20 ELSE 0 END)
   AS score
   FROM expenses e
   LEFT JOIN dup_keys d
-    ON d.deputy_id           = e.deputy_id
+    ON d.politician_id           = e.politician_id
    AND d.cnpj_cpf_fornecedor = e.cnpj_cpf_fornecedor
    AND d.num_documento        = e.num_documento
 """).fetchall()
@@ -695,7 +699,7 @@ db.close()
 - Covers only the 7 flags computable from CEAP data alone. Adding external-data flags (`VENDOR_CNAE_MISMATCH`, `FRESHLY_REGISTERED_VENDOR`, `POLITICALLY_CONNECTED_VENDOR`, etc.) will shift the distribution rightward and increase alert rates at every threshold. **Thresholds must be re-simulated after each new flag is added.**
 - `RECIBO_DOCUMENT` weight is 8 pts here (expert bump above the 3 pt log-floor, §10.3). If the implementation uses a different value, re-run.
 - `valor_liquido` is stored in centavos. `% 10000 = 0` means divisible by R$100.00. `>= 505000` means ≥ R$5,050 (the empirically measured boundary for the `ZERO_GLOSA_HIGH_VALUE` flag, see §3.9).
-- `CROSS_DEPUTY_INVOICE`, `CNPJ_POSTDATES_EXPENSE`, and `CNPJ_INACTIVE_AT_EXPENSE` are **not included** in the score simulation — they bypass the scoring system entirely (Escalate tier) and must be detected as a separate pre-scoring pass.
+- `CROSS_POLITICIAN_INVOICE`, `CNPJ_POSTDATES_EXPENSE`, and `CNPJ_INACTIVE_AT_EXPENSE` are **not included** in the score simulation — they bypass the scoring system entirely (Escalate tier) and must be detected as a separate pre-scoring pass.
 
 ---
 

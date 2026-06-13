@@ -31,7 +31,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-01',
     });
@@ -54,7 +54,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-08',
     });
@@ -75,7 +75,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-09',
     });
@@ -96,7 +96,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-07-01',
     });
@@ -117,7 +117,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-07-02',
     });
@@ -138,7 +138,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-08-29',
     });
@@ -159,7 +159,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-08-30',
     });
@@ -176,7 +176,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '12345678901',
       dataDocumento: '2023-06-01',
     });
@@ -193,7 +193,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-01',
     });
@@ -210,7 +210,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-01',
     });
@@ -228,13 +228,13 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF002');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-15',
     });
     expensesRepo.seedExpense({
       id: 'EXP-2',
-      deputyId: 'CPF002',
+      politicianId: 'CPF002',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-20',
     });
@@ -258,13 +258,13 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF002');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-15',
     });
     expensesRepo.seedExpense({
       id: 'EXP-2',
-      deputyId: 'CPF002',
+      politicianId: 'CPF002',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-05',
     });
@@ -288,7 +288,7 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     politicianRepo.seedDeputy('CPF001');
     expensesRepo.seedExpense({
       id: 'EXP-1',
-      deputyId: 'CPF001',
+      politicianId: 'CPF001',
       cnpj: '11222333000181',
       dataDocumento: '2023-06-04',
     });
