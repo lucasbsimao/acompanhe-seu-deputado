@@ -11,6 +11,7 @@ export interface TestExpenseSeed {
   tipoDespesa?: string;
   nomeFornecedor?: string;
   valorLiquido?: number;
+  urlDocumento?: string | null;
 }
 
 export class TestExpensesRepository {
@@ -68,8 +69,8 @@ export class TestExpensesRepository {
     const insert = this.db.prepare(
       `INSERT OR IGNORE INTO expenses
          (id, politician_id, tipo_despesa, cod_documento, cod_tipo_documento,
-          data_documento, num_documento, nome_fornecedor, cnpj_cpf_fornecedor, valor_liquido, valor_glosa)
-       VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0)`,
+          data_documento, num_documento, nome_fornecedor, cnpj_cpf_fornecedor, valor_liquido, valor_glosa, url_documento)
+       VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0, ?)`,
     );
 
     this.db.transaction(() => {
@@ -84,6 +85,7 @@ export class TestExpensesRepository {
           s.nomeFornecedor ?? 'Vendor',
           s.cnpj,
           s.valorLiquido ?? 10000,
+          s.urlDocumento ?? null,
         );
       }
     })();
