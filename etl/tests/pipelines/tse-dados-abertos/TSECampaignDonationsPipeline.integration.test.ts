@@ -4,12 +4,12 @@ import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import AdmZip from 'adm-zip';
-import { TSECampaignDonationsPipeline } from '../../src/pipelines/tse-dados-abertos/TSECampaignDonationsPipeline';
-import { TseDonationsRepository } from '../../src/repositories/TseDonationsRepository';
-import { useTestDatabase } from '../db/setup';
-import { TestTseCandidatesRepository } from '../db/TestTseCandidatesRepository';
-import { TestTseDonationsRepository } from '../db/TestTseDonationsRepository';
-import { makeCPF } from '../db/TestPoliticianRepository';
+import { TSECampaignDonationsPipeline } from '../../../src/pipelines/tse-dados-abertos/TSECampaignDonationsPipeline';
+import { TseDonationsRepository } from '../../../src/repositories/TseDonationsRepository';
+import { useTestDatabase } from '../../db/setup';
+import { TestTseCandidatesRepository } from '../../db/TestTseCandidatesRepository';
+import { TestTseDonationsRepository } from '../../db/TestTseDonationsRepository';
+import { makeCPF } from '../../db/TestPoliticianRepository';
 
 const TSE_ORIGIN = 'https://cdn.tse.jus.br';
 

@@ -2,13 +2,13 @@
 
 import * as assert from 'node:assert';
 import { describe, it, beforeEach } from 'node:test';
-import { VendorCnaeMismatchPipeline } from '../../src/pipelines/forensics/VendorCnaeMismatchPipeline';
-import { ForensicFlag } from '../../src/pipelines/forensics/ForensicFlag';
-import { useTestDatabase } from '../db/setup';
-import { TestPoliticianRepository } from '../db/TestPoliticianRepository';
-import { TestExpensesRepository } from '../db/TestExpensesRepository';
-import { TestVendorRepository } from '../db/TestVendorRepository';
-import { TestForensicFlagsRepository } from '../db/TestForensicFlagsRepository';
+import { VendorCnaeMismatchPipeline } from '../../../src/pipelines/forensics/VendorCnaeMismatchPipeline';
+import { ForensicFlag } from '../../../src/pipelines/forensics/ForensicFlag';
+import { useTestDatabase } from '../../db/setup';
+import { TestPoliticianRepository } from '../../db/TestPoliticianRepository';
+import { TestExpensesRepository } from '../../db/TestExpensesRepository';
+import { TestVendorRepository } from '../../db/TestVendorRepository';
+import { TestForensicFlagsRepository } from '../../db/TestForensicFlagsRepository';
 
 describe('VendorCnaeMismatchPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();

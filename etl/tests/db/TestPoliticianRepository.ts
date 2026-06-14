@@ -36,6 +36,15 @@ export interface SeedSenatorOptions {
   electedAs?: string;
 }
 
+export interface TestPoliticianSeed {
+  cpf: string;
+  sourceApiId?: string | null;
+  name?: string;
+  role: PoliticianRole;
+  uf?: string;
+  electedAs?: string;
+}
+
 export class TestPoliticianRepository {
   constructor(private readonly db: Database.Database) {}
 
@@ -108,5 +117,26 @@ export class TestPoliticianRepository {
          VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')`,
       )
       .run(makeCPF(id), name);
+  }
+
+  seedBatch(seeds: TestPoliticianSeed[]): void {
+    this.seedParty();
+    const insert = this.db.prepare(
+      `INSERT OR IGNORE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
+       VALUES (?, ?, ?, ?, 'pt', ?, NULL, ?)`,
+    );
+
+    this.db.transaction(() => {
+      for (const s of seeds) {
+        insert.run(
+          s.cpf,
+          s.sourceApiId ?? null,
+          s.name ?? `Politician ${s.cpf}`,
+          s.uf ?? 'SP',
+          s.role,
+          s.electedAs ?? 'ELEITO_POR_QP',
+        );
+      }
+    })();
   }
 }

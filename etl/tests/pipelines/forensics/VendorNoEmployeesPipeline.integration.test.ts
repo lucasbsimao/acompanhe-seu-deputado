@@ -2,14 +2,14 @@
 
 import * as assert from 'node:assert';
 import { describe, it, beforeEach } from 'node:test';
-import { VendorNoEmployeesPipeline } from '../../src/pipelines/forensics/VendorNoEmployeesPipeline';
-import { ForensicFlag } from '../../src/pipelines/forensics/ForensicFlag';
-import { CompanySize } from '../../src/types/CompanySize';
-import { useTestDatabase } from '../db/setup';
-import { TestPoliticianRepository } from '../db/TestPoliticianRepository';
-import { TestExpensesRepository } from '../db/TestExpensesRepository';
-import { TestVendorRepository } from '../db/TestVendorRepository';
-import { TestForensicFlagsRepository } from '../db/TestForensicFlagsRepository';
+import { VendorNoEmployeesPipeline } from '../../../src/pipelines/forensics/VendorNoEmployeesPipeline';
+import { ForensicFlag } from '../../../src/pipelines/forensics/ForensicFlag';
+import { CompanySize } from '../../../src/types/CompanySize';
+import { useTestDatabase } from '../../db/setup';
+import { TestPoliticianRepository } from '../../db/TestPoliticianRepository';
+import { TestExpensesRepository } from '../../db/TestExpensesRepository';
+import { TestVendorRepository } from '../../db/TestVendorRepository';
+import { TestForensicFlagsRepository } from '../../db/TestForensicFlagsRepository';
 
 describe('VendorNoEmployeesPipeline Integration Tests', () => {
   const { getDb } = useTestDatabase();

@@ -3,10 +3,10 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import { ExpensesPipeline } from '../../src/pipelines/dados-abertos-camara/ExpensesPipeline';
-import { useTestDatabase } from '../db/setup';
-import { TestPoliticianRepository } from '../db/TestPoliticianRepository';
-import { TestExpensesRepository } from '../db/TestExpensesRepository';
+import { ExpensesPipeline } from '../../../src/pipelines/dados-abertos-camara/ExpensesPipeline';
+import { useTestDatabase } from '../../db/setup';
+import { TestPoliticianRepository } from '../../db/TestPoliticianRepository';
+import { TestExpensesRepository } from '../../db/TestExpensesRepository';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 const DEPUTY_API_ID = '12345';

@@ -3,9 +3,9 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import { SenatorsPipeline } from '../../src/pipelines/dados-abertos-senado/SenatorsPipeline';
-import { useTestDatabase } from '../db/setup';
-import { TestPoliticianRepository } from '../db/TestPoliticianRepository';
+import { SenatorsPipeline } from '../../../src/pipelines/dados-abertos-senado/SenatorsPipeline';
+import { useTestDatabase } from '../../db/setup';
+import { TestPoliticianRepository } from '../../db/TestPoliticianRepository';
 
 const API_BASE_URL = 'https://legis.senado.leg.br';
 

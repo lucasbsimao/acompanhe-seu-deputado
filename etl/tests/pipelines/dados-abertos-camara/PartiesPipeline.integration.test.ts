@@ -3,8 +3,8 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import { PartiesPipeline } from '../../src/pipelines/dados-abertos-camara/PartiesPipeline';
-import { useTestDatabase } from '../db/setup';
+import { PartiesPipeline } from '../../../src/pipelines/dados-abertos-camara/PartiesPipeline';
+import { useTestDatabase } from '../../db/setup';
 
 const API_BASE_URL = 'https://dadosabertos.camara.leg.br';
 

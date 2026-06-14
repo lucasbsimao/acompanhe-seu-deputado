@@ -4,10 +4,10 @@ import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import AdmZip from 'adm-zip';
-import { ReceitaFederalSimplesPipeline } from '../../src/pipelines/receita-federal/ReceitaFederalSimplesPipeline';
-import { useTestDatabase } from '../db/setup';
-import { TestExpensesRepository } from '../db/TestExpensesRepository';
-import { TestVendorRepository } from '../db/TestVendorRepository';
+import { ReceitaFederalSimplesPipeline } from '../../../src/pipelines/receita-federal/ReceitaFederalSimplesPipeline';
+import { useTestDatabase } from '../../db/setup';
+import { TestExpensesRepository } from '../../db/TestExpensesRepository';
+import { TestVendorRepository } from '../../db/TestVendorRepository';
 
 const WEBDAV_BASE = 'https://arquivos.receitafederal.gov.br';
 const WEBDAV_PATH_PREFIX = '/public.php/webdav/2026-05';
