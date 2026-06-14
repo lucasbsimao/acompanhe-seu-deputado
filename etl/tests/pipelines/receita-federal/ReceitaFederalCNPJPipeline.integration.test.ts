@@ -4,12 +4,12 @@ import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import AdmZip from 'adm-zip';
-import { ReceitaFederalCNPJPipeline } from '../../src/pipelines/receita-federal/ReceitaFederalCNPJPipeline';
-import { CompanySize } from '../../src/types/CompanySize';
-import { useTestDatabase } from '../db/setup';
-import { TestExpensesRepository } from '../db/TestExpensesRepository';
-import { TestVendorRepository } from '../db/TestVendorRepository';
-import { TestPoliticianRepository } from '../db/TestPoliticianRepository';
+import { ReceitaFederalCNPJPipeline } from '../../../src/pipelines/receita-federal/ReceitaFederalCNPJPipeline';
+import { CompanySize } from '../../../src/types/CompanySize';
+import { useTestDatabase } from '../../db/setup';
+import { TestExpensesRepository } from '../../db/TestExpensesRepository';
+import { TestVendorRepository } from '../../db/TestVendorRepository';
+import { TestPoliticianRepository } from '../../db/TestPoliticianRepository';
 
 // Values from src/config/defaults.json
 const WEBDAV_BASE = 'https://arquivos.receitafederal.gov.br';

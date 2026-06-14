@@ -3,11 +3,11 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert';
 import Database from 'better-sqlite3';
-import { AllCargoCandidatesStep } from '../../../src/pipelines/tse-dados-abertos/steps/AllCargoCandidatesStep';
-import { TseCandidatesRepository } from '../../../src/repositories/TseCandidatesRepository';
-import type { TSECandidate } from '../../../src/types/TSECandidate';
-import { migrations } from '../../../../app/src/shared/db/migrations';
-import { makeCPF } from '../../db/TestPoliticianRepository';
+import { AllCargoCandidatesStep } from '../../../../src/pipelines/tse-dados-abertos/steps/AllCargoCandidatesStep';
+import { TseCandidatesRepository } from '../../../../src/repositories/TseCandidatesRepository';
+import type { TSECandidate } from '../../../../src/types/TSECandidate';
+import { migrations } from '../../../../../app/src/shared/db/migrations';
+import { makeCPF } from '../../../db/TestPoliticianRepository';
 
 describe('AllCargoCandidatesStep', () => {
   let db: Database.Database;

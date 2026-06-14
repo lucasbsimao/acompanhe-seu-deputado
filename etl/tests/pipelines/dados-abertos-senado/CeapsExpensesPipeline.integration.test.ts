@@ -3,12 +3,12 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import { CeapsExpensesPipeline } from '../../src/pipelines/dados-abertos-senado/CeapsExpensesPipeline';
-import { useTestDatabase } from '../db/setup';
-import { TestPoliticianRepository, makeCPF } from '../db/TestPoliticianRepository';
-import { TestExpensesRepository } from '../db/TestExpensesRepository';
-import { CodTipoDocumento } from '../../src/types/CodTipoDocumento';
-import defaultConfig from '../../src/config/defaults.json';
+import { CeapsExpensesPipeline } from '../../../src/pipelines/dados-abertos-senado/CeapsExpensesPipeline';
+import { useTestDatabase } from '../../db/setup';
+import { TestPoliticianRepository, makeCPF } from '../../db/TestPoliticianRepository';
+import { TestExpensesRepository } from '../../db/TestExpensesRepository';
+import { CodTipoDocumento } from '../../../src/types/CodTipoDocumento';
+import defaultConfig from '../../../src/config/defaults.json';
 
 const API_BASE_URL = 'https://adm.senado.gov.br';
 

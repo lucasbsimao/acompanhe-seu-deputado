@@ -3,10 +3,10 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import { EmendaParlamentarPipeline } from '../../src/pipelines/portal-da-transparencia/EmendaParlamentarPipeline';
-import { useTestDatabase } from '../db/setup';
-import { TestPoliticianRepository } from '../db/TestPoliticianRepository';
-import { TestEmendaRepository } from '../db/TestEmendaRepository';
+import { EmendaParlamentarPipeline } from '../../../src/pipelines/portal-da-transparencia/EmendaParlamentarPipeline';
+import { useTestDatabase } from '../../db/setup';
+import { TestPoliticianRepository } from '../../db/TestPoliticianRepository';
+import { TestEmendaRepository } from '../../db/TestEmendaRepository';
 
 const API_BASE_URL = 'https://api.portaldatransparencia.gov.br';
 const FAKE_API_KEY = 'test-api-key-123';

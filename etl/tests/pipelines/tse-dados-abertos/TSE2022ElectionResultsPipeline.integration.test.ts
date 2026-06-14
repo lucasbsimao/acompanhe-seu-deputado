@@ -4,10 +4,10 @@ import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
 import AdmZip from 'adm-zip';
-import { TSE2022ElectionResultsPipeline } from '../../src/pipelines/tse-dados-abertos/TSE2022ElectionResultsPipeline';
-import { TseCandidatesRepository } from '../../src/repositories/TseCandidatesRepository';
-import { useTestDatabase } from '../db/setup';
-import { TestPoliticianRepository, makeCPF } from '../db/TestPoliticianRepository';
+import { TSE2022ElectionResultsPipeline } from '../../../src/pipelines/tse-dados-abertos/TSE2022ElectionResultsPipeline';
+import { TseCandidatesRepository } from '../../../src/repositories/TseCandidatesRepository';
+import { useTestDatabase } from '../../db/setup';
+import { TestPoliticianRepository, makeCPF } from '../../db/TestPoliticianRepository';
 
 const TSE_ORIGIN = 'https://cdn.tse.jus.br';
 const TSE_ZIP_PATH = '/estatistica/sead/odsele/consulta_cand/consulta_cand_2022.zip';
