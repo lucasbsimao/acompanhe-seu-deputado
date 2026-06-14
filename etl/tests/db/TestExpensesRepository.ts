@@ -9,6 +9,8 @@ export interface TestExpenseSeed {
   numDocumento?: string;
   dataDocumento?: string;
   tipoDespesa?: string;
+  nomeFornecedor?: string;
+  valorLiquido?: number;
 }
 
 export class TestExpensesRepository {
@@ -60,5 +62,30 @@ export class TestExpensesRepository {
 
   countExpenses(): number {
     return (this.db.prepare('SELECT COUNT(*) as count FROM expenses').get() as any).count;
+  }
+
+  seedBatch(seeds: TestExpenseSeed[]): void {
+    const insert = this.db.prepare(
+      `INSERT OR IGNORE INTO expenses
+         (id, politician_id, tipo_despesa, cod_documento, cod_tipo_documento,
+          data_documento, num_documento, nome_fornecedor, cnpj_cpf_fornecedor, valor_liquido, valor_glosa)
+       VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0)`,
+    );
+
+    this.db.transaction(() => {
+      for (const s of seeds) {
+        insert.run(
+          s.id,
+          s.politicianId,
+          s.tipoDespesa ?? 'TIPO',
+          s.id,
+          s.dataDocumento ?? '2024-01-01',
+          s.numDocumento ?? 'NF-1',
+          s.nomeFornecedor ?? 'Vendor',
+          s.cnpj,
+          s.valorLiquido ?? 10000,
+        );
+      }
+    })();
   }
 }
