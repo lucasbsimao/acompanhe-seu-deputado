@@ -13,6 +13,20 @@ import { readFileSync, readdirSync, unlinkSync, rmdirSync } from 'fs';
 import { join } from 'path';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 
+/**
+ * TSE 2022 Election Results Pipeline
+ *
+ * Collects and stores federal deputy and senator candidates elected in the
+ * 2022 general election.
+ *
+ * Source: TSE Open Data ZIP file (consulta_cand_2022.zip).
+ *
+ * Key behaviour: Downloads and extracts the full candidate ZIP, parses records,
+ * and uses shared steps to populate both the politicians and tse_candidates tables.
+ *
+ * Co-dependencies: Declares no dependencies as it is the base pipeline for
+ * election results.
+ */
 export class TSE2022ElectionResultsPipeline {
   static readonly dependencies: readonly IPipelineDepChain[] = [];
 

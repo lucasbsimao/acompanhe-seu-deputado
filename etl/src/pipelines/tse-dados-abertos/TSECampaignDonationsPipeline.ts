@@ -23,6 +23,20 @@ import {
 import { join } from 'path';
 import defaultConfig from '../../config/defaults.json';
 
+/**
+ * TSE Campaign Donations Pipeline
+ *
+ * Collects and stores campaign donation records for politicians across
+ * multiple election years.
+ *
+ * Source: TSE Open Data ZIP files (prestacao_de_contas_eleitorais_candidatos_{year}.zip).
+ *
+ * Key behaviour: Downloads ZIPs for configured years, filters records by candidate CPF
+ * already present in the database, and normalizes currency values to integer centavos.
+ *
+ * Co-dependencies: Depends on {@link TSE2022ElectionResultsPipeline} to ensure
+ * candidate CPFs are available for filtering.
+ */
 export class TSECampaignDonationsPipeline {
   static readonly dependencies: readonly IPipelineDepChain[] = [TSE2022ElectionResultsPipeline];
 
