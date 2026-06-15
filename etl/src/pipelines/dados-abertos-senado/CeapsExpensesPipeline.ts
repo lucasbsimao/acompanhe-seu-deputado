@@ -84,6 +84,10 @@ export class CeapsExpensesPipeline {
           continue;
         }
 
+        const expenseDate = new Date(expense.data);
+        const competencyYear = isNaN(expenseDate.getTime()) ? year : expenseDate.getFullYear();
+        const competencyMonth = isNaN(expenseDate.getTime()) ? 0 : expenseDate.getMonth() + 1;
+
         rows.push({
           id: String(expense.id),
           politicianId: senatorCpf,
@@ -97,6 +101,8 @@ export class CeapsExpensesPipeline {
           cnpjCpfFornecedor: normalizeNumericText(expense.cpfCnpj),
           valorLiquido: Math.round(expense.valorReembolsado * 100),
           valorGlosa: 0,
+          competencyYear,
+          competencyMonth,
         });
       }
 

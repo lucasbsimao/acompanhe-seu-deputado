@@ -30,8 +30,8 @@ export class TestExpensesRepository {
       .prepare(
         `INSERT INTO expenses (id, politician_id, tipo_despesa, cod_documento, cod_tipo_documento,
           data_documento, num_documento, url_documento, nome_fornecedor, cnpj_cpf_fornecedor,
-          valor_liquido, valor_glosa)
-         VALUES (?, ?, ?, ?, 0, ?, ?, NULL, 'Vendor LTDA', ?, 10000, 0)`,
+          valor_liquido, valor_glosa, competency_year, competency_month)
+         VALUES (?, ?, ?, ?, 0, ?, ?, NULL, 'Vendor LTDA', ?, 10000, 0, 2024, 1)`,
       )
       .run(id, politicianId, tipoDespesa, id, dataDocumento, numDocumento, cnpj);
   }
@@ -51,8 +51,8 @@ export class TestExpensesRepository {
         `INSERT OR IGNORE INTO expenses
           (id, politician_id, tipo_despesa, cod_documento, cod_tipo_documento,
            data_documento, num_documento, url_documento, nome_fornecedor,
-           cnpj_cpf_fornecedor, valor_liquido, valor_glosa)
-         VALUES (?, '12345678901', 'Despesa Teste', ?, 0, '2026-01-01', ?, NULL, 'Fornecedor Teste', ?, 10000, 0)`,
+           cnpj_cpf_fornecedor, valor_liquido, valor_glosa, competency_year, competency_month)
+         VALUES (?, '12345678901', 'Despesa Teste', ?, 0, '2026-01-01', ?, NULL, 'Fornecedor Teste', ?, 10000, 0, 2026, 1)`,
       )
       .run(`12345678901_${suffix}`, suffix, `NF-${suffix}`, cnpj);
   }
@@ -69,8 +69,9 @@ export class TestExpensesRepository {
     const insert = this.db.prepare(
       `INSERT OR IGNORE INTO expenses
          (id, politician_id, tipo_despesa, cod_documento, cod_tipo_documento,
-          data_documento, num_documento, nome_fornecedor, cnpj_cpf_fornecedor, valor_liquido, valor_glosa, url_documento)
-       VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0, ?)`,
+          data_documento, num_documento, nome_fornecedor, cnpj_cpf_fornecedor, valor_liquido, valor_glosa, url_documento,
+          competency_year, competency_month)
+       VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
     );
 
     this.db.transaction(() => {
@@ -86,6 +87,8 @@ export class TestExpensesRepository {
           s.cnpj,
           s.valorLiquido ?? 10000,
           s.urlDocumento ?? null,
+          2024,
+          1,
         );
       }
     })();

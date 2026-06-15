@@ -60,6 +60,8 @@ interface ExpenseRow {
   valor_liquido: number;
   valor_glosa: number;
   url_documento: string | null;
+  competency_year: number;
+  competency_month: number;
 }
 
 interface CountRow {
@@ -87,7 +89,10 @@ describe('ExpensesPipeline Integration Tests', () => {
   it('should fetch and persist expenses data with a single page', async () => {
     politicianRepo.seedDeputy(DEPUTY_CPF, { sourceApiId: DEPUTY_API_ID });
 
-    const expenses = [createMockExpense('DOC001'), createMockExpense('DOC002')];
+    const expenses = [
+      createMockExpense('DOC001', { ano: 2025, mes: 12 }),
+      createMockExpense('DOC002', { ano: 2026, mes: 1 }),
+    ];
 
     nock(API_BASE_URL)
       .get(`/api/v2/deputados/${DEPUTY_API_ID}/despesas`)
@@ -100,9 +105,18 @@ describe('ExpensesPipeline Integration Tests', () => {
     const rows = db.prepare('SELECT * FROM expenses ORDER BY cod_documento').all() as ExpenseRow[];
     assert.strictEqual(rows.length, 2, 'Should contain 2 expense rows');
 
+    // DOC001
     assert.strictEqual(rows[0].id, `${DEPUTY_CPF}_DOC001`, 'ID should be cpf_codDocumento');
     assert.strictEqual(rows[0].politician_id, DEPUTY_CPF, 'politician_id should match CPF');
     assert.strictEqual(rows[0].cod_documento, 'DOC001', 'cod_documento should match');
+    assert.strictEqual(rows[0].competency_year, 2025, 'competency_year should be 2025');
+    assert.strictEqual(rows[0].competency_month, 12, 'competency_month should be 12');
+
+    // DOC002
+    assert.strictEqual(rows[1].cod_documento, 'DOC002', 'cod_documento should match');
+    assert.strictEqual(rows[1].competency_year, 2026, 'competency_year should be 2026');
+    assert.strictEqual(rows[1].competency_month, 1, 'competency_month should be 1');
+
     assert.strictEqual(
       rows[0].nome_fornecedor,
       'Fornecedor Teste LTDA',

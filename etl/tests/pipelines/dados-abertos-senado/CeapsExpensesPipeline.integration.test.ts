@@ -25,6 +25,8 @@ interface ExpenseRow {
   cnpj_cpf_fornecedor: string;
   valor_liquido: number;
   valor_glosa: number;
+  competency_year: number;
+  competency_month: number;
 }
 
 describe('CeapsExpensesPipeline Integration Tests', () => {
@@ -97,6 +99,8 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
     assert.strictEqual(result[0].cod_tipo_documento, CodTipoDocumento.NOTA_FISCAL);
     assert.strictEqual(result[0].valor_liquido, 150050);
     assert.strictEqual(result[0].cnpj_cpf_fornecedor, '12345678000190');
+    assert.strictEqual(result[0].competency_year, year);
+    assert.strictEqual(result[0].competency_month, 5);
 
     assert.ok(nock.isDone());
   });
