@@ -5,14 +5,14 @@ import { parse } from 'node-html-parser';
 import { HttpClient } from '../../core/HttpClient';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { ExpensesRepository, type CeapsWorkQueueItem } from '../../repositories/ExpensesRepository';
-import { CeapsExpensesPipeline } from './CeapsExpensesPipeline';
+import { SenatorsExpensesPipeline } from './SenatorsExpensesPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import { mapToCeapsPortalCategory } from '../../mappers/CeapsPortalCategory.mapper';
 import { normalizeNumericText } from '../../util/normalization.util';
 import defaultConfig from '../../config/defaults.json';
 
 export class SenatorsDocUrlRetrievalPipeline {
-  static readonly dependencies: readonly IPipelineDepChain[] = [CeapsExpensesPipeline];
+  static readonly dependencies: readonly IPipelineDepChain[] = [SenatorsExpensesPipeline];
 
   private readonly politicianRepo: PoliticianRepository;
   private readonly expensesRepo: ExpensesRepository;

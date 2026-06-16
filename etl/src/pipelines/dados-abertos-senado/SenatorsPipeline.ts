@@ -8,6 +8,7 @@ import { PoliticianLookupService } from '../../services/PoliticianLookupService'
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
 import { PoliticianRole } from '../../types/PoliticianRole';
+import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
 
 interface SenatorIdentification {
   CodigoParlamentar: string;
@@ -46,7 +47,10 @@ interface SenatorsResponse {
  * 2018 and 2022 senator cohorts are seeded before matching begins.
  */
 export class SenatorsPipeline extends BasePipeline<SenatorData> {
-  static readonly dependencies: readonly IPipelineDepChain[] = [TSE2018SenatorsPipeline];
+  static readonly dependencies: readonly IPipelineDepChain[] = [
+    TSE2018SenatorsPipeline,
+    TSE2022ElectionResultsPipeline,
+  ];
 
   private readonly apiEndpoint =
     'https://legis.senado.leg.br/dadosabertos/senador/lista/atual?participacao=T&v=4';

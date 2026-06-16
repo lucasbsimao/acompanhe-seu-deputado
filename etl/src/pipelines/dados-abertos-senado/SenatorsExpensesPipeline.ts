@@ -22,7 +22,7 @@ interface CeapsExpenseDto {
   valorReembolsado: number;
 }
 
-export class CeapsExpensesPipeline {
+export class SenatorsExpensesPipeline {
   static readonly dependencies: readonly IPipelineDepChain[] = [SenatorsPipeline];
 
   private readonly politicianRepo: PoliticianRepository;

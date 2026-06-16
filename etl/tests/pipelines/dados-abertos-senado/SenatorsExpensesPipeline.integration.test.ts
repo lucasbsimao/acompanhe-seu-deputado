@@ -3,7 +3,7 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import { CeapsExpensesPipeline } from '../../../src/pipelines/dados-abertos-senado/CeapsExpensesPipeline';
+import { SenatorsExpensesPipeline } from '../../../src/pipelines/dados-abertos-senado/SenatorsExpensesPipeline';
 import { useTestDatabase } from '../../db/setup';
 import { TestPoliticianRepository, makeCPF } from '../../db/TestPoliticianRepository';
 import { TestExpensesRepository } from '../../db/TestExpensesRepository';
@@ -85,7 +85,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
         .reply(200, { despesasCeaps: [] });
     }
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await pipeline.execute(true);
 
     const result = expensesRepo.getAllExpenses() as ExpenseRow[];
@@ -139,7 +139,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
         .reply(200, { despesasCeaps: [] });
     }
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await pipeline.execute(true);
 
     const result = expensesRepo.getAllExpenses();
@@ -176,7 +176,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
         .reply(200, { despesasCeaps: [] });
     }
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await pipeline.execute(false); // forceDownload = false
 
     assert.ok(nock.isDone());
@@ -200,7 +200,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
         .reply(200, { despesasCeaps: [] });
     }
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await pipeline.execute(true);
 
     const count = expensesRepo.countExpenses();
@@ -221,7 +221,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
         return [200, { despesasCeaps: [] }];
       });
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await assert.rejects(pipeline.execute(true), /Failed to fetch CEAPS expenses for year/);
     nock.cleanAll();
   });
@@ -248,7 +248,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
         .reply(200, { despesasCeaps: [] });
     }
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await pipeline.execute(true);
 
     const count = expensesRepo.countExpenses();
