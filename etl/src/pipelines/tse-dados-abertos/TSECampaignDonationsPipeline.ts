@@ -11,15 +11,7 @@ import { TseCandidatesRepository } from '../../repositories/TseCandidatesReposit
 import { TSE2022ElectionResultsPipeline } from './TSE2022ElectionResultsPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import { parse } from 'csv-parse';
-import {
-  createReadStream,
-  readdirSync,
-  unlinkSync,
-  rmdirSync,
-  existsSync,
-  mkdirSync,
-  lstatSync,
-} from 'fs';
+import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
 import defaultConfig from '../../config/defaults.json';
 
@@ -80,10 +72,6 @@ export class TSECampaignDonationsPipeline {
     const extractPath = join(yearTempDir, 'extracted');
     const targetFileName = `receitas_candidatos_${year}_BRASIL.csv`;
 
-    if (!existsSync(yearTempDir)) {
-      mkdirSync(yearTempDir, { recursive: true });
-    }
-
     try {
       console.log(`Downloading donations for ${year}...`);
       await this.downloader.downloadFile(downloadUrl, zipPath);
@@ -101,7 +89,7 @@ export class TSECampaignDonationsPipeline {
 
       console.log(`Successfully processed donations for ${year}`);
     } finally {
-      this.cleanup(yearTempDir);
+      this.downloader.cleanupDir(yearTempDir);
     }
   }
 
@@ -160,30 +148,5 @@ export class TSECampaignDonationsPipeline {
     console.log(
       `Processed ${totalCount} rows, kept ${filteredCount} donations for target candidates.`,
     );
-  }
-
-  private cleanup(dir: string): void {
-    try {
-      if (existsSync(dir)) {
-        this.deleteRecursive(dir);
-        console.log(`Cleaned up: ${dir}`);
-      }
-    } catch (error) {
-      console.warn(`Cleanup warning for ${dir}:`, error);
-    }
-  }
-
-  private deleteRecursive(path: string): void {
-    if (existsSync(path)) {
-      readdirSync(path).forEach(file => {
-        const curPath = join(path, file);
-        if (lstatSync(curPath).isDirectory()) {
-          this.deleteRecursive(curPath);
-        } else {
-          unlinkSync(curPath);
-        }
-      });
-      rmdirSync(path);
-    }
   }
 }

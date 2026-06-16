@@ -8,9 +8,8 @@ import { AllCargoCandidatesStep } from './steps/AllCargoCandidatesStep';
 import type { TSECandidate } from '../../types/TSECandidate';
 import { TSECargo } from '../../types/TSECargo';
 import { TseCandidatesRepository } from '../../repositories/TseCandidatesRepository';
-import { parse } from 'csv-parse/sync';
-import { readFileSync, readdirSync, unlinkSync, rmdirSync } from 'fs';
 import { join } from 'path';
+import { parseCSVFile } from './tseUtils';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import { TSE2022ElectionResultsPipeline } from './TSE2022ElectionResultsPipeline';
 
@@ -71,12 +70,12 @@ export class TSE2018SenatorsPipeline {
       await this.downloader.downloadFile(this.downloadUrl, this.zipPath);
       this.downloader.extractZip(this.zipPath, this.extractPath);
 
-      const csvFiles = this.findCSVFiles();
+      const csvFiles = this.downloader.listFiles(this.extractPath, 'consulta_cand_2018_');
       console.log(`Found ${csvFiles.length} CSV files`);
 
       const allCandidates: TSECandidate[] = [];
       for (const file of csvFiles) {
-        const candidates = this.parseCSVFile(file);
+        const candidates = parseCSVFile(file);
         allCandidates.push(...candidates);
       }
 
@@ -87,40 +86,7 @@ export class TSE2018SenatorsPipeline {
       this.allCandidatesStep.run(senators);
       console.log('TSE 2018 senators stored successfully');
     } finally {
-      this.cleanup();
-    }
-  }
-
-  private findCSVFiles(): string[] {
-    const files = readdirSync(this.extractPath);
-    return files
-      .filter(f => f.startsWith('consulta_cand_2018_') && f.endsWith('.csv'))
-      .map(f => join(this.extractPath, f));
-  }
-
-  private parseCSVFile(filePath: string): TSECandidate[] {
-    const content = readFileSync(filePath, { encoding: 'latin1' });
-    const records = parse(content, {
-      columns: true,
-      delimiter: ';',
-      skip_empty_lines: true,
-      relax_quotes: true,
-    }) as TSECandidate[];
-    return records;
-  }
-
-  private cleanup(): void {
-    try {
-      const files = readdirSync(this.extractPath);
-      files.forEach(f => {
-        unlinkSync(join(this.extractPath, f));
-      });
-      rmdirSync(this.extractPath);
-      unlinkSync(this.zipPath);
-      rmdirSync(this.tempDir);
-      console.log('Cleaned up temporary files');
-    } catch (error) {
-      console.warn('Cleanup warning:', error);
+      this.downloader.cleanupDir(this.tempDir);
     }
   }
 }

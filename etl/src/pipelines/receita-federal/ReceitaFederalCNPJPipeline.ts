@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type Database from 'better-sqlite3';
-import { existsSync, createReadStream, readdirSync, unlinkSync, rmdirSync } from 'fs';
+import { existsSync, createReadStream, unlinkSync } from 'fs';
 import { join } from 'path';
 import { parse } from 'csv-parse';
 import { FileDownloader } from '../../core/FileDownloader';
@@ -214,12 +214,12 @@ export class ReceitaFederalCNPJPipeline {
       await this.downloader.downloadFile(url, zipPath, this.auth);
       this.downloader.extractZip(zipPath, extractPath);
 
-      const csvFiles = readdirSync(extractPath).map(f => join(extractPath, f));
+      const csvFiles = this.downloader.listFiles(extractPath);
       for (const csvFile of csvFiles) {
         await this.processCsvFile(fileType, csvFile, knownBasicCnpjs, knownCnpjs);
       }
     } finally {
-      this.cleanupDir(extractPath);
+      this.downloader.cleanupDir(extractPath);
       if (existsSync(zipPath)) {
         unlinkSync(zipPath);
       }
@@ -377,19 +377,6 @@ export class ReceitaFederalCNPJPipeline {
 
     if (totalPartners > 0) {
       console.log(`Inserted ${totalPartners} partners from ${csvFile}`);
-    }
-  }
-
-  private cleanupDir(dir: string): void {
-    if (!existsSync(dir)) return;
-    try {
-      const files = readdirSync(dir);
-      files.forEach(f => {
-        unlinkSync(join(dir, f));
-      });
-      rmdirSync(dir);
-    } catch (err) {
-      console.warn(`Cleanup warning for ${dir}:`, err);
     }
   }
 }
