@@ -4,7 +4,7 @@ export interface TSECandidate {
   ANO_ELEICAO: string;
   DS_CARGO: string;
   NR_CPF_CANDIDATO: string;
-  NM_URNA_CANDIDATO: string;
+  NM_CANDIDATO: string;
   SG_UF: string;
   SG_PARTIDO: string;
   DS_SIT_TOT_TURNO: string;

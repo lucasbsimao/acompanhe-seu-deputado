@@ -18,7 +18,7 @@ const CSV_HEADER =
 
 function buildCandidateRow(opts: {
   DS_CARGO: string;
-  NM_URNA_CANDIDATO: string;
+  NM_CANDIDATO: string;
   NR_CPF_CANDIDATO: string;
   SG_UF: string;
   SG_PARTIDO: string;
@@ -29,7 +29,7 @@ function buildCandidateRow(opts: {
   cols[2] = opts.ANO_ELEICAO;
   cols[10] = opts.SG_UF;
   cols[14] = opts.DS_CARGO;
-  cols[17] = opts.NM_URNA_CANDIDATO;
+  cols[16] = opts.NM_CANDIDATO;
   cols[19] = opts.NR_CPF_CANDIDATO;
   cols[27] = opts.SG_PARTIDO;
   cols[53] = opts.DS_SIT_TOT_TURNO;
@@ -71,7 +71,7 @@ describe('TSE2018SenatorsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2018',
         DS_CARGO: 'SENADOR',
-        NM_URNA_CANDIDATO: 'SENADOR 2018',
+        NM_CANDIDATO: 'SENADOR 2018',
         NR_CPF_CANDIDATO: senatorCpf,
         SG_UF: 'SP',
         SG_PARTIDO: 'PSDB',
@@ -81,7 +81,7 @@ describe('TSE2018SenatorsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2018',
         DS_CARGO: 'SENADOR',
-        NM_URNA_CANDIDATO: 'SENADOR NÃO ELEITO',
+        NM_CANDIDATO: 'SENADOR NÃO ELEITO',
         NR_CPF_CANDIDATO: otherCpf,
         SG_UF: 'SP',
         SG_PARTIDO: 'PSDB',
@@ -108,6 +108,63 @@ describe('TSE2018SenatorsPipeline Integration Tests', () => {
     assert.ok(nock.isDone());
   });
 
+  it('stores 1\u00ba SUPLENTE and 2\u00ba SUPLENTE senate alternates as SENATOR', async () => {
+    const cpfPrimeiro = makeCPF(5);
+    const cpfSegundo = makeCPF(6);
+    const cpfLoser = makeCPF(7);
+
+    const rows = [
+      buildCandidateRow({
+        ANO_ELEICAO: '2018',
+        DS_CARGO: '1\u00ba SUPLENTE',
+        NM_CANDIDATO: 'PRIMEIRO SUPLENTE 2018',
+        NR_CPF_CANDIDATO: cpfPrimeiro,
+        SG_UF: 'RJ',
+        SG_PARTIDO: 'MDB',
+        DS_SIT_TOT_TURNO: 'SUPLENTE',
+      }),
+      buildCandidateRow({
+        ANO_ELEICAO: '2018',
+        DS_CARGO: '2\u00ba SUPLENTE',
+        NM_CANDIDATO: 'SEGUNDO SUPLENTE 2018',
+        NR_CPF_CANDIDATO: cpfSegundo,
+        SG_UF: 'RJ',
+        SG_PARTIDO: 'MDB',
+        DS_SIT_TOT_TURNO: 'SUPLENTE',
+      }),
+      // Alternate from a losing ticket \u2014 should be excluded
+      buildCandidateRow({
+        ANO_ELEICAO: '2018',
+        DS_CARGO: '1\u00ba SUPLENTE',
+        NM_CANDIDATO: 'SUPLENTE NAO ELEITO 2018',
+        NR_CPF_CANDIDATO: cpfLoser,
+        SG_UF: 'RJ',
+        SG_PARTIDO: 'PT',
+        DS_SIT_TOT_TURNO: 'N\u00c3O ELEITO',
+      }),
+    ];
+
+    stubTSEZipDownload(buildTSEZip(rows));
+
+    const pipeline = new TSE2018SenatorsPipeline(db);
+    await pipeline.execute(true);
+
+    const primeiro = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(cpfPrimeiro) as any;
+    assert.ok(primeiro, '1\u00ba SUPLENTE should be persisted');
+    assert.strictEqual(primeiro.role, 'SENATOR');
+    assert.strictEqual(primeiro.elected_as, 'SUPLENTE');
+
+    const segundo = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(cpfSegundo) as any;
+    assert.ok(segundo, '2\u00ba SUPLENTE should be persisted');
+    assert.strictEqual(segundo.role, 'SENATOR');
+    assert.strictEqual(segundo.elected_as, 'SUPLENTE');
+
+    const loser = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(cpfLoser);
+    assert.ok(!loser, 'Alternate from losing ticket should not be stored');
+
+    assert.ok(nock.isDone());
+  });
+
   it('filters out non-senator cargos', async () => {
     const deputyCpf = makeCPF(3);
 
@@ -115,7 +172,7 @@ describe('TSE2018SenatorsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2018',
         DS_CARGO: 'DEPUTADO FEDERAL',
-        NM_URNA_CANDIDATO: 'DEPUTADO 2018',
+        NM_CANDIDATO: 'DEPUTADO 2018',
         NR_CPF_CANDIDATO: deputyCpf,
         SG_UF: 'RJ',
         SG_PARTIDO: 'PT',
@@ -168,7 +225,7 @@ describe('TSE2018SenatorsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2018',
         DS_CARGO: 'SENADOR',
-        NM_URNA_CANDIDATO: 'NEW SENATOR',
+        NM_CANDIDATO: 'NEW SENATOR',
         NR_CPF_CANDIDATO: newCpf,
         SG_UF: 'SC',
         SG_PARTIDO: 'PSD',

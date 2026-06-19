@@ -79,7 +79,12 @@ export class TSE2018SenatorsPipeline {
         allCandidates.push(...candidates);
       }
 
-      const senators = allCandidates.filter(c => c.DS_CARGO === (TSECargo.SENADOR as string));
+      const senatorCargos = [
+        TSECargo.SENADOR,
+        TSECargo.SUPLENTE_1,
+        TSECargo.SUPLENTE_2,
+      ] as string[];
+      const senators = allCandidates.filter(c => senatorCargos.includes(c.DS_CARGO));
       console.log(`Processing ${senators.length} senators`);
 
       this.electedStep.run(senators);

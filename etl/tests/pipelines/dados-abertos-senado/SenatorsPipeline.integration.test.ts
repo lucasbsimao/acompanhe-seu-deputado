@@ -127,7 +127,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    politicianRepo.seedTSESenatorByName(1, 'Senator 1');
+    politicianRepo.seedTSESenatorByName(1, 'Senator 1', 'SP', 'PT');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -169,8 +169,8 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    politicianRepo.seedTSESenatorByName(1, 'Senator One');
-    politicianRepo.seedTSESenatorByName(2, 'Senator Two');
+    politicianRepo.seedTSESenatorByName(1, 'Senator One', 'SP', 'PT');
+    politicianRepo.seedTSESenatorByName(2, 'Senator Two', 'RJ', 'PSDB');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -204,7 +204,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    politicianRepo.seedTSESenatorByName(1, 'Senator One');
+    politicianRepo.seedTSESenatorByName(1, 'Senator One', 'SP', 'PT');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -238,7 +238,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    politicianRepo.seedTSESenatorByName(5672, 'Alan Rick');
+    politicianRepo.seedTSESenatorByName(5672, 'Alan Rick', 'AC', 'REPUBLICANOS');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -444,7 +444,7 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    politicianRepo.seedTSESenatorByName(5672, 'Alan Rick');
+    politicianRepo.seedTSESenatorByName(5672, 'Alan Rick', 'AC', 'REPUBLICANOS');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);
@@ -480,7 +480,10 @@ describe('SenatorsPipeline Integration Tests', () => {
       .query({ participacao: 'T', v: '4' })
       .reply(200, response);
 
-    politicianRepo.seedTSESenatorRows(4);
+    politicianRepo.seedTSESenatorByName(1, 'Senator 1', 'SP', 'PT');
+    politicianRepo.seedTSESenatorByName(2, 'Senator 2', 'RJ', 'PT');
+    politicianRepo.seedTSESenatorByName(3, 'Senator 3', 'MG', 'PT');
+    politicianRepo.seedTSESenatorByName(4, 'Senator 4', 'BA', 'PT');
     const pipeline = new SenatorsPipeline(db);
 
     await pipeline.execute(true);

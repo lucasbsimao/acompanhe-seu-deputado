@@ -73,10 +73,14 @@ export class SenatorsExpensesPipeline {
 
     try {
       const response = await this.httpClient.request(url);
-      const records = (response.data as { despesasCeaps: CeapsExpenseDto[] }).despesasCeaps;
+      const records = response.data;
+
+      if (!Array.isArray(records)) {
+        throw new Error(`Expected array of expenses, got ${typeof records}`);
+      }
 
       const rows: ExpenseRow[] = [];
-      for (const expense of records) {
+      for (const expense of records as CeapsExpenseDto[]) {
         const senatorCpf = senatorMap.get(String(expense.codSenador));
 
         if (!senatorCpf) {

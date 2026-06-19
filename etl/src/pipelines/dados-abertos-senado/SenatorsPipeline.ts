@@ -89,16 +89,27 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
   }
 
   shouldDownload(): Promise<boolean> {
-    return Promise.resolve(this.repo.countByRoleWithSourceApiId(PoliticianRole.SENATOR) === 0);
+    return Promise.resolve(true);
+    //return Promise.resolve(this.repo.countByRoleWithSourceApiId(PoliticianRole.SENATOR) === 0);
   }
 
   onPageFetched(items: SenatorData[]): Promise<void> {
     const matchedSenators = items
       .map(s => {
         const id = s.IdentificacaoParlamentar;
-        const cpf =
-          this.lookupService.findCpfByNormalizedName(id.NomeParlamentar) ??
-          this.lookupService.findCpfByNormalizedName(id.NomeCompletoParlamentar ?? null);
+        let cpf = this.lookupService.findCpf(
+          id.NomeParlamentar,
+          id.UfParlamentar,
+          PoliticianRole.SENATOR,
+        );
+
+        if (!cpf && id.NomeCompletoParlamentar) {
+          cpf = this.lookupService.findCpf(
+            id.NomeCompletoParlamentar,
+            id.UfParlamentar,
+            PoliticianRole.SENATOR,
+          );
+        }
 
         if (!cpf) {
           console.warn(

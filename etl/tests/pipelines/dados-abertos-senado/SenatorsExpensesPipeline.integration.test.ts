@@ -76,13 +76,13 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
 
     nock(API_BASE_URL)
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
-      .reply(200, { despesasCeaps: mockExpenses });
+      .reply(200, mockExpenses);
 
     // Mock other years to return empty so they don't fail the test
     for (let i = 1; i < yearsToFetch; i++) {
       nock(API_BASE_URL)
         .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
-        .reply(200, { despesasCeaps: [] });
+        .reply(200, []);
     }
 
     const pipeline = new SenatorsExpensesPipeline(db);
@@ -130,13 +130,13 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
 
     nock(API_BASE_URL)
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
-      .reply(200, { despesasCeaps: mockExpenses });
+      .reply(200, mockExpenses);
 
     // Mock other years
     for (let i = 1; i < yearsToFetch; i++) {
       nock(API_BASE_URL)
         .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
-        .reply(200, { despesasCeaps: [] });
+        .reply(200, []);
     }
 
     const pipeline = new SenatorsExpensesPipeline(db);
@@ -173,7 +173,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
     for (let i = 1; i < yearsToFetch; i++) {
       nock(API_BASE_URL)
         .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
-        .reply(200, { despesasCeaps: [] });
+        .reply(200, []);
     }
 
     const pipeline = new SenatorsExpensesPipeline(db);
@@ -192,12 +192,12 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
 
     nock(API_BASE_URL)
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
-      .reply(200, { despesasCeaps: mockExpenses });
+      .reply(200, mockExpenses);
 
     for (let i = 1; i < yearsToFetch; i++) {
       nock(API_BASE_URL)
         .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
-        .reply(200, { despesasCeaps: [] });
+        .reply(200, []);
     }
 
     const pipeline = new SenatorsExpensesPipeline(db);
@@ -218,7 +218,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
         if (uri.endsWith(`/${year}`)) {
           return [404, 'Not Found'];
         }
-        return [200, { despesasCeaps: [] }];
+        return [200, []];
       });
 
     const pipeline = new SenatorsExpensesPipeline(db);
@@ -234,18 +234,18 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
 
     nock(API_BASE_URL)
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
-      .reply(200, { despesasCeaps: [createMockExpense(401, Number(senatorCode), year)] });
+      .reply(200, [createMockExpense(401, Number(senatorCode), year)]);
 
     nock(API_BASE_URL)
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - 1}`)
-      .reply(200, { despesasCeaps: [createMockExpense(402, Number(senatorCode), year - 1)] });
+      .reply(200, [createMockExpense(402, Number(senatorCode), year - 1)]);
 
     // Mock others as empty
     const yearsToFetch = defaultConfig.senateExpenses.yearsToFetch;
     for (let i = 2; i < yearsToFetch; i++) {
       nock(API_BASE_URL)
         .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
-        .reply(200, { despesasCeaps: [] });
+        .reply(200, []);
     }
 
     const pipeline = new SenatorsExpensesPipeline(db);
