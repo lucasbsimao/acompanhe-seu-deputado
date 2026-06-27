@@ -89,8 +89,7 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
   }
 
   shouldDownload(): Promise<boolean> {
-    return Promise.resolve(true);
-    //return Promise.resolve(this.repo.countByRoleWithSourceApiId(PoliticianRole.SENATOR) === 0);
+    return Promise.resolve(this.repo.countByRoleWithSourceApiId(PoliticianRole.SENATOR) === 0);
   }
 
   onPageFetched(items: SenatorData[]): Promise<void> {

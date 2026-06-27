@@ -24,6 +24,7 @@ export class PoliticianRepository {
   private readonly updateAll: (rows: PoliticianRow[]) => void;
   private readonly countByRoleQuery: Database.Statement;
   private readonly countByRoleWithSourceApiIdQuery: Database.Statement;
+  private readonly updateSourceApiIdStmt: Database.Statement;
 
   constructor(db: Database.Database) {
     this.db = db;
@@ -39,6 +40,9 @@ export class PoliticianRepository {
     this.countByRoleQuery = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ?');
     this.countByRoleWithSourceApiIdQuery = db.prepare(
       'SELECT COUNT(*) as count FROM politicians WHERE role = ? AND source_api_id IS NOT NULL',
+    );
+    this.updateSourceApiIdStmt = db.prepare(
+      'UPDATE politicians SET source_api_id = ? WHERE cpf = ?',
     );
     this.insertAll = db.transaction((rows: PoliticianRow[]) => {
       for (const r of rows) {
@@ -108,5 +112,9 @@ export class PoliticianRepository {
       .all(PoliticianRole.SENATOR) as Array<{ cpf: string; source_api_id: string }>;
 
     return new Map(rows.map(r => [r.source_api_id, r.cpf]));
+  }
+
+  updateSourceApiId(cpf: string, sourceApiId: string): void {
+    this.updateSourceApiIdStmt.run(sourceApiId, cpf);
   }
 }

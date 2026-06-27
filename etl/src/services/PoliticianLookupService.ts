@@ -2,6 +2,8 @@
 
 import type { PoliticianRepository } from '../repositories/PoliticianRepository';
 import { normalizeNameForMatching } from '../util/normalization.util';
+import type { HttpClient } from '../core/HttpClient';
+import { PoliticianRole } from '../types/PoliticianRole';
 
 export class PoliticianLookupService {
   private readonly compositeToCpfMap: Map<string, string>;
@@ -43,7 +45,8 @@ export class PoliticianLookupService {
   }
 
   /**
-   * @deprecated Use findCpf instead.
+   * Fallback to use when the full context (name, uf, role) is not available.
+   * Use {@link findCpf} instead when possible.
    */
   findCpfByNormalizedName(autorName: string | null): string | null {
     if (!autorName) {
@@ -68,5 +71,51 @@ export class PoliticianLookupService {
     }
 
     return matches[0] ?? null;
+  }
+
+  async findCpfBySenatorCode(
+    code: string,
+    httpClient: HttpClient,
+  ): Promise<{ cpf: string; name: string; uf: string } | null> {
+    const url = `https://legis.senado.leg.br/dadosabertos/senador/${code}`;
+    try {
+      const response = await httpClient.request(url, {
+        headers: { Accept: 'application/json' },
+      });
+      const data = response.data as any;
+      const identification = data?.DetalheParlamentar?.Parlamentar?.IdentificacaoParlamentar;
+
+      if (!identification) {
+        return null;
+      }
+
+      const name = identification.NomeCompletoParlamentar || identification.NomeParlamentar;
+      const uf = identification.UfParlamentar;
+
+      if (!name || !uf) {
+        return null;
+      }
+
+      const cpf = this.findCpf(name, uf, PoliticianRole.SENATOR);
+      if (cpf) {
+        return { cpf, name, uf };
+      }
+
+      // Try with NomeParlamentar as well if different
+      if (
+        identification.NomeParlamentar &&
+        identification.NomeParlamentar !== identification.NomeCompletoParlamentar
+      ) {
+        const cpfAlt = this.findCpf(identification.NomeParlamentar, uf, PoliticianRole.SENATOR);
+        if (cpfAlt) {
+          return { cpf: cpfAlt, name: identification.NomeParlamentar, uf };
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.warn(`Failed to lookup senator code ${code} via API:`, error);
+      return null;
+    }
   }
 }

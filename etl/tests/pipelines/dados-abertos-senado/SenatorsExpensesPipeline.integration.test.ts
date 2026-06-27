@@ -255,4 +255,99 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
     assert.strictEqual(count, 2);
     assert.ok(nock.isDone());
   });
+
+  it('should handle null tipoDespesa and documento without crashing', async () => {
+    const year = new Date().getFullYear();
+    const senatorCode = '5672';
+    const senatorCpf = makeCPF(1);
+    politicianRepo.seedSenator(senatorCpf, { sourceApiId: senatorCode });
+
+    const mockExpenses = [
+      {
+        ...createMockExpense(501, Number(senatorCode), year),
+        tipoDespesa: null,
+        documento: null,
+      },
+    ];
+
+    const yearsToFetch = defaultConfig.senateExpenses.yearsToFetch;
+
+    nock(API_BASE_URL)
+      .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
+      .reply(200, mockExpenses);
+
+    for (let i = 1; i < yearsToFetch; i++) {
+      nock(API_BASE_URL)
+        .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
+        .reply(200, []);
+    }
+
+    const pipeline = new SenatorsExpensesPipeline(db);
+    await pipeline.execute(true);
+
+    const result = (expensesRepo.getAllExpenses() as any[]).filter(r => r.id === '501');
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].tipo_despesa, '');
+    assert.strictEqual(result[0].num_documento, null);
+    assert.ok(nock.isDone());
+  });
+
+  it('should resolve unknown senator codes via API fallback', async () => {
+    const year = new Date().getFullYear();
+    const historicalSenatorCode = '9999';
+    const senatorCpf = makeCPF(50);
+    const senatorName = 'Historical Senator Name';
+    const senatorUf = 'SP';
+
+    // Seed senator with CPF but NO source_api_id
+    politicianRepo.seedSenator(senatorCpf, {
+      name: senatorName,
+      uf: senatorUf,
+      sourceApiId: null,
+    });
+
+    const mockExpenses = [createMockExpense(601, Number(historicalSenatorCode), year)];
+
+    nock(API_BASE_URL)
+      .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
+      .reply(200, mockExpenses);
+
+    // Mock individual senator lookup
+    nock('https://legis.senado.leg.br')
+      .get(`/dadosabertos/senador/${historicalSenatorCode}`)
+      .reply(200, {
+        DetalheParlamentar: {
+          Parlamentar: {
+            IdentificacaoParlamentar: {
+              NomeCompletoParlamentar: senatorName,
+              UfParlamentar: senatorUf,
+            },
+          },
+        },
+      });
+
+    // Mock other years
+    const yearsToFetch = defaultConfig.senateExpenses.yearsToFetch;
+    for (let i = 1; i < yearsToFetch; i++) {
+      nock(API_BASE_URL)
+        .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
+        .reply(200, []);
+    }
+
+    const pipeline = new SenatorsExpensesPipeline(db);
+    await pipeline.execute(true);
+
+    // Verify expense was persisted
+    const result = (expensesRepo.getAllExpenses() as any[]).filter(r => r.id === '601');
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].politician_id, senatorCpf);
+
+    // Verify source_api_id was updated in DB
+    const updatedSenator = db
+      .prepare('SELECT source_api_id FROM politicians WHERE cpf = ?')
+      .get(senatorCpf) as { source_api_id: string };
+    assert.strictEqual(updatedSenator.source_api_id, historicalSenatorCode);
+
+    assert.ok(nock.isDone());
+  });
 });

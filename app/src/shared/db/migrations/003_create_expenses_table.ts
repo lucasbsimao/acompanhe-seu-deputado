@@ -7,11 +7,11 @@ export const migration003: Migration = {
   sql: `CREATE TABLE IF NOT EXISTS expenses (
   id TEXT PRIMARY KEY,
   deputy_id TEXT NOT NULL REFERENCES politicians(cpf),
-  tipo_despesa TEXT NOT NULL,
+  tipo_despesa TEXT,
   cod_documento TEXT NOT NULL,
   cod_tipo_documento INTEGER NOT NULL,
   data_documento TEXT NOT NULL,
-  num_documento TEXT NOT NULL,
+  num_documento TEXT,
   url_documento TEXT,
   nome_fornecedor TEXT NOT NULL,
   cnpj_cpf_fornecedor TEXT NOT NULL,

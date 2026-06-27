@@ -4,6 +4,7 @@ import type Database from 'better-sqlite3';
 import { HttpClient } from '../../core/HttpClient';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { ExpensesRepository, type ExpenseRow } from '../../repositories/ExpensesRepository';
+import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import { SenatorsPipeline } from './SenatorsPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import { normalizeLabel, normalizeNumericText } from '../../util/normalization.util';
@@ -13,10 +14,10 @@ import defaultConfig from '../../config/defaults.json';
 interface CeapsExpenseDto {
   id: number;
   codSenador: number;
-  tipoDespesa: string;
+  tipoDespesa: string | null;
   tipoDocumento: string;
   data: string;
-  documento: string;
+  documento: string | null;
   fornecedor: string;
   cpfCnpj: string;
   valorReembolsado: number;
@@ -27,11 +28,13 @@ export class SenatorsExpensesPipeline {
 
   private readonly politicianRepo: PoliticianRepository;
   private readonly expensesRepo: ExpensesRepository;
+  private readonly lookupService: PoliticianLookupService;
   private readonly httpClient: HttpClient;
 
   constructor(db: Database.Database) {
     this.politicianRepo = new PoliticianRepository(db);
     this.expensesRepo = new ExpensesRepository(db);
+    this.lookupService = new PoliticianLookupService(this.politicianRepo);
     this.httpClient = new HttpClient(
       {
         maxRetries: defaultConfig.pagination.maxRetries,
@@ -43,7 +46,7 @@ export class SenatorsExpensesPipeline {
   }
 
   async execute(forceDownload = false): Promise<void> {
-    const senatorMap = this.politicianRepo.getSenatorCodeToCpfMap();
+    const senatorMap = this.politicianRepo.getSenatorCodeToCpfMap() as Map<string, string | null>;
     const yearsToFetch = defaultConfig.senateExpenses.yearsToFetch;
     const currentYear = new Date().getFullYear();
 
@@ -60,7 +63,7 @@ export class SenatorsExpensesPipeline {
 
   private async fetchAndPersistYear(
     year: number,
-    senatorMap: Map<string, string>,
+    senatorMap: Map<string, string | null>,
     forceDownload: boolean,
   ): Promise<void> {
     if (!forceDownload && this.expensesRepo.hasExpensesForSenatorYear(year)) {
@@ -79,27 +82,56 @@ export class SenatorsExpensesPipeline {
         throw new Error(`Expected array of expenses, got ${typeof records}`);
       }
 
+      const ceapsRecords = records as CeapsExpenseDto[];
+
+      const uniqueCodes = new Set(ceapsRecords.map(r => String(r.codSenador)));
+
+      // Scan for unique unknown codSenador
+      const unknownCodes = [...uniqueCodes].filter(code => !senatorMap.has(code));
+
+      for (const code of unknownCodes) {
+        const result = await this.lookupService.findCpfBySenatorCode(code, this.httpClient);
+        if (result) {
+          this.politicianRepo.updateSourceApiId(result.cpf, code);
+          senatorMap.set(code, result.cpf);
+          console.log(`Matched historical senator: ${result.name} (${code}) -> ${result.cpf}`);
+        } else {
+          // Mark as null to avoid re-fetching the same unknown code within this execution
+          senatorMap.set(code, null);
+        }
+      }
+
       const rows: ExpenseRow[] = [];
-      for (const expense of records as CeapsExpenseDto[]) {
+      for (const expense of ceapsRecords) {
         const senatorCpf = senatorMap.get(String(expense.codSenador));
 
         if (!senatorCpf) {
-          console.warn(`Unknown senator code: ${expense.codSenador} for expense ID ${expense.id}`);
+          if (senatorCpf === undefined) {
+            console.warn(
+              `Unknown senator code: ${expense.codSenador} for expense ID ${expense.id}`,
+            );
+          }
           continue;
         }
 
+        const expenseId = String(expense.id);
+        const tipoDespesa = normalizeLabel(expense.tipoDespesa ?? '');
+        const codTipoDocumento = mapCeapsDocumentType(expense.tipoDocumento);
+        const cnpjCpfFornecedor = normalizeNumericText(expense.cpfCnpj);
+        const valorLiquido = Math.round(expense.valorReembolsado * 100);
+
         rows.push({
-          id: String(expense.id),
+          id: expenseId,
           politicianId: senatorCpf,
-          tipoDespesa: normalizeLabel(expense.tipoDespesa),
-          codDocumento: String(expense.id),
-          codTipoDocumento: mapCeapsDocumentType(expense.tipoDocumento),
+          tipoDespesa,
+          codDocumento: expenseId,
+          codTipoDocumento,
           dataDocumento: expense.data,
-          numDocumento: expense.documento,
+          numDocumento: expense.documento ?? null,
           urlDocumento: null,
           nomeFornecedor: expense.fornecedor,
-          cnpjCpfFornecedor: normalizeNumericText(expense.cpfCnpj),
-          valorLiquido: Math.round(expense.valorReembolsado * 100),
+          cnpjCpfFornecedor,
+          valorLiquido,
           valorGlosa: 0,
         });
       }
