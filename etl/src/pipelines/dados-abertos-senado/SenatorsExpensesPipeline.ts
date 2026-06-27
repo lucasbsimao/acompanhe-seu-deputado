@@ -83,58 +83,14 @@ export class SenatorsExpensesPipeline {
       }
 
       const ceapsRecords = records as CeapsExpenseDto[];
-
       const uniqueCodes = new Set(ceapsRecords.map(r => String(r.codSenador)));
 
-      // Scan for unique unknown codSenador
-      const unknownCodes = [...uniqueCodes].filter(code => !senatorMap.has(code));
-
-      for (const code of unknownCodes) {
-        const result = await this.lookupService.findCpfBySenatorCode(code, this.httpClient);
-        if (result) {
-          this.politicianRepo.updateSourceApiId(result.cpf, code);
-          senatorMap.set(code, result.cpf);
-          console.log(`Matched historical senator: ${result.name} (${code}) -> ${result.cpf}`);
-        } else {
-          // Mark as null to avoid re-fetching the same unknown code within this execution
-          senatorMap.set(code, null);
-        }
+      const newSenatorMappings = await this.resolveUnknownSenators(uniqueCodes, senatorMap);
+      for (const [code, cpf] of newSenatorMappings) {
+        senatorMap.set(code, cpf);
       }
 
-      const rows: ExpenseRow[] = [];
-      for (const expense of ceapsRecords) {
-        const senatorCpf = senatorMap.get(String(expense.codSenador));
-
-        if (!senatorCpf) {
-          if (senatorCpf === undefined) {
-            console.warn(
-              `Unknown senator code: ${expense.codSenador} for expense ID ${expense.id}`,
-            );
-          }
-          continue;
-        }
-
-        const expenseId = String(expense.id);
-        const tipoDespesa = normalizeLabel(expense.tipoDespesa ?? '');
-        const codTipoDocumento = mapCeapsDocumentType(expense.tipoDocumento);
-        const cnpjCpfFornecedor = normalizeNumericText(expense.cpfCnpj);
-        const valorLiquido = Math.round(expense.valorReembolsado * 100);
-
-        rows.push({
-          id: expenseId,
-          politicianId: senatorCpf,
-          tipoDespesa,
-          codDocumento: expenseId,
-          codTipoDocumento,
-          dataDocumento: expense.data,
-          numDocumento: expense.documento ?? null,
-          urlDocumento: null,
-          nomeFornecedor: expense.fornecedor,
-          cnpjCpfFornecedor,
-          valorLiquido,
-          valorGlosa: 0,
-        });
-      }
+      const rows = this.mapToExpenseRows(ceapsRecords, senatorMap);
 
       if (rows.length > 0) {
         this.expensesRepo.insertBatch(rows);
@@ -145,5 +101,65 @@ export class SenatorsExpensesPipeline {
       console.error(`${message}:`, error);
       throw new Error(`${message}: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  private async resolveUnknownSenators(
+    codes: Set<string>,
+    currentMap: Map<string, string | null>,
+  ): Promise<Map<string, string | null>> {
+    const newMappings = new Map<string, string | null>();
+    const unknownCodes = [...codes].filter(code => !currentMap.has(code));
+
+    for (const code of unknownCodes) {
+      const result = await this.lookupService.findCpfBySenatorCode(code, this.httpClient);
+      if (result) {
+        this.politicianRepo.updateSourceApiId(result.cpf, code);
+        newMappings.set(code, result.cpf);
+        console.log(`Matched historical senator: ${result.name} (${code}) -> ${result.cpf}`);
+      } else {
+        newMappings.set(code, null);
+      }
+    }
+
+    return newMappings;
+  }
+
+  private mapToExpenseRows(
+    records: CeapsExpenseDto[],
+    senatorMap: Map<string, string | null>,
+  ): ExpenseRow[] {
+    const rows: ExpenseRow[] = [];
+    for (const expense of records) {
+      const senatorCpf = senatorMap.get(String(expense.codSenador));
+
+      if (!senatorCpf) {
+        if (senatorCpf === undefined) {
+          console.warn(`Unknown senator code: ${expense.codSenador} for expense ID ${expense.id}`);
+        }
+        continue;
+      }
+
+      const expenseId = String(expense.id);
+      const tipoDespesa = normalizeLabel(expense.tipoDespesa ?? '');
+      const codTipoDocumento = mapCeapsDocumentType(expense.tipoDocumento);
+      const cnpjCpfFornecedor = normalizeNumericText(expense.cpfCnpj);
+      const valorLiquido = Math.round(expense.valorReembolsado * 100);
+
+      rows.push({
+        id: expenseId,
+        politicianId: senatorCpf,
+        tipoDespesa,
+        codDocumento: expenseId,
+        codTipoDocumento,
+        dataDocumento: expense.data,
+        numDocumento: expense.documento ?? null,
+        urlDocumento: null,
+        nomeFornecedor: expense.fornecedor,
+        cnpjCpfFornecedor,
+        valorLiquido,
+        valorGlosa: 0,
+      });
+    }
+    return rows;
   }
 }
