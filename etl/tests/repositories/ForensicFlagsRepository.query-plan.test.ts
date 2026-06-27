@@ -16,6 +16,7 @@ import {
   FRESHLY_REGISTERED_VENDOR_SQL,
   VENDOR_NO_EMPLOYEES_SQL,
   POLITICALLY_CONNECTED_VENDOR_SQL,
+  COMPETENCY_DATE_MISMATCH_SQL,
 } from '../../src/repositories/ForensicFlagsQueries';
 
 const BUDGET_MS = 1500;
@@ -142,6 +143,10 @@ describe('ForensicFlagsRepository — query plan', () => {
         explainPlan(POLITICALLY_CONNECTED_VENDOR_SQL),
         'insertPoliticallyConnectedVendor',
       );
+      assertNoUnindexedJoinScan(
+        explainPlan(COMPETENCY_DATE_MISMATCH_SQL),
+        'insertCompetencyDateMismatch',
+      );
     });
   });
 
@@ -202,6 +207,10 @@ describe('ForensicFlagsRepository — query plan', () => {
         [
           'insertPoliticallyConnectedVendor',
           () => repo.insertPoliticallyConnectedVendor(ForensicFlag.POLITICALLY_CONNECTED_VENDOR),
+        ],
+        [
+          'insertCompetencyDateMismatch',
+          () => repo.insertCompetencyDateMismatch(ForensicFlag.COMPETENCY_DATE_MISMATCH),
         ],
       ];
 

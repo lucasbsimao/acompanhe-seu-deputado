@@ -21,6 +21,8 @@ interface CeapsExpenseDto {
   fornecedor: string;
   cpfCnpj: string;
   valorReembolsado: number;
+  ano: number;
+  mes: number;
 }
 
 /**
@@ -178,6 +180,8 @@ export class SenatorsExpensesPipeline {
         cnpjCpfFornecedor,
         valorLiquido,
         valorGlosa: 0,
+        competencyYear: expense.ano,
+        competencyMonth: expense.mes,
       });
     }
     return rows;

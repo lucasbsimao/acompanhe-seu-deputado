@@ -118,6 +118,8 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
         cnpjCpfFornecedor: normalizeNumericText(e.cnpjCpfFornecedor),
         valorLiquido: convertToCents(e.valorLiquido),
         valorGlosa: convertToCents(e.valorGlosa),
+        competencyYear: e.ano,
+        competencyMonth: e.mes,
       })),
     );
     return Promise.resolve();

@@ -28,6 +28,8 @@ export interface ExpenseRow {
   cnpjCpfFornecedor: string;
   valorLiquido: number;
   valorGlosa: number;
+  competencyYear: number | null;
+  competencyMonth: number | null;
 }
 
 export interface CeapsWorkQueueItem {
@@ -73,6 +75,8 @@ export class ExpensesRepository {
           r.cnpjCpfFornecedor,
           r.valorLiquido,
           r.valorGlosa,
+          r.competencyYear,
+          r.competencyMonth,
         );
       }
     });
