@@ -13,6 +13,7 @@ export function normalizeNumericText(text: string): string {
 
 export function normalizeLabel(text: string): string {
   return text
+    .toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\p{L}\p{N}\s]/gu, '')
