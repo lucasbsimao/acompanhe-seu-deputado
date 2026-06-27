@@ -22,7 +22,7 @@ export interface ExpenseRow {
   codDocumento: string;
   codTipoDocumento: CodTipoDocumento;
   dataDocumento: string;
-  numDocumento: string;
+  numDocumento: string | null;
   urlDocumento: string | null;
   nomeFornecedor: string;
   cnpjCpfFornecedor: string;

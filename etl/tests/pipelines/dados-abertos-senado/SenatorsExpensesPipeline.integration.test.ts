@@ -3,7 +3,7 @@
 import * as assert from 'node:assert';
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import nock from 'nock';
-import { CeapsExpensesPipeline } from '../../../src/pipelines/dados-abertos-senado/CeapsExpensesPipeline';
+import { SenatorsExpensesPipeline } from '../../../src/pipelines/dados-abertos-senado/SenatorsExpensesPipeline';
 import { useTestDatabase } from '../../db/setup';
 import { TestPoliticianRepository, makeCPF } from '../../db/TestPoliticianRepository';
 import { TestExpensesRepository } from '../../db/TestExpensesRepository';
@@ -78,16 +78,16 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
 
     nock(API_BASE_URL)
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
-      .reply(200, { despesasCeaps: mockExpenses });
+      .reply(200, mockExpenses);
 
     // Mock other years to return empty so they don't fail the test
     for (let i = 1; i < yearsToFetch; i++) {
       nock(API_BASE_URL)
         .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
-        .reply(200, { despesasCeaps: [] });
+        .reply(200, []);
     }
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await pipeline.execute(true);
 
     const result = expensesRepo.getAllExpenses() as ExpenseRow[];
@@ -134,16 +134,16 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
 
     nock(API_BASE_URL)
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
-      .reply(200, { despesasCeaps: mockExpenses });
+      .reply(200, mockExpenses);
 
     // Mock other years
     for (let i = 1; i < yearsToFetch; i++) {
       nock(API_BASE_URL)
         .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
-        .reply(200, { despesasCeaps: [] });
+        .reply(200, []);
     }
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await pipeline.execute(true);
 
     const result = expensesRepo.getAllExpenses();
@@ -177,10 +177,10 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
     for (let i = 1; i < yearsToFetch; i++) {
       nock(API_BASE_URL)
         .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
-        .reply(200, { despesasCeaps: [] });
+        .reply(200, []);
     }
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await pipeline.execute(false); // forceDownload = false
 
     assert.ok(nock.isDone());
@@ -196,15 +196,15 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
 
     nock(API_BASE_URL)
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
-      .reply(200, { despesasCeaps: mockExpenses });
+      .reply(200, mockExpenses);
 
     for (let i = 1; i < yearsToFetch; i++) {
       nock(API_BASE_URL)
         .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
-        .reply(200, { despesasCeaps: [] });
+        .reply(200, []);
     }
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await pipeline.execute(true);
 
     const count = expensesRepo.countExpenses();
@@ -222,10 +222,10 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
         if (uri.endsWith(`/${year}`)) {
           return [404, 'Not Found'];
         }
-        return [200, { despesasCeaps: [] }];
+        return [200, []];
       });
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await assert.rejects(pipeline.execute(true), /Failed to fetch CEAPS expenses for year/);
     nock.cleanAll();
   });
@@ -238,25 +238,135 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
 
     nock(API_BASE_URL)
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
-      .reply(200, { despesasCeaps: [createMockExpense(401, Number(senatorCode), year)] });
+      .reply(200, [createMockExpense(401, Number(senatorCode), year)]);
 
     nock(API_BASE_URL)
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - 1}`)
-      .reply(200, { despesasCeaps: [createMockExpense(402, Number(senatorCode), year - 1)] });
+      .reply(200, [createMockExpense(402, Number(senatorCode), year - 1)]);
 
     // Mock others as empty
     const yearsToFetch = defaultConfig.senateExpenses.yearsToFetch;
     for (let i = 2; i < yearsToFetch; i++) {
       nock(API_BASE_URL)
         .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
-        .reply(200, { despesasCeaps: [] });
+        .reply(200, []);
     }
 
-    const pipeline = new CeapsExpensesPipeline(db);
+    const pipeline = new SenatorsExpensesPipeline(db);
     await pipeline.execute(true);
 
     const count = expensesRepo.countExpenses();
     assert.strictEqual(count, 2);
+    assert.ok(nock.isDone());
+  });
+
+  it('should handle null tipoDespesa and documento without crashing', async () => {
+    const year = new Date().getFullYear();
+    const senatorCode = '5672';
+    const senatorCpf = makeCPF(1);
+    politicianRepo.seedSenator(senatorCpf, { sourceApiId: senatorCode });
+
+    const mockExpenses = [
+      {
+        ...createMockExpense(501, Number(senatorCode), year),
+        tipoDespesa: null,
+        documento: null,
+      },
+    ];
+
+    const yearsToFetch = defaultConfig.senateExpenses.yearsToFetch;
+
+    nock(API_BASE_URL)
+      .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
+      .reply(200, mockExpenses);
+
+    for (let i = 1; i < yearsToFetch; i++) {
+      nock(API_BASE_URL)
+        .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
+        .reply(200, []);
+    }
+
+    const pipeline = new SenatorsExpensesPipeline(db);
+    await pipeline.execute(true);
+
+    const result = (expensesRepo.getAllExpenses() as any[]).filter(r => r.id === '501');
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].tipo_despesa, '');
+    assert.strictEqual(result[0].num_documento, null);
+    assert.ok(nock.isDone());
+  });
+
+  it('should resolve unknown senator codes via API fallback', async () => {
+    const year = new Date().getFullYear();
+    const historicalSenatorCode = '9999';
+    const senatorCpf = makeCPF(50);
+    const senatorName = 'Historical Senator Name';
+    const senatorUf = 'SP';
+
+    // Seed senator with CPF but NO source_api_id
+    politicianRepo.seedSenator(senatorCpf, {
+      name: senatorName,
+      uf: senatorUf,
+      sourceApiId: null,
+    });
+
+    const mockExpenses = [createMockExpense(601, Number(historicalSenatorCode), year)];
+
+    nock(API_BASE_URL)
+      .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
+      .reply(200, mockExpenses);
+
+    // Mock senator detail — real API does not include UfParlamentar in IdentificacaoParlamentar
+    nock('https://legis.senado.leg.br')
+      .get(`/dadosabertos/senador/${historicalSenatorCode}`)
+      .reply(200, {
+        DetalheParlamentar: {
+          Parlamentar: {
+            IdentificacaoParlamentar: {
+              NomeCompletoParlamentar: senatorName,
+              NomeParlamentar: senatorName,
+            },
+          },
+        },
+      });
+
+    // Mock mandates endpoint — provides the representation UF
+    nock('https://legis.senado.leg.br')
+      .get(`/dadosabertos/senador/${historicalSenatorCode}/mandatos`)
+      .reply(200, {
+        MandatoParlamentar: {
+          Parlamentar: {
+            Codigo: historicalSenatorCode,
+            Nome: senatorName,
+            Mandatos: {
+              Mandato: { CodigoMandato: '1', UfParlamentar: senatorUf },
+            },
+          },
+        },
+      });
+
+    // Mock other years
+    const yearsToFetch = defaultConfig.senateExpenses.yearsToFetch;
+    for (let i = 1; i < yearsToFetch; i++) {
+      nock(API_BASE_URL)
+        .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year - i}`)
+        .reply(200, []);
+    }
+
+    const pipeline = new SenatorsExpensesPipeline(db);
+    await pipeline.execute(true);
+
+    // Verify expense was persisted
+    const result = (expensesRepo.getAllExpenses() as any[]).filter(r => r.id === '601');
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].politician_id, senatorCpf);
+
+    // Verify source_api_id was updated in DB
+    const updatedSenator = db
+      .prepare('SELECT source_api_id FROM politicians WHERE cpf = ?')
+      .get(senatorCpf) as { source_api_id: string };
+    assert.strictEqual(updatedSenator.source_api_id, historicalSenatorCode);
+
     assert.ok(nock.isDone());
   });
 });

@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { BasePipeline } from './BasePipeline';
-import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
+import { TSE2018SenatorsPipeline } from '../tse-dados-abertos/TSE2018SenatorsPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import type Database from 'better-sqlite3';
 import { normalizeId } from '../../util/normalization.util';
 import { PoliticianRole } from '../../types/PoliticianRole';
+import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
 
 interface SenatorIdentification {
   CodigoParlamentar: string;
@@ -30,8 +31,26 @@ interface SenatorsResponse {
   };
 }
 
+/**
+ * Senators Pipeline
+ *
+ * Collects active senators from the Senado Open Data API and enriches their
+ * profiles with additional details like photos and internal parliamentary IDs.
+ *
+ * Source: Senado Open Data API (lista/atual).
+ *
+ * Key behaviour: Leverages {@link PoliticianLookupService} to match API names
+ * with CPFs already stored in the database from TSE pipelines. Updates
+ * records with metadata provided by the Senado.
+ *
+ * Co-dependencies: Depends on {@link TSE2018SenatorsPipeline} to ensure the
+ * 2018 and 2022 senator cohorts are seeded before matching begins.
+ */
 export class SenatorsPipeline extends BasePipeline<SenatorData> {
-  static readonly dependencies: readonly IPipelineDepChain[] = [TSE2022ElectionResultsPipeline];
+  static readonly dependencies: readonly IPipelineDepChain[] = [
+    TSE2018SenatorsPipeline,
+    TSE2022ElectionResultsPipeline,
+  ];
 
   private readonly apiEndpoint =
     'https://legis.senado.leg.br/dadosabertos/senador/lista/atual?participacao=T&v=4';
@@ -77,9 +96,19 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
     const matchedSenators = items
       .map(s => {
         const id = s.IdentificacaoParlamentar;
-        const cpf =
-          this.lookupService.findCpfByNormalizedName(id.NomeParlamentar) ??
-          this.lookupService.findCpfByNormalizedName(id.NomeCompletoParlamentar ?? null);
+        let cpf = this.lookupService.findCpf(
+          id.NomeParlamentar,
+          id.UfParlamentar,
+          PoliticianRole.SENATOR,
+        );
+
+        if (!cpf && id.NomeCompletoParlamentar) {
+          cpf = this.lookupService.findCpf(
+            id.NomeCompletoParlamentar,
+            id.UfParlamentar,
+            PoliticianRole.SENATOR,
+          );
+        }
 
         if (!cpf) {
           console.warn(

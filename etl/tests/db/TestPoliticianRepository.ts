@@ -95,28 +95,28 @@ export class TestPoliticianRepository {
     insertAll(count);
   }
 
-  seedTSESenatorRows(count: number): void {
-    this.seedParty();
+  seedTSESenatorRows(count: number, uf: string = 'SP', partyId: string = 'pt'): void {
+    this.seedParty(partyId.toLowerCase(), partyId.toUpperCase());
     const insert = this.db.prepare(
       `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-       VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')`,
+       VALUES (?, NULL, ?, ?, ?, 'SENATOR', NULL, 'ELEITO_POR_QP')`,
     );
     const insertAll = this.db.transaction((n: number) => {
       for (let i = 1; i <= n; i++) {
-        insert.run(makeCPF(i), `Senator ${i}`);
+        insert.run(makeCPF(i), `Senator ${i}`, uf, partyId.toLowerCase());
       }
     });
     insertAll(count);
   }
 
-  seedTSESenatorByName(id: number, name: string): void {
-    this.seedParty();
+  seedTSESenatorByName(id: number, name: string, uf: string = 'SP', partyId: string = 'pt'): void {
+    this.seedParty(partyId.toLowerCase(), partyId.toUpperCase());
     this.db
       .prepare(
         `INSERT INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as)
-         VALUES (?, NULL, ?, 'SP', 'pt', 'SENATOR', NULL, 'ELEITO_POR_QP')`,
+         VALUES (?, NULL, ?, ?, ?, 'SENATOR', NULL, 'ELEITO_POR_QP')`,
       )
-      .run(makeCPF(id), name);
+      .run(makeCPF(id), name, uf, partyId.toLowerCase());
   }
 
   seedBatch(seeds: TestPoliticianSeed[]): void {

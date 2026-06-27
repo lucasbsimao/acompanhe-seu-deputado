@@ -24,6 +24,7 @@ export class PoliticianRepository {
   private readonly updateAll: (rows: PoliticianRow[]) => void;
   private readonly countByRoleQuery: Database.Statement;
   private readonly countByRoleWithSourceApiIdQuery: Database.Statement;
+  private readonly updateSourceApiIdStmt: Database.Statement;
 
   constructor(db: Database.Database) {
     this.db = db;
@@ -34,11 +35,14 @@ export class PoliticianRepository {
       'INSERT OR REPLACE INTO politicians (cpf, source_api_id, name, uf, party_id, role, photo_url, elected_as) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     );
     this.updatePolitician = db.prepare(
-      'UPDATE politicians SET source_api_id = ?, name = ?, uf = ?, party_id = ?, photo_url = ? WHERE cpf = ?',
+      'UPDATE politicians SET source_api_id = ?, uf = ?, party_id = ?, photo_url = ? WHERE cpf = ?',
     );
     this.countByRoleQuery = db.prepare('SELECT COUNT(*) as count FROM politicians WHERE role = ?');
     this.countByRoleWithSourceApiIdQuery = db.prepare(
       'SELECT COUNT(*) as count FROM politicians WHERE role = ? AND source_api_id IS NOT NULL',
+    );
+    this.updateSourceApiIdStmt = db.prepare(
+      'UPDATE politicians SET source_api_id = ? WHERE cpf = ?',
     );
     this.insertAll = db.transaction((rows: PoliticianRow[]) => {
       for (const r of rows) {
@@ -58,7 +62,7 @@ export class PoliticianRepository {
     this.updateAll = db.transaction((rows: PoliticianRow[]) => {
       for (const r of rows) {
         this.insertParty.run(r.partyId, r.partyId, r.partyId);
-        this.updatePolitician.run(r.sourceApiId, r.name, r.uf, r.partyId, r.photoUrl, r.cpf);
+        this.updatePolitician.run(r.sourceApiId, r.uf, r.partyId, r.photoUrl, r.cpf);
       }
     });
   }
@@ -81,9 +85,23 @@ export class PoliticianRepository {
     return result.count;
   }
 
-  getAllForLookup(): Array<{ cpf: string; name: string }> {
-    const query = this.db.prepare('SELECT cpf, name FROM politicians');
-    return query.all() as Array<{ cpf: string; name: string }>;
+  getAllForLookup(): Array<{
+    cpf: string;
+    name: string;
+    uf: string;
+    role: string;
+    partyId: string;
+  }> {
+    const query = this.db.prepare(
+      'SELECT cpf, name, uf, role, party_id as partyId FROM politicians',
+    );
+    return query.all() as Array<{
+      cpf: string;
+      name: string;
+      uf: string;
+      role: string;
+      partyId: string;
+    }>;
   }
 
   getSenatorCodeToCpfMap(): Map<string, string> {
@@ -94,5 +112,9 @@ export class PoliticianRepository {
       .all(PoliticianRole.SENATOR) as Array<{ cpf: string; source_api_id: string }>;
 
     return new Map(rows.map(r => [r.source_api_id, r.cpf]));
+  }
+
+  updateSourceApiId(cpf: string, sourceApiId: string): void {
+    this.updateSourceApiIdStmt.run(sourceApiId, cpf);
   }
 }

@@ -1,0 +1,17 @@
+id: no-spread-of-new-expression-in-array
+language: TypeScript
+severity: warning
+rule:
+  kind: spread_element
+  has:
+    stopBy: end
+    kind: new_expression
+  inside:
+    kind: array
+message: |
+  Don't construct a collection and spread it in the same expression
+  (e.g. `[...new Set(items)]`). Assign the instance to a `const` first,
+  then spread the variable:
+
+      const unique = new Set(items.map(r => r.id));
+      const arr = [...unique].filter(code => !map.has(code));

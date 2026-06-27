@@ -17,7 +17,7 @@ export class AllCargoCandidatesStep {
       .filter(c => isValidCPF(c.NR_CPF_CANDIDATO))
       .map(c => ({
         cpf: normalizeCPF(c.NR_CPF_CANDIDATO),
-        nome: c.NM_URNA_CANDIDATO,
+        nome: c.NM_CANDIDATO,
         cargo: c.DS_CARGO,
         partido: c.SG_PARTIDO,
         ano_eleicao: c.ANO_ELEICAO,

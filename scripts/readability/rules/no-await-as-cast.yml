@@ -1,0 +1,31 @@
+id: no-await-as-cast
+language: TypeScript
+severity: warning
+rule:
+  any:
+    # Parenthesised form: `(await x()) as T`
+    - kind: as_expression
+      has:
+        stopBy: end
+        kind: await_expression
+    # Unparenthesised form: `await x() as T`
+    # (TypeScript precedence makes `as` bind tighter than `await`,
+    # so the await_expression contains the as_expression here.)
+    - kind: await_expression
+      has:
+        stopBy: end
+        kind: as_expression
+message: |
+  Don't cast an awaited expression in-place (`(await x()) as T` or
+  `await x() as T`). The parens-then-cast wrapping is a readability smell and
+  usually signals that the callee's declared return type is too loose.
+
+  Preferred fix — tighten the upstream return type so the cast disappears.
+
+  Acceptable fallback — split into two consts so the await result and the
+  cast each get their own line:
+
+      const result = await x();
+      const typed = result as T;
+
+  Then use `typed` from there on.

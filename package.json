@@ -11,11 +11,14 @@
     "test:all": "jest && npm test --prefix etl",
     "test:unit": "jest --testPathPattern='(?<!integration)\\.test\\.tsx?$'",
     "test:integration": "jest --testPathPattern='\\.integration\\.test\\.tsx?$'",
-    "prepare": "husky",
+    "prepare": "husky && npm install --prefix scripts/complexity && npm install --prefix scripts/readability",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\""
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "gate:complexity": "python3 scripts/complexity/check.py",
+    "gate:readability": "python3 scripts/readability/check.py",
+    "gate": "npm run gate:complexity && npm run gate:readability"
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.81.3",
@@ -59,6 +62,10 @@
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "eslint --fix",
     "etl/**/*.ts": "etl/node_modules/.bin/eslint --fix",
+    "**/*.ts": [
+      "npm run gate:complexity --",
+      "npm run gate:readability --"
+    ],
     "**/*.{js,jsx,ts,tsx,json,md}": "prettier --write"
   },
   "engines": {

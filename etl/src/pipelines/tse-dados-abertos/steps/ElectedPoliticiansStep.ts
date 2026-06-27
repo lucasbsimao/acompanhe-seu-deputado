@@ -27,7 +27,12 @@ export class ElectedPoliticiansStep {
   }
 
   private filterElected(candidates: TSECandidate[]): TSECandidate[] {
-    const validCargos = [TSECargo.DEPUTADO_FEDERAL, TSECargo.SENADOR];
+    const validCargos = [
+      TSECargo.DEPUTADO_FEDERAL,
+      TSECargo.SENADOR,
+      TSECargo.SUPLENTE_1,
+      TSECargo.SUPLENTE_2,
+    ];
     const validStatuses = [
       TSEElectionResultStatus.ELEITO,
       TSEElectionResultStatus.ELEITO_POR_QP,
@@ -48,7 +53,7 @@ export class ElectedPoliticiansStep {
       .map(c => ({
         cpf: normalizeCPF(c.NR_CPF_CANDIDATO),
         sourceApiId: null,
-        name: c.NM_URNA_CANDIDATO,
+        name: c.NM_CANDIDATO,
         uf: c.SG_UF,
         partyId: normalizeId(c.SG_PARTIDO),
         role:
