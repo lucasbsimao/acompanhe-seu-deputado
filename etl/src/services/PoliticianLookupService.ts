@@ -4,6 +4,11 @@ import type { PoliticianRepository } from '../repositories/PoliticianRepository'
 import { normalizeNameForMatching } from '../util/normalization.util';
 import type { HttpClient } from '../core/HttpClient';
 import { PoliticianRole } from '../types/PoliticianRole';
+import type {
+  SenadorDetailResponse,
+  SenadorMandatosResponse,
+  MandatoItem,
+} from '../types/LegisSenadoApiDto';
 
 export class PoliticianLookupService {
   private readonly compositeToCpfMap: Map<string, string>;
@@ -73,26 +78,53 @@ export class PoliticianLookupService {
     return matches[0] ?? null;
   }
 
+  private async fetchSenatorRepresentationUf(
+    code: string,
+    httpClient: HttpClient,
+  ): Promise<string | null> {
+    const url = `https://legis.senado.leg.br/dadosabertos/senador/${code}/mandatos`;
+    const response = await httpClient.request(url, {
+      headers: { Accept: 'application/json' },
+    });
+    const data = response.data as SenadorMandatosResponse;
+    const mandatoRaw = data?.MandatoParlamentar?.Parlamentar?.Mandatos?.Mandato;
+
+    if (!mandatoRaw) {
+      return null;
+    }
+
+    const mandates: MandatoItem[] = Array.isArray(mandatoRaw) ? mandatoRaw : [mandatoRaw];
+    mandates.sort((a, b) => Number(b.CodigoMandato) - Number(a.CodigoMandato));
+    return mandates[0]?.UfParlamentar ?? null;
+  }
+
   async findCpfBySenatorCode(
     code: string,
     httpClient: HttpClient,
   ): Promise<{ cpf: string; name: string; uf: string } | null> {
     const url = `https://legis.senado.leg.br/dadosabertos/senador/${code}`;
     try {
-      const response = await httpClient.request(url, {
+      const detailResponse = await httpClient.request(url, {
         headers: { Accept: 'application/json' },
       });
-      const data = response.data as any;
+      const data = detailResponse.data as SenadorDetailResponse;
       const identification = data?.DetalheParlamentar?.Parlamentar?.IdentificacaoParlamentar;
 
       if (!identification) {
         return null;
       }
 
-      const name = identification.NomeCompletoParlamentar || identification.NomeParlamentar;
-      const uf = identification.UfParlamentar;
+      const completeName = identification.NomeCompletoParlamentar;
+      const shortName = identification.NomeParlamentar;
+      const name = completeName || shortName;
 
-      if (!name || !uf) {
+      if (!name) {
+        return null;
+      }
+
+      const uf = await this.fetchSenatorRepresentationUf(code, httpClient);
+
+      if (!uf) {
         return null;
       }
 
@@ -102,13 +134,10 @@ export class PoliticianLookupService {
       }
 
       // Try with NomeParlamentar as well if different
-      if (
-        identification.NomeParlamentar &&
-        identification.NomeParlamentar !== identification.NomeCompletoParlamentar
-      ) {
-        const cpfAlt = this.findCpf(identification.NomeParlamentar, uf, PoliticianRole.SENATOR);
+      if (shortName && shortName !== completeName) {
+        const cpfAlt = this.findCpf(shortName, uf, PoliticianRole.SENATOR);
         if (cpfAlt) {
-          return { cpf: cpfAlt, name: identification.NomeParlamentar, uf };
+          return { cpf: cpfAlt, name: shortName, uf };
         }
       }
 

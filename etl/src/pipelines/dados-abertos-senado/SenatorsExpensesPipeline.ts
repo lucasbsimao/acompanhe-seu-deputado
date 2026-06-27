@@ -23,6 +23,24 @@ interface CeapsExpenseDto {
   valorReembolsado: number;
 }
 
+/**
+ * Senators Expenses Pipeline
+ *
+ * Fetches CEAPS (Cota para Exercício da Atividade Parlamentar dos Senadores)
+ * expenses from the Senado Open Data API.
+ *
+ * Source: Senado Open Data API (despesas_ceaps/{year}).
+ *
+ * Key behaviour: Matches expenses to politicians using the parliamentary code
+ * (codSenador). If a code is not found in the database, it attempts to resolve
+ * it via {@link PoliticianLookupService}.
+ *
+ * Note on historical data: If a senator code remains unknown, it is logged as a
+ * warning. This typically happens for former senators whose data is not present
+ * in the current TSE election results seeded by TSE pipelines. If the intention
+ * is to process historical data, make sure you create new TSE pipelines for the
+ * historical years to seed the database properly.
+ */
 export class SenatorsExpensesPipeline {
   static readonly dependencies: readonly IPipelineDepChain[] = [SenatorsPipeline];
 
@@ -133,8 +151,10 @@ export class SenatorsExpensesPipeline {
       const senatorCpf = senatorMap.get(String(expense.codSenador));
 
       if (!senatorCpf) {
-        if (senatorCpf === undefined) {
-          console.warn(`Unknown senator code: ${expense.codSenador} for expense ID ${expense.id}`);
+        if (senatorCpf === null) {
+          console.warn(
+            `Unknown senator code: ${expense.codSenador} for expense ID ${expense.id} - possibly missing historical TSE data, since the current data maps only currently elected politicians`,
+          );
         }
         continue;
       }

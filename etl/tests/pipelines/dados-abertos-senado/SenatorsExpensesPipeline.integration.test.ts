@@ -312,7 +312,7 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
       .get(`/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`)
       .reply(200, mockExpenses);
 
-    // Mock individual senator lookup
+    // Mock senator detail — real API does not include UfParlamentar in IdentificacaoParlamentar
     nock('https://legis.senado.leg.br')
       .get(`/dadosabertos/senador/${historicalSenatorCode}`)
       .reply(200, {
@@ -320,7 +320,22 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
           Parlamentar: {
             IdentificacaoParlamentar: {
               NomeCompletoParlamentar: senatorName,
-              UfParlamentar: senatorUf,
+              NomeParlamentar: senatorName,
+            },
+          },
+        },
+      });
+
+    // Mock mandates endpoint — provides the representation UF
+    nock('https://legis.senado.leg.br')
+      .get(`/dadosabertos/senador/${historicalSenatorCode}/mandatos`)
+      .reply(200, {
+        MandatoParlamentar: {
+          Parlamentar: {
+            Codigo: historicalSenatorCode,
+            Nome: senatorName,
+            Mandatos: {
+              Mandato: { CodigoMandato: '1', UfParlamentar: senatorUf },
             },
           },
         },
