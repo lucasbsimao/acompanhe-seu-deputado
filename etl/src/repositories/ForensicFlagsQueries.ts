@@ -176,3 +176,19 @@ export const UNCLASSIFIED_EXPENSE_SQL = `INSERT OR REPLACE INTO forensic_flags (
          JOIN politicians p ON e.politician_id = p.cpf
          WHERE p.role = ?
            AND (e.tipo_despesa IS NULL OR e.tipo_despesa = '')`;
+
+export const CAMPAIGN_DONOR_VENDOR_SQL = `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           ? AS score,
+           json_object(
+             'reference_data', json_array(
+               json_object('source_table', 'vendor_partners', 'source_id', vp.cnpj || ':' || vp.partner_cpf_cnpj),
+               json_object('source_table', 'tse_donations', 'source_id', td.id)
+             )
+           ) AS metadata
+         FROM expenses e
+         JOIN vendor_partners vp ON vp.cnpj = e.cnpj_cpf_fornecedor
+         JOIN tse_donations td ON td.donor_cpf = vp.partner_cpf_cnpj AND td.recipient_cpf = e.politician_id`;

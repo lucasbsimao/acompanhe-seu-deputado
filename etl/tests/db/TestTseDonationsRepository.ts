@@ -10,12 +10,13 @@ export class TestTseDonationsRepository {
     recipient_cpf: string;
     ano_eleicao: number;
     valor: number;
-  }): void {
-    this.db
+  }): number {
+    const result = this.db
       .prepare(
         `INSERT INTO tse_donations (donor_cpf, recipient_cpf, ano_eleicao, valor)
          VALUES (?, ?, ?, ?)`,
       )
       .run(params.donor_cpf, params.recipient_cpf, params.ano_eleicao, params.valor);
+    return result.lastInsertRowid as number;
   }
 }

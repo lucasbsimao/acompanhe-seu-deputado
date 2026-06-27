@@ -15,6 +15,7 @@ import {
   POLITICALLY_CONNECTED_VENDOR_SQL,
   COMPETENCY_DATE_MISMATCH_SQL,
   UNCLASSIFIED_EXPENSE_SQL,
+  CAMPAIGN_DONOR_VENDOR_SQL,
 } from './ForensicFlagsQueries';
 import { PoliticianRole } from '../types/PoliticianRole';
 
@@ -83,5 +84,10 @@ export class ForensicFlagsRepository {
   insertUnclassifiedExpense(flagName: ForensicFlag): void {
     const score = FORENSIC_FLAG_SCORES[flagName];
     this.db.prepare(UNCLASSIFIED_EXPENSE_SQL).run(flagName, score, PoliticianRole.SENATOR);
+  }
+
+  insertCampaignDonorVendor(flagName: ForensicFlag): void {
+    const score = FORENSIC_FLAG_SCORES[flagName];
+    this.db.prepare(CAMPAIGN_DONOR_VENDOR_SQL).run(flagName, score);
   }
 }
