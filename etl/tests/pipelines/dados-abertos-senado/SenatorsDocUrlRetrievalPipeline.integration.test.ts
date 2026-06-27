@@ -46,7 +46,8 @@ describe('SenatorsDocUrlRetrievalPipeline', () => {
       {
         id: expenseId,
         politicianId: cpf,
-        tipoDespesa: 'ALUGUEL DE IMÓVEIS PARA ESCRITÓRIO POLÍTICO',
+        tipoDespesa:
+          'Aluguel de imoveis para escritorio politico compreendendo despesas concernentes a eles',
         cnpj,
         dataDocumento: date,
         valorLiquido: valorCents,
@@ -106,7 +107,8 @@ describe('SenatorsDocUrlRetrievalPipeline', () => {
       {
         id: expenseId,
         politicianId: cpf,
-        tipoDespesa: 'AQUISIÇÃO DE MATERIAL DE CONSUMO',
+        tipoDespesa:
+          'Aquisicao de material de consumo para uso no escritorio politico inclusive aquisicao ou locacao de software despesas postais aquisicao de publicacoes locacao de moveis e de equipamentos',
         cnpj: '12345678000100',
         dataDocumento: '2023-05-15',
         valorLiquido: 5000,
@@ -245,7 +247,8 @@ describe('SenatorsDocUrlRetrievalPipeline', () => {
       {
         id: expenseId,
         politicianId: cpf,
-        tipoDespesa: 'ALUGUEL DE IMÓVEIS PARA ESCRITÓRIO POLÍTICO',
+        tipoDespesa:
+          'Aluguel de imoveis para escritorio politico compreendendo despesas concernentes a eles',
         cnpj: '12345678000100',
         dataDocumento: '2023-05-15',
         valorLiquido: 10000,
@@ -296,7 +299,8 @@ describe('SenatorsDocUrlRetrievalPipeline', () => {
       {
         id: 'E1',
         politicianId: 'S1',
-        tipoDespesa: 'AQUISIÇÃO DE MATERIAL DE CONSUMO',
+        tipoDespesa:
+          'Aquisicao de material de consumo para uso no escritorio politico inclusive aquisicao ou locacao de software despesas postais aquisicao de publicacoes locacao de moveis e de equipamentos',
         cnpj: '11111111000100',
         dataDocumento: '2023-01-01',
         valorLiquido: 1000,
