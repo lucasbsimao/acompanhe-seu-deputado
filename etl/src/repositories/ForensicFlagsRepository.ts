@@ -13,6 +13,7 @@ import {
   FRESHLY_REGISTERED_VENDOR_SQL,
   VENDOR_NO_EMPLOYEES_SQL,
   POLITICALLY_CONNECTED_VENDOR_SQL,
+  COMPETENCY_DATE_MISMATCH_SQL,
 } from './ForensicFlagsQueries';
 
 export class ForensicFlagsRepository {
@@ -70,5 +71,10 @@ export class ForensicFlagsRepository {
   insertPoliticallyConnectedVendor(flagName: ForensicFlag): void {
     const score = FORENSIC_FLAG_SCORES[flagName];
     this.db.prepare(POLITICALLY_CONNECTED_VENDOR_SQL).run(flagName, score);
+  }
+
+  insertCompetencyDateMismatch(flagName: ForensicFlag): void {
+    const score = FORENSIC_FLAG_SCORES[flagName];
+    this.db.prepare(COMPETENCY_DATE_MISMATCH_SQL).run(flagName, score);
   }
 }

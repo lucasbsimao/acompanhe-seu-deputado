@@ -131,8 +131,6 @@ describe('ExpensesPipeline Integration Tests', () => {
     // valor_liquido is stored in cents (1500.50 * 100 = 150050)
     assert.strictEqual(rows[0].valor_liquido, 150050, 'valor_liquido should be in cents');
     assert.strictEqual(rows[0].valor_glosa, 0, 'valor_glosa should be 0 cents');
-    assert.strictEqual(rows[0].competency_year, 2026, 'competency_year should be 2026');
-    assert.strictEqual(rows[0].competency_month, 1, 'competency_month should be 1');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });

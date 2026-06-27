@@ -110,7 +110,7 @@ export class SenatorsExpensesPipeline {
         senatorMap.set(code, cpf);
       }
 
-      const rows = this.mapToExpenseRows(ceapsRecords, senatorMap, year);
+      const rows = this.mapToExpenseRows(ceapsRecords, senatorMap);
 
       if (rows.length > 0) {
         this.expensesRepo.insertBatch(rows);
@@ -147,7 +147,6 @@ export class SenatorsExpensesPipeline {
   private mapToExpenseRows(
     records: CeapsExpenseDto[],
     senatorMap: Map<string, string | null>,
-    year: number,
   ): ExpenseRow[] {
     const rows: ExpenseRow[] = [];
     for (const expense of records) {

@@ -152,3 +152,15 @@ export const POLITICALLY_CONNECTED_VENDOR_SQL = `INSERT OR REPLACE INTO forensic
          WHERE EXISTS (
            SELECT 1 FROM tse_candidates tc WHERE tc.cpf = vp.partner_cpf_cnpj
          )`;
+
+export const COMPETENCY_DATE_MISMATCH_SQL = `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           ? AS score,
+           json_object('competency_year', e.competency_year, 'competency_month', e.competency_month, 'data_documento', e.data_documento) AS metadata
+         FROM expenses e
+         WHERE e.competency_year IS NOT NULL
+           AND e.competency_month IS NOT NULL
+           AND e.data_documento < date(printf('%04d-%02d-01', e.competency_year, e.competency_month), '-90 days')`;
