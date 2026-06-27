@@ -28,8 +28,8 @@ export interface ExpenseRow {
   cnpjCpfFornecedor: string;
   valorLiquido: number;
   valorGlosa: number;
-  competencyYear: number;
-  competencyMonth: number;
+  competencyYear: number | null;
+  competencyMonth: number | null;
 }
 
 export interface CeapsWorkQueueItem {

@@ -16,7 +16,9 @@ export const migration003: Migration = {
   nome_fornecedor TEXT NOT NULL,
   cnpj_cpf_fornecedor TEXT NOT NULL,
   valor_liquido INTEGER NOT NULL,
-  valor_glosa INTEGER NOT NULL
+  valor_glosa INTEGER NOT NULL,
+  competency_year INTEGER,
+  competency_month INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_expenses_deputy_id ON expenses(deputy_id);

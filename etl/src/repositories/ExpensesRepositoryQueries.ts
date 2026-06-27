@@ -4,8 +4,7 @@ export const INSERT_EXPENSE_SQL = `
   INSERT OR REPLACE INTO expenses (
     id, politician_id, tipo_despesa, cod_documento, cod_tipo_documento,
     data_documento, num_documento, url_documento, nome_fornecedor,
-    cnpj_cpf_fornecedor, valor_liquido, valor_glosa,
-    competency_year, competency_month
+    cnpj_cpf_fornecedor, valor_liquido, valor_glosa, competency_year, competency_month
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 

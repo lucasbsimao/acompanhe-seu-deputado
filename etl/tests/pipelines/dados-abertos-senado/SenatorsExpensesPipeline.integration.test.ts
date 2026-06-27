@@ -25,8 +25,8 @@ interface ExpenseRow {
   cnpj_cpf_fornecedor: string;
   valor_liquido: number;
   valor_glosa: number;
-  competency_year: number;
-  competency_month: number;
+  competency_year: number | null;
+  competency_month: number | null;
 }
 
 describe('CeapsExpensesPipeline Integration Tests', () => {
@@ -58,6 +58,8 @@ describe('CeapsExpensesPipeline Integration Tests', () => {
       fornecedor: `Fornecedor ${id}`,
       cpfCnpj: '12.345.678/0001-90',
       valorReembolsado: 1500.5,
+      ano: year,
+      mes: 5,
     };
   }
 

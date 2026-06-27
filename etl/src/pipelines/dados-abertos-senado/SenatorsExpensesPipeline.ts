@@ -21,6 +21,8 @@ interface CeapsExpenseDto {
   fornecedor: string;
   cpfCnpj: string;
   valorReembolsado: number;
+  ano: number;
+  mes: number;
 }
 
 /**
@@ -160,10 +162,6 @@ export class SenatorsExpensesPipeline {
         continue;
       }
 
-      const expenseDate = new Date(expense.data);
-      const competencyYear = isNaN(expenseDate.getTime()) ? year : expenseDate.getFullYear();
-      const competencyMonth = isNaN(expenseDate.getTime()) ? 0 : expenseDate.getMonth() + 1;
-
       const expenseId = String(expense.id);
       const tipoDespesa = normalizeLabel(expense.tipoDespesa ?? '');
       const codTipoDocumento = mapCeapsDocumentType(expense.tipoDocumento);
@@ -183,8 +181,8 @@ export class SenatorsExpensesPipeline {
         cnpjCpfFornecedor,
         valorLiquido,
         valorGlosa: 0,
-        competencyYear,
-        competencyMonth,
+        competencyYear: expense.ano,
+        competencyMonth: expense.mes,
       });
     }
     return rows;
