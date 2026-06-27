@@ -55,19 +55,19 @@ describe('SenatorsDocUrlRetrievalPipeline', () => {
       },
     ]);
 
-    // Mock Portal HTML response
+    // Mock Portal HTML response — column order matches real portal:
+    // CNPJ | Vendor | Description | Date | Document | Amount | Search
     const portalHtml = `
       <table>
         <tbody>
           <tr>
             <td>12.345.678/0001-00</td>
-            <td>Category ignored here</td>
             <td>Vendor Name</td>
+            <td>Some description</td>
             <td>15/05/2023</td>
-            <td>1.234,56</td>
-            <td>
-              <a href="/transparencia/sen/download/ceaps/documento/99999">PDF</a>
-            </td>
+            <td><a href="/transparencia/sen/download/ceaps/documento/99999">PDF</a></td>
+            <td>R$ 1.234,56</td>
+            <td><a href="/search">search</a></td>
           </tr>
         </tbody>
       </table>
@@ -121,11 +121,12 @@ describe('SenatorsDocUrlRetrievalPipeline', () => {
         <tbody>
           <tr>
             <td>12.345.678/0001-00</td>
-            <td>Category ignored here</td>
             <td>Vendor Name</td>
+            <td>Some description</td>
             <td>15/05/2023</td>
-            <td>50,00</td>
             <td>(no link here)</td>
+            <td>R$ 50,00</td>
+            <td></td>
           </tr>
         </tbody>
       </table>
@@ -204,11 +205,12 @@ describe('SenatorsDocUrlRetrievalPipeline', () => {
         <tbody>
           <tr>
             <td>12.345.678/0001-00</td>
-            <td>...</td>
-            <td>...</td>
+            <td>Vendor</td>
+            <td>Description</td>
             <td>15/05/2023</td>
-            <td>100,00</td>
             <td><a href="/transparencia/sen/download/ceaps/documento/new-link">PDF</a></td>
+            <td>R$ 100,00</td>
+            <td></td>
           </tr>
         </tbody>
       </table>
@@ -255,17 +257,18 @@ describe('SenatorsDocUrlRetrievalPipeline', () => {
       },
     ]);
 
-    // Portal data has different date
+    // Portal data has different date — composite key mismatch, no update expected
     const portalHtml = `
       <table>
         <tbody>
           <tr>
             <td>12.345.678/0001-00</td>
-            <td>...</td>
-            <td>...</td>
+            <td>Vendor</td>
+            <td>Description</td>
             <td>16/05/2023</td>
-            <td>100,00</td>
             <td><a href="/transparencia/sen/download/ceaps/documento/999">PDF</a></td>
+            <td>R$ 100,00</td>
+            <td></td>
           </tr>
         </tbody>
       </table>
@@ -349,8 +352,8 @@ describe('SenatorsDocUrlRetrievalPipeline', () => {
       },
     ]);
 
-    const html1 = `<table><tbody><tr><td>11.111.111/0001-00</td><td>...</td><td>...</td><td>01/01/2023</td><td>10,00</td><td><a href="/transparencia/sen/download/ceaps/documento/URL1">PDF</a></td></tr></tbody></table>`;
-    const html2 = `<table><tbody><tr><td>22.222.222/0001-00</td><td>...</td><td>...</td><td>01/02/2023</td><td>20,00</td><td><a href="/transparencia/sen/download/ceaps/documento/URL2">PDF</a></td></tr></tbody></table>`;
+    const html1 = `<table><tbody><tr><td>11.111.111/0001-00</td><td>V</td><td>D</td><td>01/01/2023</td><td><a href="/transparencia/sen/download/ceaps/documento/URL1">PDF</a></td><td>R$ 10,00</td><td></td></tr></tbody></table>`;
+    const html2 = `<table><tbody><tr><td>22.222.222/0001-00</td><td>V</td><td>D</td><td>01/02/2023</td><td><a href="/transparencia/sen/download/ceaps/documento/URL2">PDF</a></td><td>R$ 20,00</td><td></td></tr></tbody></table>`;
 
     nock('https://www6g.senado.leg.br')
       .get('/transparencia/sen/101/ceaps/2/detalhe/')

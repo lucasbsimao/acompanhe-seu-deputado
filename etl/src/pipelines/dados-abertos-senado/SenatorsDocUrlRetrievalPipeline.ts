@@ -132,20 +132,20 @@ export class SenatorsDocUrlRetrievalPipeline {
       let matchCount = 0;
       for (const row of rows) {
         const cols = row.querySelectorAll('td');
-        if (cols.length < 5) continue;
+        if (cols.length < 6) continue;
 
-        // Extracting data from columns (1-indexed based on plan: 1, 4, 5)
+        // Portal column layout: CNPJ | Vendor | Description | Date | Document | Amount | Search
         const portalCnpj = normalizeNumericText(cols[0].text.trim());
         const portalDateText = cols[3].text.trim(); // Expecting DD/MM/YYYY
-        const portalValorText = cols[4].text.trim(); // Expecting something like "1.234,56"
+        const portalValorText = cols[5].text.trim(); // Expecting "R$ 1.234,56"
 
         // Convert date DD/MM/YYYY to YYYY-MM-DD
         const [day, month, year] = portalDateText.split('/');
         const isoDate = `${year}-${month}-${day}`;
 
-        // Convert valor text to cents
+        // Convert valor text to cents — strip currency symbol/spaces before parsing
         const valorCents = Math.round(
-          parseFloat(portalValorText.replace(/\./g, '').replace(',', '.')) * 100,
+          parseFloat(portalValorText.replace(/[^\d,]/g, '').replace(',', '.')) * 100,
         );
 
         // Find document URL
