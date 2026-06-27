@@ -18,6 +18,7 @@ import {
   POLITICALLY_CONNECTED_VENDOR_SQL,
   COMPETENCY_DATE_MISMATCH_SQL,
   UNCLASSIFIED_EXPENSE_SQL,
+  CAMPAIGN_DONOR_VENDOR_SQL,
 } from '../../src/repositories/ForensicFlagsQueries';
 
 const BUDGET_MS = 1500;
@@ -83,6 +84,16 @@ function seedVolumeData(db: Database.Database): void {
     }
   })();
 
+  const insertDonation = db.prepare(
+    'INSERT OR IGNORE INTO tse_donations (donor_cpf, recipient_cpf, ano_eleicao, valor) VALUES (?, ?, ?, ?)',
+  );
+  db.transaction(() => {
+    for (let i = 1; i <= 100; i++) {
+      const cpf = String(i).padStart(11, '0');
+      insertDonation.run(cpf, 'DEPUTY001', 2022, 1000);
+    }
+  })();
+
   db.prepare(
     "INSERT OR IGNORE INTO pipeline_runs (pipeline_name, completed_at, row_count) VALUES (?, datetime('now'), 0)",
   ).run('ReceitaFederalCNPJPipeline');
@@ -108,8 +119,9 @@ describe('ForensicFlagsRepository — query plan', () => {
       function assertNoUnindexedJoinScan(plan: PlanRow[], label: string): void {
         const badScans = plan.filter(
           row =>
-            /SCAN (vendors|vendor_partners|tse_candidates|politicians)\b/.test(row.detail) &&
-            !/USING/.test(row.detail),
+            /SCAN (vendors|vendor_partners|tse_candidates|politicians|tse_donations)\b/.test(
+              row.detail,
+            ) && !/USING/.test(row.detail),
         );
         assert.deepStrictEqual(
           badScans.map(r => r.detail),
@@ -149,6 +161,10 @@ describe('ForensicFlagsRepository — query plan', () => {
         'insertCompetencyDateMismatch',
       );
       assertNoUnindexedJoinScan(explainPlan(UNCLASSIFIED_EXPENSE_SQL), 'insertUnclassifiedExpense');
+      assertNoUnindexedJoinScan(
+        explainPlan(CAMPAIGN_DONOR_VENDOR_SQL),
+        'insertCampaignDonorVendor',
+      );
     });
   });
 
@@ -217,6 +233,10 @@ describe('ForensicFlagsRepository — query plan', () => {
         [
           'insertUnclassifiedExpense',
           () => repo.insertUnclassifiedExpense(ForensicFlag.UNCLASSIFIED_EXPENSE),
+        ],
+        [
+          'insertCampaignDonorVendor',
+          () => repo.insertCampaignDonorVendor(ForensicFlag.CAMPAIGN_DONOR_VENDOR),
         ],
       ];
 
