@@ -1,0 +1,19 @@
+id: no-conditional-spread-in-object
+language: TypeScript
+severity: warning
+rule:
+  kind: spread_element
+  has:
+    stopBy: end
+    pattern: $A && $B
+  inside:
+    kind: object
+message: |
+  Conditional spread `...(cond && { … })` hurts readability. Either build
+  the object outside the call:
+
+      const extras = cond ? { shippingRate } : {};
+      await adapter.updateOrder({ ..., ...extras });
+
+  or make the field optional in the callee's param type and pass it
+  unconditionally (the callee handles `undefined`).

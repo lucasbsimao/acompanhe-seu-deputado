@@ -1,0 +1,38 @@
+id: no-inline-call-as-call-arg-property
+language: TypeScript
+severity: warning
+rule:
+  kind: pair
+  all:
+    - has:
+        field: value
+        any:
+          - kind: call_expression
+          - kind: new_expression
+          - kind: await_expression
+    - not:
+        has:
+          field: value
+          any:
+            - pattern: Number($_)
+            - pattern: String($_)
+            - pattern: Boolean($_)
+            - pattern: BigInt($_)
+            - pattern: Symbol($_)
+            - pattern: t($$$)
+            - pattern: $_ as $_
+  inside:
+    kind: object
+    inside:
+      kind: arguments
+      inside:
+        kind: call_expression
+message: |
+  Don't pass a function call (or `new X()`, or `await f()`) directly as a
+  property value in an object that's itself being passed to another call.
+  Assign it to a `const` first and pass the variable.
+
+  Example:
+
+      const discount = buildCombinedPlatformDiscount({...});
+      await adapter.updateOrder({ ..., discount, ... });

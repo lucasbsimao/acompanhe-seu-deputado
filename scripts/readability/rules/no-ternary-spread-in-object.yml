@@ -1,0 +1,16 @@
+id: no-ternary-spread-in-object
+language: TypeScript
+severity: warning
+rule:
+  kind: spread_element
+  has:
+    stopBy: end
+    kind: ternary_expression
+  inside:
+    kind: object
+message: |
+  Ternary spread `...(cond ? { … } : {})` hurts readability. Extract the
+  conditional object to a named const above the containing expression:
+
+      const extras = cond ? { key: value } : {};
+      someFunction({ ...extras, otherProp });
