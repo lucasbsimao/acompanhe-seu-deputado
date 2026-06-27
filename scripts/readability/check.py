@@ -68,10 +68,10 @@ def fail(message: str, code: int = 2) -> None:
     sys.exit(code)
 
 
-def discover_default_files() -> list[str]:
+def discover_default_files(base: str = "HEAD") -> list[str]:
     try:
         out = subprocess.check_output(
-            ["git", "diff", "HEAD", "--name-only", "--diff-filter=AM"],
+            ["git", "diff", base, "--name-only", "--diff-filter=AM"],
             stderr=subprocess.DEVNULL,
         ).decode()
     except subprocess.CalledProcessError:
@@ -107,12 +107,12 @@ def _parse_hunk_ranges(diff_text: str) -> list[tuple[int, int]]:
     return file_ranges
 
 
-def collect_changed_ranges(files: list[str]) -> dict[str, list[tuple[int, int]]]:
+def collect_changed_ranges(files: list[str], base: str = "HEAD") -> dict[str, list[tuple[int, int]]]:
     ranges: dict[str, list[tuple[int, int]]] = {}
     for path in files:
         try:
             diff_out = subprocess.check_output(
-                ["git", "diff", "HEAD", "-U0", "--", path],
+                ["git", "diff", base, "-U0", "--", path],
                 stderr=subprocess.DEVNULL,
             ).decode()
         except subprocess.CalledProcessError:
@@ -286,29 +286,74 @@ def _emit_report(
     return 1 if introduced else 0
 
 
+def _get_best_base() -> str:
+    """Return 'HEAD' if there are uncommitted TypeScript changes, else '@{u}...HEAD' if it exists,
+    falling back to 'main...HEAD' or 'HEAD'."""
+    try:
+        out = subprocess.check_output(
+            ["git", "diff", "HEAD", "--name-only", "--diff-filter=AM"],
+            stderr=subprocess.DEVNULL,
+        ).decode()
+        uncommitted = [line for line in out.splitlines() if SOURCE_EXT_RE.search(line)]
+        if uncommitted:
+            return "HEAD"
+    except subprocess.CalledProcessError:
+        pass
+
+    # Try upstream
+    try:
+        subprocess.check_call(
+            ["git", "rev-parse", "--verify", "@{u}"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return "@{u}...HEAD"
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+
+    # Try common base branches
+    for base in ["main", "master", "develop"]:
+        try:
+            subprocess.check_call(
+                ["git", "rev-parse", "--verify", base],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return f"{base}...HEAD"
+        except subprocess.CalledProcessError:
+            continue
+
+    return "HEAD"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "files",
         nargs="*",
-        help="Optional explicit file list. Defaults to `git diff HEAD --name-only`.",
+        help="Optional explicit file list. Defaults to auto-discovered files.",
+    )
+    parser.add_argument(
+        "--base",
+        help="Git ref to compare against (default: auto-detect HEAD vs upstream)",
     )
     args = parser.parse_args()
 
     _ensure_setup_or_exit()
     _enter_git_root_or_exit()
 
-    raw_files = args.files or discover_default_files()
+    base = args.base or _get_best_base()
+    raw_files = args.files or discover_default_files(base)
     targets = filter_files(raw_files)
     test_targets = filter_test_files(raw_files)
 
     if not targets and not test_targets:
-        print("readability-check: no source files to check")
+        print(f"readability-check: no source files to check (base: {base})")
         return 0
 
     changed: dict[str, list[tuple[int, int]]] = {}
-    changed.update(collect_changed_ranges(targets))
-    changed.update(collect_changed_ranges(test_targets))
+    changed.update(collect_changed_ranges(targets, base))
+    changed.update(collect_changed_ranges(test_targets, base))
 
     matches: list[dict] = []
     if targets:
