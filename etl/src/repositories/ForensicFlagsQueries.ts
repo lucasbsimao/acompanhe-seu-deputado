@@ -164,3 +164,15 @@ export const COMPETENCY_DATE_MISMATCH_SQL = `INSERT OR REPLACE INTO forensic_fla
          WHERE e.competency_year IS NOT NULL
            AND e.competency_month IS NOT NULL
            AND e.data_documento < date(printf('%04d-%02d-01', e.competency_year, e.competency_month), '-90 days')`;
+
+export const UNCLASSIFIED_EXPENSE_SQL = `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           ? AS score,
+           NULL AS metadata
+         FROM expenses e
+         JOIN politicians p ON e.politician_id = p.cpf
+         WHERE p.role = ?
+           AND (e.tipo_despesa IS NULL OR e.tipo_despesa = '')`;

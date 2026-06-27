@@ -18,6 +18,7 @@ export const enum ForensicFlag {
   PASSENGER_NAME_MISMATCH = 'PASSENGER_NAME_MISMATCH',
   CASH_PAYMENT = 'CASH_PAYMENT',
   FUEL_PRICE_ABOVE_ANP = 'FUEL_PRICE_ABOVE_ANP',
+  UNCLASSIFIED_EXPENSE = 'UNCLASSIFIED_EXPENSE',
 }
 
 export const FORENSIC_FLAG_SCORES: Record<ForensicFlag, number> = {
@@ -38,4 +39,5 @@ export const FORENSIC_FLAG_SCORES: Record<ForensicFlag, number> = {
   [ForensicFlag.PASSENGER_NAME_MISMATCH]: 35,
   [ForensicFlag.CASH_PAYMENT]: 15,
   [ForensicFlag.FUEL_PRICE_ABOVE_ANP]: 25,
+  [ForensicFlag.UNCLASSIFIED_EXPENSE]: 35,
 };
