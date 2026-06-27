@@ -8,11 +8,24 @@ import { ElectedPoliticiansStep } from './steps/ElectedPoliticiansStep';
 import { AllCargoCandidatesStep } from './steps/AllCargoCandidatesStep';
 import type { TSECandidate } from '../../types/TSECandidate';
 import { PoliticianRole } from '../../types/PoliticianRole';
-import { parse } from 'csv-parse/sync';
-import { readFileSync, readdirSync, unlinkSync, rmdirSync } from 'fs';
 import { join } from 'path';
+import { parseCSVFile } from './tseUtils';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 
+/**
+ * TSE 2022 Election Results Pipeline
+ *
+ * Collects and stores federal deputy and senator candidates elected in the
+ * 2022 general election.
+ *
+ * Source: TSE Open Data ZIP file (consulta_cand_2022.zip).
+ *
+ * Key behaviour: Downloads and extracts the full candidate ZIP, parses records,
+ * and uses shared steps to populate both the politicians and tse_candidates tables.
+ *
+ * Co-dependencies: Declares no dependencies as it is the base pipeline for
+ * election results.
+ */
 export class TSE2022ElectionResultsPipeline {
   static readonly dependencies: readonly IPipelineDepChain[] = [];
 
@@ -56,12 +69,12 @@ export class TSE2022ElectionResultsPipeline {
       await this.downloader.downloadFile(this.downloadUrl, this.zipPath);
       this.downloader.extractZip(this.zipPath, this.extractPath);
 
-      const csvFiles = this.findCSVFiles();
+      const csvFiles = this.downloader.listFiles(this.extractPath, 'consulta_cand_2022_');
       console.log(`Found ${csvFiles.length} CSV files`);
 
       const allCandidates: TSECandidate[] = [];
       for (const file of csvFiles) {
-        const candidates = this.parseCSVFile(file);
+        const candidates = parseCSVFile(file);
         allCandidates.push(...candidates);
       }
 
@@ -70,40 +83,7 @@ export class TSE2022ElectionResultsPipeline {
       this.allCandidatesStep.run(allCandidates);
       console.log('TSE 2022 data stored successfully');
     } finally {
-      this.cleanup();
-    }
-  }
-
-  private findCSVFiles(): string[] {
-    const files = readdirSync(this.extractPath);
-    return files
-      .filter(f => f.startsWith('consulta_cand_2022_') && f.endsWith('.csv'))
-      .map(f => join(this.extractPath, f));
-  }
-
-  private parseCSVFile(filePath: string): TSECandidate[] {
-    const content = readFileSync(filePath, { encoding: 'latin1' });
-    const records = parse(content, {
-      columns: true,
-      delimiter: ';',
-      skip_empty_lines: true,
-      relax_quotes: true,
-    }) as TSECandidate[];
-    return records;
-  }
-
-  private cleanup(): void {
-    try {
-      const files = readdirSync(this.extractPath);
-      files.forEach(f => {
-        unlinkSync(join(this.extractPath, f));
-      });
-      rmdirSync(this.extractPath);
-      unlinkSync(this.zipPath);
-      rmdirSync(this.tempDir);
-      console.log('Cleaned up temporary files');
-    } catch (error) {
-      console.warn('Cleanup warning:', error);
+      this.downloader.cleanupDir(this.tempDir);
     }
   }
 }

@@ -1,0 +1,12 @@
+{
+  "name": "cursor-complexity-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "User-level diff-aware cognitive complexity gate for the plan-execution skill.",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-sonarjs": "^3.0.0"
+  }
+}

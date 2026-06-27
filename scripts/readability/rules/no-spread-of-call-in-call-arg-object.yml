@@ -1,0 +1,26 @@
+id: no-spread-of-call-in-call-arg-object
+language: TypeScript
+severity: warning
+rule:
+  kind: spread_element
+  has:
+    stopBy: end
+    any:
+      - kind: call_expression
+      - kind: new_expression
+      - kind: await_expression
+  inside:
+    kind: object
+    inside:
+      kind: arguments
+      inside:
+        kind: call_expression
+message: |
+  Don't spread the result of a function call into an object that's itself
+  being passed to another call (e.g. `{ ...computeExtras(), x }`). Assign
+  the spread source to a `const` first and spread the variable.
+
+  Example:
+
+      const extras = computeExtras();
+      await adapter.updateOrder({ ...extras, x });

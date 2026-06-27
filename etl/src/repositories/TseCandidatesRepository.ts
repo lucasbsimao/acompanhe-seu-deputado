@@ -42,6 +42,13 @@ export class TseCandidatesRepository {
     return result.count;
   }
 
+  countByCargoAndYear(cargo: string, year: string): number {
+    const result = this.db
+      .prepare('SELECT COUNT(*) as count FROM tse_candidates WHERE cargo = ? AND ano_eleicao = ?')
+      .get(cargo, year) as { count: number };
+    return result.count;
+  }
+
   getAllCpfs(): Set<string> {
     const rows = this.db.prepare('SELECT cpf FROM tse_candidates').all() as { cpf: string }[];
     return new Set(rows.map(r => r.cpf));

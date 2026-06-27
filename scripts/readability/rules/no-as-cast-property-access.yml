@@ -1,0 +1,19 @@
+id: no-as-cast-property-access
+language: TypeScript
+severity: warning
+rule:
+  kind: member_expression
+  has:
+    field: object
+    kind: parenthesized_expression
+    has:
+      stopBy: end
+      kind: as_expression
+message: |
+  Don't access a property directly on a type cast: `(expr as T).prop`.
+  Extract the cast to a named const on the preceding line, then access the property.
+
+  Example:
+
+      const row = result.rows.item(i) as { version: string };
+      applied.add(row.version);

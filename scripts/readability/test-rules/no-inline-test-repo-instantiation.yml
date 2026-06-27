@@ -1,0 +1,30 @@
+id: no-inline-test-repo-instantiation
+language: TypeScript
+severity: warning
+rule:
+  kind: call_expression
+  has:
+    field: function
+    kind: member_expression
+    has:
+      field: object
+      kind: new_expression
+      has:
+        field: constructor
+        regex: '^Test\w+Repository$'
+message: |
+  Don't instantiate a test repository inline and immediately call a method on it.
+  Declare the variable at `describe` scope and initialise it in `beforeEach`.
+
+  Example:
+
+      // describe scope
+      let politicianRepo: TestPoliticianRepository;
+
+      beforeEach(() => {
+        politicianRepo = new TestPoliticianRepository(db);
+      });
+
+      it('...', () => {
+        politicianRepo.seedDeputy('CPF001');   // ✅ reusable
+      });

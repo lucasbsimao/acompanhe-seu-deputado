@@ -22,7 +22,7 @@ const CSV_HEADER =
  */
 function buildCandidateRow(opts: {
   DS_CARGO: string;
-  NM_URNA_CANDIDATO: string;
+  NM_CANDIDATO: string;
   NR_CPF_CANDIDATO: string;
   SG_UF: string;
   SG_PARTIDO: string;
@@ -30,13 +30,13 @@ function buildCandidateRow(opts: {
   ANO_ELEICAO: string;
 }): string {
   // Column positions (0-based) in the 54-column header that the pipeline reads:
-  // ANO_ELEICAO=2, SG_UF=10, DS_CARGO=14, NM_URNA_CANDIDATO=17, NR_CPF_CANDIDATO=19,
+  // ANO_ELEICAO=2, SG_UF=10, DS_CARGO=14, NM_CANDIDATO=16, NR_CPF_CANDIDATO=19,
   // SG_PARTIDO=27, DS_SIT_TOT_TURNO=53
   const cols = Array(54).fill('');
   cols[2] = opts.ANO_ELEICAO;
   cols[10] = opts.SG_UF;
   cols[14] = opts.DS_CARGO;
-  cols[17] = opts.NM_URNA_CANDIDATO;
+  cols[16] = opts.NM_CANDIDATO;
   cols[19] = opts.NR_CPF_CANDIDATO;
   cols[27] = opts.SG_PARTIDO;
   cols[53] = opts.DS_SIT_TOT_TURNO;
@@ -104,7 +104,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
-        NM_URNA_CANDIDATO: 'DEPUTADO TESTE',
+        NM_CANDIDATO: 'DEPUTADO TESTE',
         NR_CPF_CANDIDATO: deputyCpf,
         SG_UF: 'SP',
         SG_PARTIDO: 'PT',
@@ -114,7 +114,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'SENADOR',
-        NM_URNA_CANDIDATO: 'SENADOR TESTE',
+        NM_CANDIDATO: 'SENADOR TESTE',
         NR_CPF_CANDIDATO: senatorCpf,
         SG_UF: 'MG',
         SG_PARTIDO: 'MDB',
@@ -147,7 +147,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       | PoliticianRow
       | undefined;
     assert.ok(deputy, 'Deputy row should be persisted');
-    assert.strictEqual(deputy.name, 'DEPUTADO TESTE', 'Deputy name should match NM_URNA_CANDIDATO');
+    assert.strictEqual(deputy.name, 'DEPUTADO TESTE', 'Deputy name should match NM_CANDIDATO');
     assert.strictEqual(deputy.uf, 'SP', 'Deputy UF should match SG_UF');
     assert.strictEqual(deputy.role, 'DEPUTY', 'DS_CARGO DEPUTADO FEDERAL maps to DEPUTY role');
     assert.strictEqual(deputy.party_id, 'pt', 'Party ID should be normalized to lowercase');
@@ -163,11 +163,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       | PoliticianRow
       | undefined;
     assert.ok(senator, 'Senator row should be persisted');
-    assert.strictEqual(
-      senator.name,
-      'SENADOR TESTE',
-      'Senator name should match NM_URNA_CANDIDATO',
-    );
+    assert.strictEqual(senator.name, 'SENADOR TESTE', 'Senator name should match NM_CANDIDATO');
     assert.strictEqual(senator.uf, 'MG', 'Senator UF should match SG_UF');
     assert.strictEqual(senator.role, 'SENATOR', 'DS_CARGO SENADOR maps to SENATOR role');
     assert.strictEqual(senator.party_id, 'mdb', 'Party ID should be normalized to lowercase');
@@ -209,7 +205,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
-        NM_URNA_CANDIDATO: 'ELEITO CANDIDATO',
+        NM_CANDIDATO: 'ELEITO CANDIDATO',
         NR_CPF_CANDIDATO: electedCpf,
         SG_UF: 'SP',
         SG_PARTIDO: 'PL',
@@ -219,7 +215,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
-        NM_URNA_CANDIDATO: 'NAO ELEITO CANDIDATO',
+        NM_CANDIDATO: 'NAO ELEITO CANDIDATO',
         NR_CPF_CANDIDATO: nonElectedCpf,
         SG_UF: 'SP',
         SG_PARTIDO: 'PL',
@@ -249,8 +245,9 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
 
-  it('filters out non-federal cargo — only DEPUTADO FEDERAL and SENADOR are stored', async () => {
+  it('filters out non-federal cargo — DEPUTADO ESTADUAL and GOVERNADOR are excluded', async () => {
     const deputadoFederalCpf = makeCPF(5);
+    const suplenteCpf = makeCPF(40);
     const deputadoEstadualCpf = makeCPF(6);
     const governadorCpf = makeCPF(7);
 
@@ -259,17 +256,27 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
-        NM_URNA_CANDIDATO: 'DEPUTADO FEDERAL ELEITO',
+        NM_CANDIDATO: 'DEPUTADO FEDERAL ELEITO',
         NR_CPF_CANDIDATO: deputadoFederalCpf,
         SG_UF: 'BA',
         SG_PARTIDO: 'PP',
         DS_SIT_TOT_TURNO: 'ELEITO POR QP',
       }),
+      // Valid cargo — senate first alternate (2022 format)
+      buildCandidateRow({
+        ANO_ELEICAO: '2022',
+        DS_CARGO: '1º SUPLENTE',
+        NM_CANDIDATO: 'SUPLENTE SENATORIAL',
+        NR_CPF_CANDIDATO: suplenteCpf,
+        SG_UF: 'BA',
+        SG_PARTIDO: 'PP',
+        DS_SIT_TOT_TURNO: 'SUPLENTE',
+      }),
       // Invalid cargo — state deputy (should be filtered)
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO ESTADUAL',
-        NM_URNA_CANDIDATO: 'DEPUTADO ESTADUAL ELEITO',
+        NM_CANDIDATO: 'DEPUTADO ESTADUAL ELEITO',
         NR_CPF_CANDIDATO: deputadoEstadualCpf,
         SG_UF: 'BA',
         SG_PARTIDO: 'PP',
@@ -279,7 +286,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'GOVERNADOR',
-        NM_URNA_CANDIDATO: 'GOVERNADOR ELEITO',
+        NM_CANDIDATO: 'GOVERNADOR ELEITO',
         NR_CPF_CANDIDATO: governadorCpf,
         SG_UF: 'BA',
         SG_PARTIDO: 'PP',
@@ -294,13 +301,23 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
 
     const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow)
       .cnt;
-    assert.strictEqual(totalCount, 1, 'Only the federal deputy should be stored');
+    assert.strictEqual(
+      totalCount,
+      2,
+      'Federal deputy and senate alternate should be stored; state deputy and governor filtered out',
+    );
 
     const deputadoFederal = db
       .prepare('SELECT * FROM politicians WHERE cpf = ?')
       .get(deputadoFederalCpf) as PoliticianRow | undefined;
     assert.ok(deputadoFederal, 'Federal deputy should be persisted');
     assert.strictEqual(deputadoFederal.role, 'DEPUTY');
+
+    const suplente = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(suplenteCpf) as
+      | PoliticianRow
+      | undefined;
+    assert.ok(suplente, 'Senate alternate should be persisted');
+    assert.strictEqual(suplente.role, 'SENATOR');
 
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
@@ -313,7 +330,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
-        NM_URNA_CANDIDATO: 'CPF VALIDO',
+        NM_CANDIDATO: 'CPF VALIDO',
         NR_CPF_CANDIDATO: validCpf,
         SG_UF: 'GO',
         SG_PARTIDO: 'PSDB',
@@ -323,7 +340,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'SENADOR',
-        NM_URNA_CANDIDATO: 'CPF INVALIDO',
+        NM_CANDIDATO: 'CPF INVALIDO',
         NR_CPF_CANDIDATO: '00000000000',
         SG_UF: 'GO',
         SG_PARTIDO: 'PSDB',
@@ -358,7 +375,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
-        NM_URNA_CANDIDATO: 'ELEITO DIRETO',
+        NM_CANDIDATO: 'ELEITO DIRETO',
         NR_CPF_CANDIDATO: cpfEleito,
         SG_UF: 'SP',
         SG_PARTIDO: 'PT',
@@ -367,7 +384,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
-        NM_URNA_CANDIDATO: 'ELEITO POR QP',
+        NM_CANDIDATO: 'ELEITO POR QP',
         NR_CPF_CANDIDATO: cpfEleitoPorQP,
         SG_UF: 'SP',
         SG_PARTIDO: 'PT',
@@ -376,7 +393,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'SENADOR',
-        NM_URNA_CANDIDATO: 'ELEITO POR MEDIA',
+        NM_CANDIDATO: 'ELEITO POR MEDIA',
         NR_CPF_CANDIDATO: cpfEleitoPorMedia,
         SG_UF: 'RJ',
         SG_PARTIDO: 'MDB',
@@ -385,7 +402,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'SENADOR',
-        NM_URNA_CANDIDATO: 'SUPLENTE SENADOR',
+        NM_CANDIDATO: 'SUPLENTE SENADOR',
         NR_CPF_CANDIDATO: cpfSuplente,
         SG_UF: 'RJ',
         SG_PARTIDO: 'MDB',
@@ -433,6 +450,74 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
     assert.ok(nock.isDone(), 'All HTTP mocks should be called');
   });
 
+  it('stores senate alternates (1º SUPLENTE / 2º SUPLENTE) as SENATOR with SUPLENTE elected_as', async () => {
+    const cpfPrimeiro = makeCPF(50);
+    const cpfSegundo = makeCPF(51);
+    const cpfLosingAlternate = makeCPF(52);
+
+    const rows = [
+      // Winning first alternate — 2022 format
+      buildCandidateRow({
+        ANO_ELEICAO: '2022',
+        DS_CARGO: '1º SUPLENTE',
+        NM_CANDIDATO: 'PRIMEIRO SUPLENTE',
+        NR_CPF_CANDIDATO: cpfPrimeiro,
+        SG_UF: 'MA',
+        SG_PARTIDO: 'PDT',
+        DS_SIT_TOT_TURNO: 'SUPLENTE',
+      }),
+      // Winning second alternate — 2022 format
+      buildCandidateRow({
+        ANO_ELEICAO: '2022',
+        DS_CARGO: '2º SUPLENTE',
+        NM_CANDIDATO: 'SEGUNDO SUPLENTE',
+        NR_CPF_CANDIDATO: cpfSegundo,
+        SG_UF: 'MA',
+        SG_PARTIDO: 'PDT',
+        DS_SIT_TOT_TURNO: 'SUPLENTE',
+      }),
+      // Alternate from losing ticket — should be excluded
+      buildCandidateRow({
+        ANO_ELEICAO: '2022',
+        DS_CARGO: '1º SUPLENTE',
+        NM_CANDIDATO: 'SUPLENTE NAO ELEITO',
+        NR_CPF_CANDIDATO: cpfLosingAlternate,
+        SG_UF: 'MA',
+        SG_PARTIDO: 'PSDB',
+        DS_SIT_TOT_TURNO: 'NÃO ELEITO',
+      }),
+    ];
+
+    stubTSEZipDownload(buildTSEZip(rows));
+
+    const pipeline = new TSE2022ElectionResultsPipeline(db);
+    await pipeline.execute(true);
+
+    const totalCount = (db.prepare('SELECT COUNT(*) as cnt FROM politicians').get() as CountRow)
+      .cnt;
+    assert.strictEqual(totalCount, 2, 'Only winning alternates should be stored');
+
+    const primeiro = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(cpfPrimeiro) as
+      | PoliticianRow
+      | undefined;
+    assert.ok(primeiro, '1º SUPLENTE should be persisted');
+    assert.strictEqual(primeiro.role, 'SENATOR', '1º SUPLENTE maps to SENATOR role');
+    assert.strictEqual(primeiro.elected_as, 'SUPLENTE', 'elected_as should be SUPLENTE');
+    assert.strictEqual(primeiro.uf, 'MA');
+
+    const segundo = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(cpfSegundo) as
+      | PoliticianRow
+      | undefined;
+    assert.ok(segundo, '2º SUPLENTE should be persisted');
+    assert.strictEqual(segundo.role, 'SENATOR', '2º SUPLENTE maps to SENATOR role');
+    assert.strictEqual(segundo.elected_as, 'SUPLENTE');
+
+    const losing = db.prepare('SELECT * FROM politicians WHERE cpf = ?').get(cpfLosingAlternate);
+    assert.ok(!losing, 'Alternate from losing ticket should not be stored');
+
+    assert.ok(nock.isDone(), 'All HTTP mocks should be called');
+  });
+
   it('force-download bypasses the shouldDownload check and re-populates politicians', async () => {
     // Pre-seed a deputy so shouldDownload() would normally return false
     politicianRepo.seedDeputy(makeCPF(30), { name: 'Pre-existing Deputy' });
@@ -442,7 +527,7 @@ describe('TSE2022ElectionResultsPipeline Integration Tests', () => {
       buildCandidateRow({
         ANO_ELEICAO: '2022',
         DS_CARGO: 'DEPUTADO FEDERAL',
-        NM_URNA_CANDIDATO: 'NOVO DEPUTADO',
+        NM_CANDIDATO: 'NOVO DEPUTADO',
         NR_CPF_CANDIDATO: newCpf,
         SG_UF: 'SC',
         SG_PARTIDO: 'PSD',

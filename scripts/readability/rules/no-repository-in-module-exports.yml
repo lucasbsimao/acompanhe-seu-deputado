@@ -1,0 +1,35 @@
+id: no-repository-in-module-exports
+language: TypeScript
+severity: warning
+rule:
+  kind: identifier
+  regex: 'Repository$'
+  inside:
+    kind: array
+    inside:
+      kind: pair
+      has:
+        field: key
+        regex: '^exports$'
+      inside:
+        kind: object
+        inside:
+          kind: arguments
+          inside:
+            kind: call_expression
+            has:
+              field: function
+              pattern: Module
+message: |
+  Do not export a Repository from a NestJS @Module — repositories stay internal.
+
+  Cross-module callers should depend on this module's Facade; expose behaviour
+  through facade methods instead of widening the Nest DI surface.
+
+  Example:
+
+      // Avoid
+      exports: [OrdersRepository];
+
+      // Prefer
+      exports: [OrdersFacade];

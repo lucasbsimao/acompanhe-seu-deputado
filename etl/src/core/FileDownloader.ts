@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { createWriteStream, mkdirSync, existsSync } from 'fs';
+import { createWriteStream, mkdirSync, existsSync, readdirSync, rmSync } from 'fs';
 import { pipeline } from 'stream/promises';
 import { execFileSync } from 'child_process';
 import { join } from 'path';
@@ -33,5 +33,20 @@ export class FileDownloader {
 
     execFileSync('unzip', ['-o', '-q', zipPath, '-d', extractPath]);
     console.log(`Extracted to: ${extractPath}`);
+  }
+
+  cleanupDir(dir: string): void {
+    if (!existsSync(dir)) return;
+    try {
+      rmSync(dir, { recursive: true, force: true });
+    } catch (error) {
+      console.warn(`Cleanup warning for ${dir}:`, error);
+    }
+  }
+
+  listFiles(dir: string, prefix?: string): string[] {
+    const files = readdirSync(dir);
+    const filtered = prefix ? files.filter(f => f.startsWith(prefix)) : files;
+    return filtered.map(f => join(dir, f));
   }
 }
