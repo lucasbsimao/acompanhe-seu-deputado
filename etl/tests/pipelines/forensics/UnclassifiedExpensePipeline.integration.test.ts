@@ -41,6 +41,10 @@ describe('UnclassifiedExpensePipeline Integration Tests', () => {
     assert.strictEqual(flags[0].entity_id, 'EXP-1');
     assert.strictEqual(flags[0].flag_name, ForensicFlag.UNCLASSIFIED_EXPENSE);
     assert.strictEqual(flags[0].score, 35);
+    const metadata = JSON.parse(flags[0].metadata as string);
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'politicians', source_id: 'CPF001' },
+    ]);
   });
 
   it('flags senator expense when tipo_despesa is NULL', async () => {

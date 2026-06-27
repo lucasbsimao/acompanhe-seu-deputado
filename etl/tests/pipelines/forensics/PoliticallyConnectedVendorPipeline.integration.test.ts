@@ -55,8 +55,18 @@ describe('PoliticallyConnectedVendorPipeline Integration Tests', () => {
     assert.strictEqual(flags[0].score, 50);
 
     const metadata = JSON.parse(flags[0].metadata as string);
-    assert.strictEqual(metadata.partner_cpf, partnerCpf);
-    assert.strictEqual(metadata.partner_name, partnerName);
+    assert.ok(metadata.reference_data);
+    assert.strictEqual(metadata.reference_data.length, 2);
+
+    const vendorPartnerRef = metadata.reference_data.find(
+      (r: any) => r.source_table === 'vendor_partners',
+    );
+    assert.strictEqual(vendorPartnerRef.source_id, `${cnpj}:${partnerCpf}`);
+
+    const candidateRef = metadata.reference_data.find(
+      (r: any) => r.source_table === 'tse_candidates',
+    );
+    assert.strictEqual(candidateRef.source_id, `${partnerCpf}:2022`);
   });
 
   it('does not flag when partner is not in tse_candidates', async () => {

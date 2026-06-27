@@ -46,8 +46,9 @@ describe('VendorCnaeMismatchPipeline Integration Tests', () => {
     assert.strictEqual(flags[0].flag_name, ForensicFlag.VENDOR_CNAE_MISMATCH);
     assert.strictEqual(flags[0].score, 25);
     const metadata = JSON.parse(flags[0].metadata!);
-    assert.strictEqual(metadata.primary_cnae, '0151200');
-    assert.strictEqual(metadata.tipo_despesa, 'MANUTENCAO DE ESCRITORIO');
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('flags div 10 food manufacturing vendor with LOCACAO OU FRETAMENTO DE VEICULOS', async () => {

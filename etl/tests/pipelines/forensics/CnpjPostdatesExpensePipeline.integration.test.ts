@@ -46,7 +46,10 @@ describe('CnpjPostdatesExpensePipeline Integration Tests', () => {
     assert.strictEqual(flags[0].flag_name, ForensicFlag.CNPJ_POSTDATES_EXPENSE);
     assert.strictEqual(flags[0].score, 50);
     assert.strictEqual(flags[0].source_table, 'expenses');
-    assert.strictEqual(flags[0].metadata, null);
+    const metadata = JSON.parse(flags[0].metadata as string);
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('does not flag when opening_date equals data_documento', async () => {

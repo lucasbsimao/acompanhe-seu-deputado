@@ -48,6 +48,9 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     const metadata = JSON.parse(flags[0].metadata!);
     assert.strictEqual(metadata.gap_days, 0);
     assert.strictEqual(metadata.range, '0-7');
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('flags 7-day boundary with score 50 and range 0-7', async () => {
@@ -69,6 +72,9 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     const metadata = JSON.parse(flags[0].metadata!);
     assert.strictEqual(metadata.gap_days, 7);
     assert.strictEqual(metadata.range, '0-7');
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('flags 8-day boundary with score 25 and range 8-30', async () => {
@@ -90,6 +96,9 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     const metadata = JSON.parse(flags[0].metadata!);
     assert.strictEqual(metadata.gap_days, 8);
     assert.strictEqual(metadata.range, '8-30');
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('flags 30-day boundary with score 25 and range 8-30', async () => {
@@ -111,6 +120,9 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     const metadata = JSON.parse(flags[0].metadata!);
     assert.strictEqual(metadata.gap_days, 30);
     assert.strictEqual(metadata.range, '8-30');
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('flags 31-day boundary with score 25 and range 31-90', async () => {
@@ -132,6 +144,9 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     const metadata = JSON.parse(flags[0].metadata!);
     assert.strictEqual(metadata.gap_days, 31);
     assert.strictEqual(metadata.range, '31-90');
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('flags 89-day boundary with score 25 and range 31-90', async () => {
@@ -153,6 +168,9 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     const metadata = JSON.parse(flags[0].metadata!);
     assert.strictEqual(metadata.gap_days, 89);
     assert.strictEqual(metadata.range, '31-90');
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('does not flag when gap is exactly 90 days', async () => {
@@ -251,6 +269,9 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     const metadata2 = JSON.parse(flags[1].metadata!);
     assert.strictEqual(metadata1.gap_days, 14);
     assert.strictEqual(metadata2.gap_days, 14);
+    assert.deepStrictEqual(metadata1.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('uses cross-deputy MIN expense date for gap calculation', async () => {
@@ -279,7 +300,12 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     assert.ok(
       flags.every(f => {
         const meta = JSON.parse(f.metadata!);
-        return meta.gap_days === 4 && meta.range === '0-7';
+        return (
+          meta.gap_days === 4 &&
+          meta.range === '0-7' &&
+          meta.reference_data[0].source_table === 'vendors' &&
+          meta.reference_data[0].source_id === '11222333000181'
+        );
       }),
     );
   });
@@ -304,5 +330,8 @@ describe('FreshlyRegisteredVendorPipeline Integration Tests', () => {
     const metadata = JSON.parse(flags[0].metadata!);
     assert.strictEqual(metadata.gap_days, 3);
     assert.strictEqual(metadata.range, '0-7');
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 });
