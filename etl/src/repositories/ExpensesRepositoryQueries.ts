@@ -20,6 +20,14 @@ export const HAS_EXPENSES_FOR_SENATOR_YEAR_SQL = `
 export const COUNT_BY_POLITICIAN_SQL =
   'SELECT COUNT(*) as count FROM expenses WHERE politician_id = ?';
 
+export const COUNT_UNCLASSIFIED_SENATOR_EXPENSES_SQL = `
+  SELECT COUNT(*) AS count
+  FROM expenses e
+  JOIN politicians p ON e.politician_id = p.cpf
+  WHERE p.role = ?
+    AND (e.tipo_despesa IS NULL OR e.tipo_despesa = '')
+`;
+
 export const GET_NULL_URL_WORK_QUEUE_SQL = `
   SELECT DISTINCT
     p.source_api_id AS cod_senador,
@@ -30,6 +38,7 @@ export const GET_NULL_URL_WORK_QUEUE_SQL = `
   WHERE e.url_documento IS NULL
     AND p.role = ?
     AND p.source_api_id IS NOT NULL
+    AND e.tipo_despesa != ''
 `;
 
 export const GET_ALL_URL_WORK_QUEUE_SQL = `
@@ -41,6 +50,7 @@ export const GET_ALL_URL_WORK_QUEUE_SQL = `
   JOIN politicians p ON e.politician_id = p.cpf
   WHERE p.role = ?
     AND p.source_api_id IS NOT NULL
+    AND e.tipo_despesa != ''
 `;
 
 export const FIND_BY_COMPOSITE_KEY_SQL = `

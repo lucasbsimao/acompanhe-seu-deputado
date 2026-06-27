@@ -5,6 +5,7 @@ import { CodTipoDocumento } from '../types/CodTipoDocumento';
 import { PoliticianRole } from '../types/PoliticianRole';
 import {
   COUNT_BY_POLITICIAN_SQL,
+  COUNT_UNCLASSIFIED_SENATOR_EXPENSES_SQL,
   FIND_BY_COMPOSITE_KEY_SQL,
   GET_ALL_URL_WORK_QUEUE_SQL,
   GET_DISTINCT_CNPJS_SQL,
@@ -49,6 +50,7 @@ export class ExpensesRepository {
   private readonly getAllUrlWorkQueueStmt: Database.Statement;
   private readonly findByCompositeKeyStmt: Database.Statement;
   private readonly updateUrlStmt: Database.Statement;
+  private readonly countUnclassifiedSenatorExpensesStmt: Database.Statement;
 
   constructor(db: Database.Database) {
     this.db = db;
@@ -60,6 +62,7 @@ export class ExpensesRepository {
     this.getAllUrlWorkQueueStmt = db.prepare(GET_ALL_URL_WORK_QUEUE_SQL);
     this.findByCompositeKeyStmt = db.prepare(FIND_BY_COMPOSITE_KEY_SQL);
     this.updateUrlStmt = db.prepare(UPDATE_URL_SQL);
+    this.countUnclassifiedSenatorExpensesStmt = db.prepare(COUNT_UNCLASSIFIED_SENATOR_EXPENSES_SQL);
     this.insertAll = db.transaction((rows: ExpenseRow[]) => {
       for (const r of rows) {
         this.insertExpense.run(
@@ -106,6 +109,13 @@ export class ExpensesRepository {
       cnpj_cpf_fornecedor: string;
     }>;
     return rows.map(r => r.cnpj_cpf_fornecedor);
+  }
+
+  countUnclassifiedSenatorExpenses(): number {
+    const row = this.countUnclassifiedSenatorExpensesStmt.get(PoliticianRole.SENATOR) as {
+      count: number;
+    };
+    return row.count;
   }
 
   /**

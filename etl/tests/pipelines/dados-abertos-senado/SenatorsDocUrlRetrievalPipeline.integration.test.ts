@@ -285,6 +285,40 @@ describe('SenatorsDocUrlRetrievalPipeline', () => {
     assert.strictEqual(row.url_documento, null);
   });
 
+  it('skips expense with empty tipoDespesa without throwing', async () => {
+    const db = getDb().db;
+    const polRepo = new TestPoliticianRepository(db);
+    const expRepo = new TestExpensesRepository(db);
+
+    const cpf = '12345678901';
+    const codSenador = '500';
+    polRepo.seedBatch([
+      { cpf, sourceApiId: codSenador, name: 'Senator Test', role: PoliticianRole.SENATOR },
+    ]);
+
+    expRepo.seedBatch([
+      {
+        id: 'EXP_EMPTY_TIPO',
+        politicianId: cpf,
+        tipoDespesa: '',
+        cnpj: '12345678000100',
+        dataDocumento: '2023-05-15',
+        valorLiquido: 5000,
+      },
+    ]);
+
+    // No nock interceptor registered — any HTTP call would throw, proving the pipeline skips
+    const pipeline = new SenatorsDocUrlRetrievalPipeline(db);
+    await pipeline.execute();
+
+    const row = db
+      .prepare('SELECT url_documento FROM expenses WHERE id = ?')
+      .get('EXP_EMPTY_TIPO') as {
+      url_documento: string | null;
+    };
+    assert.strictEqual(row.url_documento, null);
+  });
+
   it('processes multiple senators and categories in the same run', async () => {
     const db = getDb().db;
     const polRepo = new TestPoliticianRepository(db);

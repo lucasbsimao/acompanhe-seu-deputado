@@ -11,6 +11,24 @@ import { mapToCeapsPortalCategory } from '../../mappers/CeapsPortalCategory.mapp
 import { normalizeNumericText } from '../../util/normalization.util';
 import defaultConfig from '../../config/defaults.json';
 
+/**
+ * Enriches senator CEAPS expenses with document URLs scraped from the Senate transparency portal.
+ *
+ * Source: `www6g.senado.leg.br/transparencia/sen/<codSenador>/ceaps/<categoryId>/detalhe/`
+ * Depends on: {@link SenatorsExpensesPipeline} (expenses must exist before URLs can be attached).
+ *
+ * Key behaviour:
+ * - Groups expenses by senator and processes each senator's work sequentially within a
+ *   parallel batch of up to 20 senators, to respect portal rate limits.
+ * - Each portal page covers one (senator, CEAPS category, month/year) tuple. Rows are
+ *   matched to DB records by the composite key (CPF, CNPJ, date, amount in cents).
+ * - `tipoDespesa` is required to resolve the portal category ID. Expenses where the
+ *   Senate open-data API returned `null` for this field are stored with an empty string
+ *   and silently skipped: empirical testing confirmed that these records (all `Recibo`
+ *   type, no document number) do not appear on the portal under any CEAPS category and
+ *   therefore cannot be enriched. The count of skipped expenses is logged as a warning
+ *   at the start of each run.
+ */
 export class SenatorsDocUrlRetrievalPipeline {
   static readonly dependencies: readonly IPipelineDepChain[] = [SenatorsExpensesPipeline];
 
@@ -36,6 +54,13 @@ export class SenatorsDocUrlRetrievalPipeline {
     if (workQueue.length === 0) {
       console.log('[CeapsDocumentUrlPipeline] No expenses found for enrichment.');
       return;
+    }
+
+    const unclassifiedCount = this.expensesRepo.countUnclassifiedSenatorExpenses();
+    if (unclassifiedCount > 0) {
+      console.warn(
+        `[CeapsDocumentUrlPipeline] Skipping ${unclassifiedCount} senator expense(s) with no tipoDespesa — the Senate open-data API returned null for these records and the transparency portal does not expose them under any CEAPS category.`,
+      );
     }
 
     console.log(
@@ -78,7 +103,7 @@ export class SenatorsDocUrlRetrievalPipeline {
     const categoryId = mapToCeapsPortalCategory(tipoDespesa);
 
     if (categoryId === null) {
-      throw new Error(`[CeapsDocumentUrlPipeline] Unmapped tipoDespesa: "${tipoDespesa}"`);
+      return;
     }
 
     const senatorCpf = senatorCodeToCpfMap.get(codSenador);
