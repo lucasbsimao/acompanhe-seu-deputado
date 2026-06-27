@@ -17,6 +17,7 @@ import {
   VENDOR_NO_EMPLOYEES_SQL,
   POLITICALLY_CONNECTED_VENDOR_SQL,
   COMPETENCY_DATE_MISMATCH_SQL,
+  UNCLASSIFIED_EXPENSE_SQL,
 } from '../../src/repositories/ForensicFlagsQueries';
 
 const BUDGET_MS = 1500;
@@ -107,7 +108,7 @@ describe('ForensicFlagsRepository — query plan', () => {
       function assertNoUnindexedJoinScan(plan: PlanRow[], label: string): void {
         const badScans = plan.filter(
           row =>
-            /SCAN (vendors|vendor_partners|tse_candidates)\b/.test(row.detail) &&
+            /SCAN (vendors|vendor_partners|tse_candidates|politicians)\b/.test(row.detail) &&
             !/USING/.test(row.detail),
         );
         assert.deepStrictEqual(
@@ -147,6 +148,7 @@ describe('ForensicFlagsRepository — query plan', () => {
         explainPlan(COMPETENCY_DATE_MISMATCH_SQL),
         'insertCompetencyDateMismatch',
       );
+      assertNoUnindexedJoinScan(explainPlan(UNCLASSIFIED_EXPENSE_SQL), 'insertUnclassifiedExpense');
     });
   });
 
@@ -211,6 +213,10 @@ describe('ForensicFlagsRepository — query plan', () => {
         [
           'insertCompetencyDateMismatch',
           () => repo.insertCompetencyDateMismatch(ForensicFlag.COMPETENCY_DATE_MISMATCH),
+        ],
+        [
+          'insertUnclassifiedExpense',
+          () => repo.insertUnclassifiedExpense(ForensicFlag.UNCLASSIFIED_EXPENSE),
         ],
       ];
 

@@ -14,7 +14,9 @@ import {
   VENDOR_NO_EMPLOYEES_SQL,
   POLITICALLY_CONNECTED_VENDOR_SQL,
   COMPETENCY_DATE_MISMATCH_SQL,
+  UNCLASSIFIED_EXPENSE_SQL,
 } from './ForensicFlagsQueries';
+import { PoliticianRole } from '../types/PoliticianRole';
 
 export class ForensicFlagsRepository {
   private readonly db: Database.Database;
@@ -76,5 +78,10 @@ export class ForensicFlagsRepository {
   insertCompetencyDateMismatch(flagName: ForensicFlag): void {
     const score = FORENSIC_FLAG_SCORES[flagName];
     this.db.prepare(COMPETENCY_DATE_MISMATCH_SQL).run(flagName, score);
+  }
+
+  insertUnclassifiedExpense(flagName: ForensicFlag): void {
+    const score = FORENSIC_FLAG_SCORES[flagName];
+    this.db.prepare(UNCLASSIFIED_EXPENSE_SQL).run(flagName, score, PoliticianRole.SENATOR);
   }
 }

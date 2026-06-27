@@ -11,12 +11,31 @@ import { mapToCeapsPortalCategory } from '../../mappers/CeapsPortalCategory.mapp
 import { normalizeNumericText } from '../../util/normalization.util';
 import defaultConfig from '../../config/defaults.json';
 
+/**
+ * Enriches senator CEAPS expenses with document URLs scraped from the Senate transparency portal.
+ *
+ * Source: `www6g.senado.leg.br/transparencia/sen/<codSenador>/ceaps/<categoryId>/detalhe/`
+ * Depends on: {@link SenatorsExpensesPipeline} (expenses must exist before URLs can be attached).
+ *
+ * Key behaviour:
+ * - Groups expenses by senator and processes each senator's work sequentially within a
+ *   parallel batch of up to 20 senators, to respect portal rate limits.
+ * - Each portal page covers one (senator, CEAPS category, month/year) tuple. Rows are
+ *   matched to DB records by the composite key (CPF, CNPJ, date, amount in cents).
+ * - `tipoDespesa` is required to resolve the portal category ID. Expenses where the
+ *   Senate open-data API returned `null` for this field are stored with an empty string
+ *   and silently skipped: empirical testing confirmed that these records (all `Recibo`
+ *   type, no document number) do not appear on the portal under any CEAPS category and
+ *   therefore cannot be enriched. The count of skipped expenses is logged as a warning
+ *   at the start of each run.
+ */
 export class SenatorsDocUrlRetrievalPipeline {
   static readonly dependencies: readonly IPipelineDepChain[] = [SenatorsExpensesPipeline];
 
   private readonly politicianRepo: PoliticianRepository;
   private readonly expensesRepo: ExpensesRepository;
   private readonly httpClient: HttpClient;
+  private lastUpdateLog = '';
 
   constructor(db: Database.Database) {
     this.politicianRepo = new PoliticianRepository(db);
@@ -38,10 +57,13 @@ export class SenatorsDocUrlRetrievalPipeline {
       return;
     }
 
-    console.log(
-      `[CeapsDocumentUrlPipeline] Starting enrichment for ${workQueue.length} (senator, category, month/year) groups...`,
-    );
-
+    const unclassifiedCount = this.expensesRepo.countUnclassifiedSenatorExpenses();
+    if (unclassifiedCount > 0) {
+      console.warn(
+        `[CeapsDocumentUrlPipeline] Skipping ${unclassifiedCount} senator expense(s) with no tipoDespesa — the Senate open-data API returned null for these records and the transparency portal does not expose them under any CEAPS category.`,
+      );
+    }
+    const totalGroups = workQueue.length;
     const senatorCodeToCpfMap = this.politicianRepo.getSenatorCodeToCpfMap();
 
     // Group work by senator to ensure sequential processing within a senator's lane
@@ -53,7 +75,17 @@ export class SenatorsDocUrlRetrievalPipeline {
     }
 
     const senatorCodes = Array.from(workBySenator.keys());
+    const totalSenators = senatorCodes.length;
     const maxParallelism = 20;
+
+    let processedGroups = 0;
+    this.lastUpdateLog = '';
+
+    this.renderProgress({
+      totalSenators,
+      totalGroups,
+      processedGroups,
+    });
 
     for (let i = 0; i < senatorCodes.length; i += maxParallelism) {
       const batch = senatorCodes.slice(i, i + maxParallelism);
@@ -61,7 +93,23 @@ export class SenatorsDocUrlRetrievalPipeline {
         batch.map(async codSenador => {
           const items = workBySenator.get(codSenador)!;
           for (const item of items) {
-            await this.fetchAndEnrichPage(item, senatorCodeToCpfMap);
+            const matchCount = await this.fetchAndEnrichPage(item, senatorCodeToCpfMap);
+            processedGroups++;
+
+            let msg = '';
+            if (matchCount > 0) {
+              const categoryId = mapToCeapsPortalCategory(item.tipo_despesa);
+              msg = `Updated ${matchCount} URLs for Senator ${codSenador}, Category ${categoryId}, Period ${item.mes_ano}`;
+            }
+
+            if (processedGroups % 10 === 0 || processedGroups === totalGroups || msg) {
+              this.renderProgress({
+                totalSenators,
+                totalGroups,
+                processedGroups,
+                msg,
+              });
+            }
           }
         }),
       );
@@ -73,18 +121,18 @@ export class SenatorsDocUrlRetrievalPipeline {
   private async fetchAndEnrichPage(
     item: CeapsWorkQueueItem,
     senatorCodeToCpfMap: Map<string, string>,
-  ): Promise<void> {
+  ): Promise<number> {
     const { cod_senador: codSenador, tipo_despesa: tipoDespesa, mes_ano: mesAno } = item;
     const categoryId = mapToCeapsPortalCategory(tipoDespesa);
 
     if (categoryId === null) {
-      throw new Error(`[CeapsDocumentUrlPipeline] Unmapped tipoDespesa: "${tipoDespesa}"`);
+      return 0;
     }
 
     const senatorCpf = senatorCodeToCpfMap.get(codSenador);
     if (!senatorCpf) {
       console.warn(`[CeapsDocumentUrlPipeline] Unknown senator code ${codSenador} in work queue.`);
-      return;
+      return 0;
     }
 
     const url = `https://www6g.senado.leg.br/transparencia/sen/${codSenador}/ceaps/${categoryId}/detalhe/?mesAno=${encodeURIComponent(
@@ -107,20 +155,20 @@ export class SenatorsDocUrlRetrievalPipeline {
       let matchCount = 0;
       for (const row of rows) {
         const cols = row.querySelectorAll('td');
-        if (cols.length < 5) continue;
+        if (cols.length < 6) continue;
 
-        // Extracting data from columns (1-indexed based on plan: 1, 4, 5)
+        // Portal column layout: CNPJ | Vendor | Description | Date | Document | Amount | Search
         const portalCnpj = normalizeNumericText(cols[0].text.trim());
         const portalDateText = cols[3].text.trim(); // Expecting DD/MM/YYYY
-        const portalValorText = cols[4].text.trim(); // Expecting something like "1.234,56"
+        const portalValorText = cols[5].text.trim(); // Expecting "R$ 1.234,56"
 
         // Convert date DD/MM/YYYY to YYYY-MM-DD
         const [day, month, year] = portalDateText.split('/');
         const isoDate = `${year}-${month}-${day}`;
 
-        // Convert valor text to cents
+        // Convert valor text to cents — strip currency symbol/spaces before parsing
         const valorCents = Math.round(
-          parseFloat(portalValorText.replace(/\./g, '').replace(',', '.')) * 100,
+          parseFloat(portalValorText.replace(/[^\d,]/g, '').replace(',', '.')) * 100,
         );
 
         // Find document URL
@@ -146,16 +194,38 @@ export class SenatorsDocUrlRetrievalPipeline {
         }
       }
 
-      if (matchCount > 0) {
-        console.log(
-          `[CeapsDocumentUrlPipeline] Updated ${matchCount} URLs for Senator ${codSenador}, Category ${categoryId}, Period ${mesAno}`,
-        );
-      }
+      return matchCount;
     } catch (error) {
       console.error(
         `[CeapsDocumentUrlPipeline] Error fetching page for Senator ${codSenador}, Category ${categoryId}, Period ${mesAno}:`,
         error,
       );
+      return 0;
+    }
+  }
+
+  private renderProgress(params: {
+    totalSenators: number;
+    totalGroups: number;
+    processedGroups: number;
+    msg?: string;
+  }): void {
+    const { totalSenators, totalGroups, processedGroups, msg } = params;
+    if (msg) this.lastUpdateLog = msg;
+
+    process.stdout.write('\x1B[2J\x1B[H');
+
+    process.stdout.write(
+      `[CeapsDocumentUrlPipeline] Found ${totalSenators} senators to process (${totalGroups} groups total)\n`,
+    );
+
+    const progress = ((processedGroups / totalGroups) * 100).toFixed(1);
+    process.stdout.write(
+      `[CeapsDocumentUrlPipeline] Progress: ${processedGroups}/${totalGroups} groups (${progress}%)\n`,
+    );
+
+    if (this.lastUpdateLog) {
+      process.stdout.write(`\n[Latest activity]: ${this.lastUpdateLog}\n`);
     }
   }
 }
