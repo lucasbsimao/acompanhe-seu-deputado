@@ -5,6 +5,7 @@ import type { PipelineInfo, IPipelineClass } from '../types/Pipeline';
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { PipelineRunsRepository } from '../repositories/PipelineRunsRepository';
+import { logger } from '../util/logger';
 
 export class PipelineOrchestrator {
   private readonly pipelineRunsRepo: PipelineRunsRepository;
@@ -17,17 +18,20 @@ export class PipelineOrchestrator {
     const PipelineClass = await this.loadPipelineClass(importPath);
     const className = importPath.split('/').at(-1) ?? importPath;
     const pipeline = new PipelineClass(this.db);
+    const pipelineLogger = logger.child({ pipeline: className });
+    pipelineLogger.info('pipeline started');
+    const start = Date.now();
     await pipeline.execute(forceDownload);
+    pipelineLogger.info({ durationMs: Date.now() - start }, 'pipeline completed');
     this.pipelineRunsRepo.recordRun(className, 0);
   }
 
   async executeAll(pipelines: PipelineInfo[], forceDownload: boolean): Promise<void> {
     const sorted = PipelineOrchestrator.resolveExecutionOrder(pipelines);
     for (const pipeline of sorted) {
-      console.log(`Executing ${pipeline.displayName}...`);
       await this.executeOne(pipeline.importPath, forceDownload);
     }
-    console.log('All pipelines completed successfully');
+    logger.info('all pipelines completed');
   }
 
   async executeSelected(
@@ -42,12 +46,9 @@ export class PipelineOrchestrator {
     const sorted = PipelineOrchestrator.resolveExecutionOrder(subset);
     for (const pipeline of sorted) {
       if (pipeline.className === selected.className) continue;
-      console.log(`Executing dependency ${pipeline.displayName}...`);
       await this.executeOne(pipeline.importPath, false);
     }
-    console.log(`Executing ${selected.displayName}...`);
     await this.executeOne(selected.importPath, forceDownload);
-    console.log(`${selected.displayName} completed successfully`);
   }
 
   async discoverPipelines(): Promise<PipelineInfo[]> {
