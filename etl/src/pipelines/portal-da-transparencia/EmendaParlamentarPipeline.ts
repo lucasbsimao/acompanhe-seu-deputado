@@ -128,16 +128,14 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
         this.currentType = types[tipoIndex];
         combinationIndex++;
 
-        process.stdout.write('\x1B[2J\x1B[H');
-        process.stdout.write(
-          `Processing ${combinationIndex}/${totalCombinations}: Year ${this.currentYear}, Type: ${this.currentType}\n`,
+        console.log(
+          `Processing ${combinationIndex}/${totalCombinations}: Year ${this.currentYear}, Type: ${this.currentType}`,
         );
 
         await super.execute(forceDownload);
       }
     }
 
-    process.stdout.write('\x1B[2J\x1B[H');
     console.log(
       `All ${totalCombinations} combinations (${totalYears} years × ${totalTypes} types) processed successfully`,
     );

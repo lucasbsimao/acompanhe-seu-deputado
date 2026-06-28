@@ -57,7 +57,7 @@ export class DatabaseManager {
         continue;
       }
 
-      console.log(`Applying migration: ${version}`);
+      console.log('Applying migration: %s', version);
       this.db.exec(sql);
       this.db.prepare('INSERT INTO schema_migrations (version) VALUES (?)').run(version);
     }
@@ -79,11 +79,13 @@ export class DatabaseManager {
     const dbFileName = basename(this.dbPath);
 
     mkdirSync(ANDROID_ASSETS, { recursive: true });
-    copyFileSync(this.dbPath, join(ANDROID_ASSETS, dbFileName));
-    console.log(`Copied to Android assets: ${join(ANDROID_ASSETS, dbFileName)}`);
+    const androidPath = join(ANDROID_ASSETS, dbFileName);
+    copyFileSync(this.dbPath, androidPath);
+    console.log('Copied to Android assets: %s', androidPath);
 
-    copyFileSync(this.dbPath, join(IOS_BUNDLE, dbFileName));
-    console.log(`Copied to iOS bundle: ${join(IOS_BUNDLE, dbFileName)}`);
+    const iosPath = join(IOS_BUNDLE, dbFileName);
+    copyFileSync(this.dbPath, iosPath);
+    console.log('Copied to iOS bundle: %s', iosPath);
     console.log('Note: ensure seed.db is added as a bundle resource in Xcode.');
   }
 
@@ -92,7 +94,7 @@ export class DatabaseManager {
       try {
         this.db.pragma('wal_checkpoint(TRUNCATE)');
       } catch (error) {
-        console.error('Error during WAL checkpoint:', error);
+        console.error('Error during WAL checkpoint: %o', error);
       }
       this.db.close();
       this.db = null;

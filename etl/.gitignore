@@ -4,3 +4,4 @@ seed.db-wal
 seed.db-shm
 seed.db*
 :memory:
+logs/

@@ -48,8 +48,9 @@ describe('VendorNoEmployeesPipeline Integration Tests', () => {
     assert.strictEqual(flags[0].flag_name, ForensicFlag.VENDOR_NO_EMPLOYEES);
     assert.strictEqual(flags[0].score, 10);
     const metadata = JSON.parse(flags[0].metadata!);
-    assert.strictEqual(metadata.company_size, CompanySize.MICRO_EMPRESA);
-    assert.strictEqual(metadata.employee_count, null);
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('flags 10pt proxy for company_size=01 with SERVICO DE SEGURANCA', async () => {
@@ -106,7 +107,9 @@ describe('VendorNoEmployeesPipeline Integration Tests', () => {
     assert.strictEqual(flags.length, 1);
     assert.strictEqual(flags[0].score, 20);
     const metadata = JSON.parse(flags[0].metadata!);
-    assert.strictEqual(metadata.employee_count, 0);
+    assert.deepStrictEqual(metadata.reference_data, [
+      { source_table: 'vendors', source_id: '11222333000181' },
+    ]);
   });
 
   it('does not flag if employee_count > 0', async () => {

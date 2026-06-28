@@ -45,11 +45,7 @@ describe('CompetencyDateMismatchPipeline Integration Tests', () => {
     assert.strictEqual(flags[0].entity_id, 'EXP-1');
     assert.strictEqual(flags[0].flag_name, ForensicFlag.COMPETENCY_DATE_MISMATCH);
     assert.strictEqual(flags[0].score, 20);
-
-    const metadata = JSON.parse(flags[0].metadata!);
-    assert.strictEqual(metadata.competency_year, 2024);
-    assert.strictEqual(metadata.competency_month, 4);
-    assert.strictEqual(metadata.data_documento, '2024-01-01');
+    assert.strictEqual(flags[0].metadata, null);
   });
 
   it('does not flag when document date is exactly 90 days before competency period', async () => {

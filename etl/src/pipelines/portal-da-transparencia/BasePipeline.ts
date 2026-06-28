@@ -59,7 +59,7 @@ export abstract class BasePipeline<T> {
       if (items.length === 0) {
         hasMore = false;
       } else {
-        process.stdout.write('. ');
+        console.log(`Fetched page ${page} (${items.length} items)`);
         await this.onPageFetched(items);
         page++;
       }

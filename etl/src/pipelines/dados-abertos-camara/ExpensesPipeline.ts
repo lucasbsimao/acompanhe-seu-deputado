@@ -144,14 +144,12 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
       this.currentApiId = deputy.apiId;
       this.currentCpf = deputy.cpf;
 
-      process.stdout.write('\x1B[2J\x1B[H');
-      process.stdout.write(`Found ${total} deputies to process\n`);
-      process.stdout.write(`Processing deputy ${deputyIndex + 1}/${total}: ${this.currentApiId}\n`);
+      console.log(`Found ${total} deputies to process`);
+      console.log(`Processing deputy ${deputyIndex + 1}/${total}: ${this.currentApiId}`);
 
       await super.execute(forceDownload);
     }
 
-    process.stdout.write('\x1B[2J\x1B[H');
     console.log(`All ${total} deputies processed successfully`);
     if (skippedNoApiId > 0) {
       console.log(

@@ -25,7 +25,11 @@ export const CNPJ_POSTDATES_EXPENSE_SQL = `INSERT OR REPLACE INTO forensic_flags
            e.id AS entity_id,
            ? AS flag_name,
            ? AS score,
-           NULL AS metadata
+           json_object(
+             'reference_data', json_array(
+               json_object('source_table', 'vendors', 'source_id', v.cnpj)
+             )
+           ) AS metadata
          FROM expenses e
          JOIN vendors v ON e.cnpj_cpf_fornecedor = v.cnpj
          WHERE length(e.cnpj_cpf_fornecedor) = 14
@@ -38,7 +42,11 @@ export const CNPJ_INACTIVE_AT_EXPENSE_SQL = `INSERT OR REPLACE INTO forensic_fla
            e.id AS entity_id,
            ? AS flag_name,
            ? AS score,
-           NULL AS metadata
+           json_object(
+             'reference_data', json_array(
+               json_object('source_table', 'vendors', 'source_id', v.cnpj)
+             )
+           ) AS metadata
          FROM expenses e
          JOIN vendors v ON e.cnpj_cpf_fornecedor = v.cnpj
          WHERE length(e.cnpj_cpf_fornecedor) = 14
@@ -71,7 +79,11 @@ export const VENDOR_CNAE_MISMATCH_SQL = `INSERT OR REPLACE INTO forensic_flags (
            e.id AS entity_id,
            ? AS flag_name,
            ? AS score,
-           json_object('primary_cnae', v.primary_cnae, 'tipo_despesa', e.tipo_despesa) AS metadata
+           json_object(
+             'reference_data', json_array(
+               json_object('source_table', 'vendors', 'source_id', v.cnpj)
+             )
+           ) AS metadata
          FROM expenses e
          JOIN vendors v ON e.cnpj_cpf_fornecedor = v.cnpj
          WHERE length(e.cnpj_cpf_fornecedor) = 14
@@ -111,7 +123,10 @@ export const FRESHLY_REGISTERED_VENDOR_SQL = `WITH vendor_first_expense AS (
                WHEN f.gap_days <= 7  THEN '0-7'
                WHEN f.gap_days <= 30 THEN '8-30'
                ELSE '31-90'
-             END
+             END,
+             'reference_data', json_array(
+               json_object('source_table', 'vendors', 'source_id', f.cnpj)
+             )
            ) AS metadata
          FROM expenses e
          JOIN flagged f ON e.cnpj_cpf_fornecedor = f.cnpj
@@ -127,9 +142,9 @@ export const VENDOR_NO_EMPLOYEES_SQL = `INSERT OR REPLACE INTO forensic_flags (s
              ELSE 10
            END AS score,
            json_object(
-             'employee_count', v.employee_count,
-             'company_size', v.company_size,
-             'tipo_despesa', e.tipo_despesa
+             'reference_data', json_array(
+               json_object('source_table', 'vendors', 'source_id', v.cnpj)
+             )
            ) AS metadata
          FROM expenses e
          JOIN vendors v ON e.cnpj_cpf_fornecedor = v.cnpj
@@ -146,12 +161,15 @@ export const POLITICALLY_CONNECTED_VENDOR_SQL = `INSERT OR REPLACE INTO forensic
            e.id AS entity_id,
            ? AS flag_name,
            ? AS score,
-           json_object('partner_cpf', vp.partner_cpf_cnpj, 'partner_name', vp.partner_name) AS metadata
+           json_object(
+             'reference_data', json_array(
+               json_object('source_table', 'vendor_partners', 'source_id', vp.cnpj || ':' || vp.partner_cpf_cnpj),
+               json_object('source_table', 'tse_candidates', 'source_id', tc.cpf || ':' || tc.ano_eleicao)
+             )
+           ) AS metadata
          FROM expenses e
          JOIN vendor_partners vp ON vp.cnpj = e.cnpj_cpf_fornecedor
-         WHERE EXISTS (
-           SELECT 1 FROM tse_candidates tc WHERE tc.cpf = vp.partner_cpf_cnpj
-         )`;
+         JOIN tse_candidates tc ON tc.cpf = vp.partner_cpf_cnpj`;
 
 export const COMPETENCY_DATE_MISMATCH_SQL = `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
          SELECT
@@ -159,7 +177,7 @@ export const COMPETENCY_DATE_MISMATCH_SQL = `INSERT OR REPLACE INTO forensic_fla
            e.id AS entity_id,
            ? AS flag_name,
            ? AS score,
-           json_object('competency_year', e.competency_year, 'competency_month', e.competency_month, 'data_documento', e.data_documento) AS metadata
+           NULL AS metadata
          FROM expenses e
          WHERE e.competency_year IS NOT NULL
            AND e.competency_month IS NOT NULL
@@ -171,7 +189,11 @@ export const UNCLASSIFIED_EXPENSE_SQL = `INSERT OR REPLACE INTO forensic_flags (
            e.id AS entity_id,
            ? AS flag_name,
            ? AS score,
-           NULL AS metadata
+           json_object(
+             'reference_data', json_array(
+               json_object('source_table', 'politicians', 'source_id', p.cpf)
+             )
+           ) AS metadata
          FROM expenses e
          JOIN politicians p ON e.politician_id = p.cpf
          WHERE p.role = ?

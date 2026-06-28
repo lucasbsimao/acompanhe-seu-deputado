@@ -53,6 +53,7 @@ describe('CrossPoliticianInvoiceReusePipeline Integration Tests', () => {
     assert.strictEqual(flags[0].source_table, 'expenses');
     assert.strictEqual(flags[0].score, 50);
     assert.strictEqual(flags[0].metadata, null);
+    assert.strictEqual(flags[1].metadata, null);
   });
 
   it('flags all 3 expenses when same invoice is shared by 3 distinct politicians', async () => {
