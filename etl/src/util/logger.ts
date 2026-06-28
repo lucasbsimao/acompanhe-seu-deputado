@@ -18,9 +18,8 @@ const transport = pino.transport({
       },
     },
     {
-      target: 'pino-pretty',
+      target: 'pino/file',
       options: {
-        colorize: false,
         destination: logFilePath,
         mkdir: true,
       },

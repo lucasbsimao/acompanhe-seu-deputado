@@ -16,6 +16,7 @@ import {
   COMPETENCY_DATE_MISMATCH_SQL,
   UNCLASSIFIED_EXPENSE_SQL,
   CAMPAIGN_DONOR_VENDOR_SQL,
+  SINGLE_CLIENT_VENDOR_SQL,
 } from './ForensicFlagsQueries';
 import { PoliticianRole } from '../types/PoliticianRole';
 
@@ -89,5 +90,10 @@ export class ForensicFlagsRepository {
   insertCampaignDonorVendor(flagName: ForensicFlag): void {
     const score = FORENSIC_FLAG_SCORES[flagName];
     this.db.prepare(CAMPAIGN_DONOR_VENDOR_SQL).run(flagName, score);
+  }
+
+  insertSingleClientVendor(flagName: ForensicFlag): void {
+    const score = FORENSIC_FLAG_SCORES[flagName];
+    this.db.prepare(SINGLE_CLIENT_VENDOR_SQL).run(flagName, score);
   }
 }

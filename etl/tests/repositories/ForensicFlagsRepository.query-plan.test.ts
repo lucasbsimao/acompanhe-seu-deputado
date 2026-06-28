@@ -19,6 +19,7 @@ import {
   COMPETENCY_DATE_MISMATCH_SQL,
   UNCLASSIFIED_EXPENSE_SQL,
   CAMPAIGN_DONOR_VENDOR_SQL,
+  SINGLE_CLIENT_VENDOR_SQL,
 } from '../../src/repositories/ForensicFlagsQueries';
 
 const BUDGET_MS = 1500;
@@ -165,6 +166,7 @@ describe('ForensicFlagsRepository — query plan', () => {
         explainPlan(CAMPAIGN_DONOR_VENDOR_SQL),
         'insertCampaignDonorVendor',
       );
+      assertNoUnindexedJoinScan(explainPlan(SINGLE_CLIENT_VENDOR_SQL), 'insertSingleClientVendor');
     });
   });
 
@@ -237,6 +239,10 @@ describe('ForensicFlagsRepository — query plan', () => {
         [
           'insertCampaignDonorVendor',
           () => repo.insertCampaignDonorVendor(ForensicFlag.CAMPAIGN_DONOR_VENDOR),
+        ],
+        [
+          'insertSingleClientVendor',
+          () => repo.insertSingleClientVendor(ForensicFlag.SINGLE_CLIENT_VENDOR),
         ],
       ];
 
