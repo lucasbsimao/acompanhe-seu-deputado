@@ -3,6 +3,7 @@
 import { BasePipeline } from './BasePipeline';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import type Database from 'better-sqlite3';
+import { logger } from '../../util/logger';
 import { normalizeId } from '../../util/normalization.util';
 import { normalizeCPF, isValidCPF } from '../../util/cpf.util';
 import { PoliticianRole } from '../../types/PoliticianRole';
@@ -68,14 +69,14 @@ export class DeputiesPipeline extends BasePipeline<PoliticianData> {
   // Deputies who served across multiple terms are deduplicated by CPF via INSERT OR REPLACE.
   override async execute(forceDownload = false): Promise<void> {
     if (!forceDownload && !(await this.shouldDownload())) {
-      console.log('Data already exists, skipping download. Use --force-download to override.');
+      logger.info('data already exists, skipping download');
       return;
     }
 
     const legislaturaIds = await this.fetchLegislaturaIds();
     for (const id of legislaturaIds) {
       this.currentLegislaturaId = id;
-      console.log(`Fetching deputies for legislature ${id}...`);
+      logger.info({ legislaturaId: id }, 'fetching deputies for legislature');
       await super.execute(true);
     }
   }

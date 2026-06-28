@@ -10,6 +10,7 @@ import type { IPipelineDepChain } from '../../types/Pipeline';
 import { mapToCeapsPortalCategory } from '../../mappers/CeapsPortalCategory.mapper';
 import { normalizeNumericText } from '../../util/normalization.util';
 import defaultConfig from '../../config/defaults.json';
+import { logger } from '../../util/logger';
 
 /**
  * Enriches senator CEAPS expenses with document URLs scraped from the Senate transparency portal.
@@ -53,14 +54,15 @@ export class SenatorsDocUrlRetrievalPipeline {
   async execute(forceDownload = false): Promise<void> {
     const workQueue = this.expensesRepo.getCeapsWorkQueue(forceDownload);
     if (workQueue.length === 0) {
-      console.log('[CeapsDocumentUrlPipeline] No expenses found for enrichment.');
+      logger.info('no expenses found for URL enrichment');
       return;
     }
 
     const unclassifiedCount = this.expensesRepo.countUnclassifiedSenatorExpenses();
     if (unclassifiedCount > 0) {
-      console.warn(
-        `[CeapsDocumentUrlPipeline] Skipping ${unclassifiedCount} senator expense(s) with no tipoDespesa — the Senate open-data API returned null for these records and the transparency portal does not expose them under any CEAPS category.`,
+      logger.warn(
+        { unclassifiedCount },
+        'skipping senator expenses with no tipoDespesa: Senate API returned null, not exposed on transparency portal',
       );
     }
     const totalGroups = workQueue.length;
@@ -115,7 +117,7 @@ export class SenatorsDocUrlRetrievalPipeline {
       );
     }
 
-    console.log('[CeapsDocumentUrlPipeline] Enrichment pipeline completed.');
+    logger.info('URL enrichment pipeline completed');
   }
 
   private async fetchAndEnrichPage(
@@ -131,7 +133,7 @@ export class SenatorsDocUrlRetrievalPipeline {
 
     const senatorCpf = senatorCodeToCpfMap.get(codSenador);
     if (!senatorCpf) {
-      console.warn(`[CeapsDocumentUrlPipeline] Unknown senator code ${codSenador} in work queue.`);
+      logger.warn({ senatorCode: codSenador }, 'unknown senator code in work queue');
       return 0;
     }
 
@@ -196,9 +198,9 @@ export class SenatorsDocUrlRetrievalPipeline {
 
       return matchCount;
     } catch (error) {
-      console.error(
-        `[CeapsDocumentUrlPipeline] Error fetching page for Senator ${codSenador}, Category ${categoryId}, Period ${mesAno}:`,
-        error,
+      logger.error(
+        { senatorCode: codSenador, categoryId, period: mesAno, err: error },
+        'error fetching enrichment page',
       );
       return 0;
     }
@@ -213,17 +215,17 @@ export class SenatorsDocUrlRetrievalPipeline {
     const { totalSenators, totalGroups, processedGroups, msg } = params;
     if (msg) this.lastUpdateLog = msg;
 
-    console.log(
-      `[CeapsDocumentUrlPipeline] Found ${totalSenators} senators to process (${totalGroups} groups total)`,
+    const progressPct =
+      totalGroups > 0 ? ((processedGroups / totalGroups) * 100).toFixed(1) : '0.0';
+    logger.info(
+      {
+        totalSenators,
+        totalGroups,
+        processedGroups,
+        progressPct: Number(progressPct),
+        lastActivity: this.lastUpdateLog || undefined,
+      },
+      'enrichment progress',
     );
-
-    const progress = ((processedGroups / totalGroups) * 100).toFixed(1);
-    console.log(
-      `[CeapsDocumentUrlPipeline] Progress: ${processedGroups}/${totalGroups} groups (${progress}%)`,
-    );
-
-    if (this.lastUpdateLog) {
-      console.log(`[Latest activity]: ${this.lastUpdateLog}`);
-    }
   }
 }

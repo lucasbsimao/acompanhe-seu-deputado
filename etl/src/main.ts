@@ -4,22 +4,21 @@ import { PipelineOrchestrator } from './core/PipelineOrchestrator';
 import { DatabaseManager } from './db/DatabaseManager';
 import { CliRunner } from './cli/CliRunner';
 import { EtlError, EtlErrorCode } from './core/errors';
-import { setupLogging } from './util/logger';
-
-setupLogging();
+import { logger, closeLogger } from './util/logger';
 
 const dbManager = new DatabaseManager();
 
 function setupSignalHandlers(): void {
-  const cleanup = (signal: string) => {
-    console.log(`\n${signal} received. Closing database connection...`);
+  const cleanup = async (signal: string) => {
+    logger.info({ signal }, 'shutdown signal received, closing database');
     dbManager.close();
-    console.log('Database closed successfully');
+    logger.info('database closed');
+    await closeLogger();
     process.exit(0);
   };
 
-  process.on('SIGINT', () => cleanup('SIGINT'));
-  process.on('SIGTERM', () => cleanup('SIGTERM'));
+  process.on('SIGINT', () => void cleanup('SIGINT'));
+  process.on('SIGTERM', () => void cleanup('SIGTERM'));
 }
 
 async function main(): Promise<void> {
@@ -49,23 +48,21 @@ async function main(): Promise<void> {
   } catch (error) {
     if (error instanceof EtlError) {
       if (error.code === EtlErrorCode.USER_CANCELLED) {
-        console.log('\nOperation cancelled by user');
+        logger.info('operation cancelled by user');
       } else {
-        console.error('ETL Error [%s]: %s', error.code, error.message);
-        if (error.context) {
-          console.error('Context: %o', error.context);
-        }
+        logger.error({ errorCode: error.code, context: error.context, err: error }, 'ETL error');
       }
     } else {
-      console.error('Unexpected error during ETL: %o', error);
+      logger.error({ err: error }, 'unexpected ETL error');
     }
   } finally {
     dbManager.close();
+    await closeLogger();
   }
 }
 
 main().catch((error: unknown) => {
-  console.error('Unhandled error: %o', error);
+  logger.error({ err: error }, 'unhandled error');
   dbManager.close();
-  process.exit(1);
+  void closeLogger().then(() => process.exit(1));
 });

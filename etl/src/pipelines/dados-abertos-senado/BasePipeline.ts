@@ -2,6 +2,7 @@
 
 import { HttpClient } from '../../core/HttpClient';
 import defaultConfig from '../../config/defaults.json';
+import { logger } from '../../util/logger';
 
 export interface SenadoConfig {
   maxRetries?: number;
@@ -31,7 +32,7 @@ export abstract class BasePipeline<T> {
 
   async execute(forceDownload = false): Promise<void> {
     if (!forceDownload && !(await this.shouldDownload())) {
-      console.log('Data already exists, skipping download. Use --force-download to override.');
+      logger.info('data already exists, skipping download');
       return;
     }
 
@@ -39,7 +40,7 @@ export abstract class BasePipeline<T> {
     const { data } = await this.httpClient.request(url);
     const items = await this.decodePage(data);
 
-    console.log('Total records: %d', items.length);
+    logger.info({ totalRecords: items.length }, 'records fetched');
     await this.onPageFetched(items);
   }
 }

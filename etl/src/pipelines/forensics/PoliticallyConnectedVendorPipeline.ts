@@ -7,6 +7,7 @@ import { ReceitaFederalCNPJPipeline } from '../receita-federal/ReceitaFederalCNP
 import { TSE2022ElectionResultsPipeline } from '../tse-dados-abertos/TSE2022ElectionResultsPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 /**
  * Forensic flag: POLITICALLY_CONNECTED_VENDOR
@@ -27,9 +28,14 @@ export class PoliticallyConnectedVendorPipeline {
     this.repo = new ForensicFlagsRepository(db);
   }
 
-  async execute(): Promise<void> {
-    this.repo.insertPoliticallyConnectedVendor(ForensicFlag.POLITICALLY_CONNECTED_VENDOR);
-    console.log('PoliticallyConnectedVendorPipeline completed');
+  execute(): Promise<void> {
+    const rowsInserted = this.repo.insertPoliticallyConnectedVendor(
+      ForensicFlag.POLITICALLY_CONNECTED_VENDOR,
+    );
+    logger.info(
+      { flag: ForensicFlag.POLITICALLY_CONNECTED_VENDOR, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }

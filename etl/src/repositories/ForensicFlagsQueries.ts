@@ -214,3 +214,21 @@ export const CAMPAIGN_DONOR_VENDOR_SQL = `INSERT OR REPLACE INTO forensic_flags 
          FROM expenses e
          JOIN vendor_partners vp ON vp.cnpj = e.cnpj_cpf_fornecedor
          JOIN tse_donations td ON td.donor_cpf = vp.partner_cpf_cnpj AND td.recipient_cpf = e.politician_id`;
+
+export const SINGLE_CLIENT_VENDOR_SQL = `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           ? AS score,
+           NULL AS metadata
+         FROM expenses e
+         WHERE e.cnpj_cpf_fornecedor != ''
+           AND e.cnpj_cpf_fornecedor IN (
+             SELECT cnpj_cpf_fornecedor
+             FROM expenses
+             WHERE cnpj_cpf_fornecedor != ''
+             GROUP BY cnpj_cpf_fornecedor
+             HAVING COUNT(DISTINCT politician_id) = 1
+               AND COUNT(*) >= 5
+           )`;

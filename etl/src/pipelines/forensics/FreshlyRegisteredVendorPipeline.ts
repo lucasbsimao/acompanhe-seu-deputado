@@ -6,6 +6,7 @@ import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import { ReceitaFederalCNPJPipeline } from '../receita-federal/ReceitaFederalCNPJPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 /**
  * Forensic flag: FRESHLY_REGISTERED_VENDOR
@@ -46,8 +47,13 @@ export class FreshlyRegisteredVendorPipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertFreshlyRegisteredVendor(ForensicFlag.FRESHLY_REGISTERED_VENDOR);
-    console.log('FreshlyRegisteredVendorPipeline completed');
+    const rowsInserted = this.repo.insertFreshlyRegisteredVendor(
+      ForensicFlag.FRESHLY_REGISTERED_VENDOR,
+    );
+    logger.info(
+      { flag: ForensicFlag.FRESHLY_REGISTERED_VENDOR, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }

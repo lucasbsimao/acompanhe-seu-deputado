@@ -74,6 +74,6 @@ export enum CodTipoDocumento {
    */
   RECIBO = 14,
 
-  /** Sentinel for any CEAPS label not yet mapped; logs a console.warn. */
+  /** Sentinel for any CEAPS label not yet mapped; emits a logger.warn. */
   OTHER = 99,
 }

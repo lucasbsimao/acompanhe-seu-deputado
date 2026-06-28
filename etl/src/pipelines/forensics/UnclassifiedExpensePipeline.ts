@@ -5,6 +5,7 @@ import type { IPipelineDepChain } from '../../types/Pipeline';
 import { SenatorsExpensesPipeline } from '../dados-abertos-senado/SenatorsExpensesPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 /**
  * Forensic flag: UNCLASSIFIED_EXPENSE
@@ -29,8 +30,11 @@ export class UnclassifiedExpensePipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertUnclassifiedExpense(ForensicFlag.UNCLASSIFIED_EXPENSE);
-    console.log('UnclassifiedExpensePipeline completed');
+    const rowsInserted = this.repo.insertUnclassifiedExpense(ForensicFlag.UNCLASSIFIED_EXPENSE);
+    logger.info(
+      { flag: ForensicFlag.UNCLASSIFIED_EXPENSE, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }

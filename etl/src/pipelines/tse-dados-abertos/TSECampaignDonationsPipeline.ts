@@ -10,6 +10,7 @@ import {
 import { TseCandidatesRepository } from '../../repositories/TseCandidatesRepository';
 import { TSE2022ElectionResultsPipeline } from './TSE2022ElectionResultsPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
+import { logger } from '../../util/logger';
 import { parse } from 'csv-parse';
 import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
@@ -53,12 +54,12 @@ export class TSECampaignDonationsPipeline {
 
   async execute(forceDownload = false): Promise<void> {
     if (!forceDownload && !(await this.shouldDownload())) {
-      console.log('TSE Donations data already exists, skipping. Use --force-download to override.');
+      logger.info('donations data already exists, skipping');
       return;
     }
 
     const years = defaultConfig.tseDonations.electionYears;
-    console.log('Starting TSE Campaign Donations Pipeline for years: %s...', years.join(', '));
+    logger.info({ years }, 'starting TSE campaign donations pipeline');
 
     for (const year of years) {
       await this.processYear(year);
@@ -73,10 +74,10 @@ export class TSECampaignDonationsPipeline {
     const targetFileName = `receitas_candidatos_${year}_BRASIL.csv`;
 
     try {
-      console.log('Downloading donations for %d...', year);
+      logger.info({ year }, 'downloading donations');
       await this.downloader.downloadFile(downloadUrl, zipPath);
 
-      console.log('Extracting %s...', targetFileName);
+      logger.info({ targetFileName }, 'extracting donations file');
       this.downloader.extractZip(zipPath, extractPath);
 
       const filePath = join(extractPath, targetFileName);
@@ -84,10 +85,10 @@ export class TSECampaignDonationsPipeline {
         throw new Error(`Target file ${targetFileName} not found in ZIP`);
       }
 
-      console.log('Parsing and filtering donations for %d...', year);
+      logger.info({ year }, 'parsing and filtering donations');
       await this.processCSV(filePath, year);
 
-      console.log('Successfully processed donations for %d', year);
+      logger.info({ year }, 'donations processed');
     } finally {
       this.downloader.cleanupDir(yearTempDir);
     }
@@ -95,7 +96,7 @@ export class TSECampaignDonationsPipeline {
 
   private async processCSV(filePath: string, year: number): Promise<void> {
     const candidateCpfs = this.candidatesRepo.getAllCpfs();
-    console.log('Filtering for %d candidates in tse_candidates', candidateCpfs.size);
+    logger.info({ candidateCount: candidateCpfs.size }, 'filtering donations by candidate');
 
     const parser = createReadStream(filePath, { encoding: 'latin1' }).pipe(
       parse({
@@ -145,10 +146,9 @@ export class TSECampaignDonationsPipeline {
       this.donationsRepo.insertBatch(batch);
     }
 
-    console.log(
-      'Processed %d rows, kept %d donations for target candidates.',
-      totalCount,
-      filteredCount,
+    logger.info(
+      { year, totalRows: totalCount, filteredRows: filteredCount },
+      'donations CSV processed',
     );
   }
 }

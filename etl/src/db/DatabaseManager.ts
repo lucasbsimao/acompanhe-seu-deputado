@@ -4,6 +4,7 @@ import { join, basename } from 'path';
 import { existsSync, unlinkSync, copyFileSync, mkdirSync } from 'fs';
 import Database from 'better-sqlite3';
 import { migrations } from '../../../app/src/shared/db/migrations';
+import { logger } from '../util/logger';
 
 const DB_FILE_NAME = 'seed.db';
 
@@ -57,7 +58,7 @@ export class DatabaseManager {
         continue;
       }
 
-      console.log('Applying migration: %s', version);
+      logger.info({ version }, 'applying migration');
       this.db.exec(sql);
       this.db.prepare('INSERT INTO schema_migrations (version) VALUES (?)').run(version);
     }
@@ -81,12 +82,12 @@ export class DatabaseManager {
     mkdirSync(ANDROID_ASSETS, { recursive: true });
     const androidPath = join(ANDROID_ASSETS, dbFileName);
     copyFileSync(this.dbPath, androidPath);
-    console.log('Copied to Android assets: %s', androidPath);
+    logger.info({ destPath: androidPath, platform: 'android' }, 'database deployed');
 
     const iosPath = join(IOS_BUNDLE, dbFileName);
     copyFileSync(this.dbPath, iosPath);
-    console.log('Copied to iOS bundle: %s', iosPath);
-    console.log('Note: ensure seed.db is added as a bundle resource in Xcode.');
+    logger.info({ destPath: iosPath, platform: 'ios' }, 'database deployed');
+    logger.info('xcode reminder: ensure seed.db is added as a bundle resource');
   }
 
   close(): void {
@@ -94,7 +95,7 @@ export class DatabaseManager {
       try {
         this.db.pragma('wal_checkpoint(TRUNCATE)');
       } catch (error) {
-        console.error('Error during WAL checkpoint: %o', error);
+        logger.error({ err: error }, 'WAL checkpoint failed');
       }
       this.db.close();
       this.db = null;

@@ -6,6 +6,7 @@ import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import { ReceitaFederalCNPJPipeline } from '../receita-federal/ReceitaFederalCNPJPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 const INCOMPATIBLE_EXPENSE_TYPES = [
   'MANUTENCAO DE ESCRITORIO',
@@ -48,11 +49,14 @@ export class VendorCnaeMismatchPipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertVendorCnaeMismatch(
+    const rowsInserted = this.repo.insertVendorCnaeMismatch(
       ForensicFlag.VENDOR_CNAE_MISMATCH,
       INCOMPATIBLE_EXPENSE_TYPES,
     );
-    console.log('VendorCnaeMismatchPipeline completed');
+    logger.info(
+      { flag: ForensicFlag.VENDOR_CNAE_MISMATCH, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }

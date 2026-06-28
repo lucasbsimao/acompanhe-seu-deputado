@@ -3,6 +3,7 @@
 import prompts from 'prompts';
 import type { PipelineInfo } from '../types/Pipeline';
 import { UserCancelledError } from '../core/errors';
+import { logger } from '../util/logger';
 
 export interface CliOptions {
   forceDownload: boolean;
@@ -22,7 +23,7 @@ export class CliRunner {
 
   async selectPipeline(pipelines: PipelineInfo[]): Promise<PipelineSelection> {
     if (pipelines.length === 0) {
-      console.error('No pipelines found');
+      logger.error('no pipelines found');
       return { selectedPipeline: null, executeAll: false };
     }
 
@@ -52,7 +53,7 @@ export class CliRunner {
     );
 
     if (!response.pipeline) {
-      console.log('No pipeline selected');
+      logger.info('no pipeline selected');
       process.exit(0);
     }
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { CodTipoDocumento } from '../types/CodTipoDocumento';
+import { logger } from '../util/logger';
 
 /**
  * Maps CEAPS (Senate) document type labels to their numeric codes.
@@ -25,6 +26,6 @@ export function mapCeapsDocumentType(label: string): CodTipoDocumento {
     return code;
   }
 
-  console.warn(`Unmapped CEAPS document type: "${label}"`);
+  logger.warn({ documentType: label }, 'unmapped CEAPS document type');
   return CodTipoDocumento.OTHER;
 }

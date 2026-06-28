@@ -9,6 +9,7 @@ import type {
   SenadorMandatosResponse,
   MandatoItem,
 } from '../types/LegisSenadoApiDto';
+import { logger } from '../util/logger';
 
 export class PoliticianLookupService {
   private readonly compositeToCpfMap: Map<string, string>;
@@ -27,13 +28,13 @@ export class PoliticianLookupService {
       const key = this.buildKey(politician.name, politician.uf, politician.role);
 
       if (this.compositeToCpfMap.has(key)) {
-        console.warn(`Duplicate composite key found: ${key} (${politician.name})`);
+        logger.warn({ key, politicianName: politician.name }, 'duplicate composite key');
       }
 
       this.compositeToCpfMap.set(key, politician.cpf);
     }
 
-    console.log(`Loaded ${this.compositeToCpfMap.size} politicians for lookup`);
+    logger.info({ count: this.compositeToCpfMap.size }, 'politicians loaded for lookup');
   }
 
   private buildKey(name: string, uf: string, role: string): string {
@@ -69,9 +70,7 @@ export class PoliticianLookupService {
     }
 
     if (matches.length > 1) {
-      console.warn(
-        `Ambiguous lookup for name "${autorName}": ${matches.length} matches found. Use findCpf with full context instead.`,
-      );
+      logger.warn({ autorName, matchCount: matches.length }, 'ambiguous politician lookup');
       return null; // Don't return an arbitrary one if ambiguous
     }
 
@@ -143,7 +142,7 @@ export class PoliticianLookupService {
 
       return null;
     } catch (error) {
-      console.warn(`Failed to lookup senator code ${code} via API:`, error);
+      logger.warn({ senatorCode: code, err: error }, 'senator API lookup failed');
       return null;
     }
   }

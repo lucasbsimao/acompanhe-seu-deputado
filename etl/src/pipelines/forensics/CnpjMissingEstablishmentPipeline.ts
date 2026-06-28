@@ -6,6 +6,7 @@ import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import { ReceitaFederalCNPJPipeline } from '../receita-federal/ReceitaFederalCNPJPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 /**
  * Forensic flag: CNPJ_MISSING_ESTABLISHMENT
@@ -36,11 +37,14 @@ export class CnpjMissingEstablishmentPipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertCnpjMissingEstablishment(
+    const rowsInserted = this.repo.insertCnpjMissingEstablishment(
       ForensicFlag.CNPJ_MISSING_ESTABLISHMENT,
       ReceitaFederalCNPJPipeline.name,
     );
-    console.log('CnpjMissingEstablishmentPipeline completed');
+    logger.info(
+      { flag: ForensicFlag.CNPJ_MISSING_ESTABLISHMENT, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }

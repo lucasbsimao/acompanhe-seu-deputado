@@ -5,6 +5,7 @@ import type { IPipelineDepChain } from '../../types/Pipeline';
 import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 const SN_PLACEHOLDERS: readonly string[] = ['S/N', 'SN', 'S.N.', 'S/Nº', '00', '000', '0', '-', ''];
 
@@ -35,11 +36,14 @@ export class CrossPoliticianInvoiceReusePipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertCrossPoliticianInvoiceReuse(
+    const rowsInserted = this.repo.insertCrossPoliticianInvoiceReuse(
       ForensicFlag.CROSS_POLITICIAN_INVOICE_REUSE,
       SN_PLACEHOLDERS,
     );
-    console.log('CrossPoliticianInvoiceReusePipeline completed');
+    logger.info(
+      { flag: ForensicFlag.CROSS_POLITICIAN_INVOICE_REUSE, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }
