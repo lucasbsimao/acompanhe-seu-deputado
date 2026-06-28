@@ -4,6 +4,9 @@ import { PipelineOrchestrator } from './core/PipelineOrchestrator';
 import { DatabaseManager } from './db/DatabaseManager';
 import { CliRunner } from './cli/CliRunner';
 import { EtlError, EtlErrorCode } from './core/errors';
+import { setupLogging } from './util/logger';
+
+setupLogging();
 
 const dbManager = new DatabaseManager();
 
@@ -48,13 +51,13 @@ async function main(): Promise<void> {
       if (error.code === EtlErrorCode.USER_CANCELLED) {
         console.log('\nOperation cancelled by user');
       } else {
-        console.error(`ETL Error [${error.code}]:`, error.message);
+        console.error('ETL Error [%s]: %s', error.code, error.message);
         if (error.context) {
-          console.error('Context:', error.context);
+          console.error('Context: %o', error.context);
         }
       }
     } else {
-      console.error('Unexpected error during ETL:', error);
+      console.error('Unexpected error during ETL: %o', error);
     }
   } finally {
     dbManager.close();
@@ -62,7 +65,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error('Unhandled error:', error);
+  console.error('Unhandled error: %o', error);
   dbManager.close();
   process.exit(1);
 });

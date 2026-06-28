@@ -39,7 +39,7 @@ export abstract class BasePipeline<T> {
     const { data } = await this.httpClient.request(url);
     const items = await this.decodePage(data);
 
-    console.log('Total records:', items.length);
+    console.log('Total records: %d', items.length);
     await this.onPageFetched(items);
   }
 }

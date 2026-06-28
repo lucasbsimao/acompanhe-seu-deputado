@@ -65,8 +65,8 @@ export abstract class BasePipeline<T> {
 
     const totalCount = await this.extractTotalCount(headers);
     const totalPages = Math.ceil(totalCount / this.pageSize);
-    console.log('Total records:', totalCount);
-    console.log('Total pages:', totalPages);
+    console.log('Total records: %d', totalCount);
+    console.log('Total pages: %d', totalPages);
 
     const items = await this.decodePage(data);
     return { items, totalPages };

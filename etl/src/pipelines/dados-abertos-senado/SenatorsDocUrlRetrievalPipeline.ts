@@ -213,19 +213,17 @@ export class SenatorsDocUrlRetrievalPipeline {
     const { totalSenators, totalGroups, processedGroups, msg } = params;
     if (msg) this.lastUpdateLog = msg;
 
-    process.stdout.write('\x1B[2J\x1B[H');
-
-    process.stdout.write(
-      `[CeapsDocumentUrlPipeline] Found ${totalSenators} senators to process (${totalGroups} groups total)\n`,
+    console.log(
+      `[CeapsDocumentUrlPipeline] Found ${totalSenators} senators to process (${totalGroups} groups total)`,
     );
 
     const progress = ((processedGroups / totalGroups) * 100).toFixed(1);
-    process.stdout.write(
-      `[CeapsDocumentUrlPipeline] Progress: ${processedGroups}/${totalGroups} groups (${progress}%)\n`,
+    console.log(
+      `[CeapsDocumentUrlPipeline] Progress: ${processedGroups}/${totalGroups} groups (${progress}%)`,
     );
 
     if (this.lastUpdateLog) {
-      process.stdout.write(`\n[Latest activity]: ${this.lastUpdateLog}\n`);
+      console.log(`[Latest activity]: ${this.lastUpdateLog}`);
     }
   }
 }

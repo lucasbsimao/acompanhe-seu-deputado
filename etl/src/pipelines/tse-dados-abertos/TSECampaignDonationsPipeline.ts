@@ -58,7 +58,7 @@ export class TSECampaignDonationsPipeline {
     }
 
     const years = defaultConfig.tseDonations.electionYears;
-    console.log(`Starting TSE Campaign Donations Pipeline for years: ${years.join(', ')}...`);
+    console.log('Starting TSE Campaign Donations Pipeline for years: %s...', years.join(', '));
 
     for (const year of years) {
       await this.processYear(year);
@@ -73,10 +73,10 @@ export class TSECampaignDonationsPipeline {
     const targetFileName = `receitas_candidatos_${year}_BRASIL.csv`;
 
     try {
-      console.log(`Downloading donations for ${year}...`);
+      console.log('Downloading donations for %d...', year);
       await this.downloader.downloadFile(downloadUrl, zipPath);
 
-      console.log(`Extracting ${targetFileName}...`);
+      console.log('Extracting %s...', targetFileName);
       this.downloader.extractZip(zipPath, extractPath);
 
       const filePath = join(extractPath, targetFileName);
@@ -84,10 +84,10 @@ export class TSECampaignDonationsPipeline {
         throw new Error(`Target file ${targetFileName} not found in ZIP`);
       }
 
-      console.log(`Parsing and filtering donations for ${year}...`);
+      console.log('Parsing and filtering donations for %d...', year);
       await this.processCSV(filePath, year);
 
-      console.log(`Successfully processed donations for ${year}`);
+      console.log('Successfully processed donations for %d', year);
     } finally {
       this.downloader.cleanupDir(yearTempDir);
     }
@@ -95,7 +95,7 @@ export class TSECampaignDonationsPipeline {
 
   private async processCSV(filePath: string, year: number): Promise<void> {
     const candidateCpfs = this.candidatesRepo.getAllCpfs();
-    console.log(`Filtering for ${candidateCpfs.size} candidates in tse_candidates`);
+    console.log('Filtering for %d candidates in tse_candidates', candidateCpfs.size);
 
     const parser = createReadStream(filePath, { encoding: 'latin1' }).pipe(
       parse({
@@ -146,7 +146,9 @@ export class TSECampaignDonationsPipeline {
     }
 
     console.log(
-      `Processed ${totalCount} rows, kept ${filteredCount} donations for target candidates.`,
+      'Processed %d rows, kept %d donations for target candidates.',
+      totalCount,
+      filteredCount,
     );
   }
 }
