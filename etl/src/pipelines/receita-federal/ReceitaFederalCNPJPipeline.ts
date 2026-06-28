@@ -19,6 +19,7 @@ import {
 import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import defaultConfig from '../../config/defaults.json';
+import { logger } from '../../util/logger';
 
 enum FileType {
   ESTABLISHMENTS = 'Estabelecimentos',
@@ -145,25 +146,25 @@ export class ReceitaFederalCNPJPipeline {
 
   async execute(forceDownload = false): Promise<void> {
     if (!forceDownload && this.shouldSkip()) {
-      console.log('Vendors already populated, skipping. Use --force-download to override.');
+      logger.info('vendors already populated, skipping');
       return;
     }
 
     const knownCnpjs = this.loadKnownCnpjs();
     if (knownCnpjs.size === 0) {
-      console.log('No CNPJs found in expenses table. Skipping Receita Federal pipeline.');
+      logger.info('no CNPJs found in expenses, skipping');
       return;
     }
 
     const knownBasicCnpjs = new Set<string>([...knownCnpjs].map(cnpj => cnpj.slice(0, 8)));
 
-    console.log(
-      `ReceitaFederalCNPJPipeline: loaded ${knownCnpjs.size} known CNPJs (${knownBasicCnpjs.size} unique basic CNPJs)`,
+    logger.info(
+      { cnpjCount: knownCnpjs.size, basicCnpjCount: knownBasicCnpjs.size },
+      'CNPJs loaded',
     );
 
-    // Create staging table for Companies data
     this.empresasCacheRepo.createTable();
-    console.log('Created staging table: vendor_companies_cache');
+    logger.debug('staging table created: vendor_companies_cache');
 
     try {
       // Process Companies files into staging table
@@ -180,12 +181,9 @@ export class ReceitaFederalCNPJPipeline {
       for (let i = 0; i < this.fileCount; i++) {
         await this.processFileType(FileType.PARTNERS, i, knownBasicCnpjs, knownCnpjs);
       }
-
-      console.log('ReceitaFederalCNPJPipeline: completed.');
     } finally {
-      // Clean up staging table
       this.empresasCacheRepo.dropTable();
-      console.log('Dropped staging table: vendor_companies_cache');
+      logger.debug('staging table dropped: vendor_companies_cache');
     }
   }
 
@@ -209,7 +207,7 @@ export class ReceitaFederalCNPJPipeline {
     const extractPath = join(this.tempDir, `${fileType}${index}`);
     const url = this.buildUrl(fileType, index);
 
-    console.log(`Downloading ${url}`);
+    logger.info({ url }, 'downloading file');
     try {
       await this.downloader.downloadFile(url, zipPath, this.auth);
       this.downloader.extractZip(zipPath, extractPath);
@@ -279,7 +277,7 @@ export class ReceitaFederalCNPJPipeline {
       totalInserted += cacheRows.length;
       cacheRows.length = 0;
     }
-    console.log(`Inserted ${totalInserted} company records from ${csvFile}`);
+    logger.info({ csvFile, rowsInserted: totalInserted }, 'company records inserted');
   }
 
   private async processEstablishmentsCsv(csvFile: string, knownCnpjs: Set<string>): Promise<void> {
@@ -326,7 +324,7 @@ export class ReceitaFederalCNPJPipeline {
     }
 
     if (totalVendors > 0) {
-      console.log(`Inserted ${totalVendors} vendors from ${csvFile}`);
+      logger.info({ csvFile, rowsInserted: totalVendors }, 'vendors inserted');
     }
   }
 
@@ -376,7 +374,7 @@ export class ReceitaFederalCNPJPipeline {
     }
 
     if (totalPartners > 0) {
-      console.log(`Inserted ${totalPartners} partners from ${csvFile}`);
+      logger.info({ csvFile, rowsInserted: totalPartners }, 'vendor partners inserted');
     }
   }
 }

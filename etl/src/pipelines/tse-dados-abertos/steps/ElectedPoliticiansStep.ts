@@ -12,6 +12,7 @@ import { tseElectionResultStatusFromValue } from '../../../mappers/TSEElectionRe
 import { normalizeCPF, isValidCPF } from '../../../util/cpf.util';
 import { normalizeId } from '../../../util/normalization.util';
 import type { TSECandidate } from '../../../types/TSECandidate';
+import { logger } from '../../../util/logger';
 
 export class ElectedPoliticiansStep {
   private readonly repo: PoliticianRepository;
@@ -22,7 +23,7 @@ export class ElectedPoliticiansStep {
 
   run(candidates: TSECandidate[]): void {
     const elected = this.filterElected(candidates);
-    console.log('ElectedPoliticiansStep.run - elected length:', elected.length);
+    logger.info({ electedCount: elected.length }, 'elected politicians filtered');
     this.storePoliticians(elected);
   }
 

@@ -12,6 +12,7 @@ import { join } from 'path';
 import { parseCSVFile } from './tseUtils';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import { TSE2022ElectionResultsPipeline } from './TSE2022ElectionResultsPipeline';
+import { logger } from '../../util/logger';
 
 /**
  * TSE 2018 Senators Pipeline
@@ -58,20 +59,18 @@ export class TSE2018SenatorsPipeline {
 
   async execute(forceDownload = false): Promise<void> {
     if (!forceDownload && !(await this.shouldDownload())) {
-      console.log(
-        'TSE 2018 Senators data already exists, skipping download. Use --force-download to override.',
-      );
+      logger.info('senators data already exists, skipping download');
       return;
     }
 
     try {
-      console.log('Starting TSE 2018 Senators Pipeline...');
+      logger.info('starting TSE 2018 senators pipeline');
 
       await this.downloader.downloadFile(this.downloadUrl, this.zipPath);
       this.downloader.extractZip(this.zipPath, this.extractPath);
 
       const csvFiles = this.downloader.listFiles(this.extractPath, 'consulta_cand_2018_');
-      console.log(`Found ${csvFiles.length} CSV files`);
+      logger.info({ csvFileCount: csvFiles.length }, 'CSV files found');
 
       const allCandidates: TSECandidate[] = [];
       for (const file of csvFiles) {
@@ -85,11 +84,11 @@ export class TSE2018SenatorsPipeline {
         TSECargo.SUPLENTE_2,
       ] as string[];
       const senators = allCandidates.filter(c => senatorCargos.includes(c.DS_CARGO));
-      console.log(`Processing ${senators.length} senators`);
+      logger.info({ candidateCount: senators.length }, 'processing senators');
 
       this.electedStep.run(senators);
       this.allCandidatesStep.run(senators);
-      console.log('TSE 2018 senators stored successfully');
+      logger.info('senators stored successfully');
     } finally {
       this.downloader.cleanupDir(this.tempDir);
     }

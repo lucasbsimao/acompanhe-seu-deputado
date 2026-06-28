@@ -6,38 +6,35 @@ export const createLogFilePath = () => {
   return path.join(process.cwd(), 'logs', `${timestamp}.log`);
 };
 
-const logFilePath = createLogFilePath();
+// Worker-thread transports keep the event loop alive and would hang `node --test`.
+const isTestMode = process.execArgv.includes('--test') || process.env.PROFILE === 'test';
 
-const transport = pino.transport({
-  targets: [
-    {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        destination: 1, // stdout
-      },
-    },
-    {
-      target: 'pino/file',
-      options: {
-        destination: logFilePath,
-        mkdir: true,
-      },
-    },
-  ],
-});
+const transport = isTestMode
+  ? undefined
+  : pino.transport({
+      targets: [
+        {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            destination: 1,
+          },
+        },
+        {
+          target: 'pino/file',
+          options: {
+            destination: createLogFilePath(),
+            mkdir: true,
+          },
+        },
+      ],
+    });
 
-export const logger = pino(
-  {
-    level: 'trace',
-  },
-  transport,
-);
+export const logger = isTestMode ? pino({ level: 'silent' }) : pino({ level: 'trace' }, transport);
 
-export const setupLogging = () => {
-  console.log = (msg: any, ...args: any[]) => logger.info(msg, ...args);
-  console.info = (msg: any, ...args: any[]) => logger.info(msg, ...args);
-  console.warn = (msg: any, ...args: any[]) => logger.warn(msg, ...args);
-  console.error = (msg: any, ...args: any[]) => logger.error(msg, ...args);
-  console.debug = (msg: any, ...args: any[]) => logger.debug(msg, ...args);
-};
+export const closeLogger = (): Promise<void> =>
+  new Promise(resolve => {
+    if (!transport) return resolve();
+    transport.once('finish', resolve);
+    transport.end();
+  });

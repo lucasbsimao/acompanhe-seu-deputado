@@ -11,6 +11,7 @@ import { ExpensesRepository } from '../../repositories/ExpensesRepository';
 import { ReceitaFederalCNPJPipeline } from './ReceitaFederalCNPJPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
 import defaultConfig from '../../config/defaults.json';
+import { logger } from '../../util/logger';
 
 interface SimplesRow {
   CNPJ_BASICO: string;
@@ -64,20 +65,18 @@ export class ReceitaFederalSimplesPipeline {
   async execute(): Promise<void> {
     const knownCnpjs = this.expensesRepo.getDistinctCnpjs();
     if (knownCnpjs.length === 0) {
-      console.log('ReceitaFederalSimplesPipeline: No CNPJs found in expenses. Skipping.');
+      logger.info('no CNPJs found in expenses, skipping');
       return;
     }
 
     const knownBasicCnpjs = new Set<string>(knownCnpjs.map(cnpj => cnpj.slice(0, 8)));
-    console.log(
-      `ReceitaFederalSimplesPipeline: Processing SIMPLES for ${knownBasicCnpjs.size} basic CNPJs`,
-    );
+    logger.info({ basicCnpjCount: knownBasicCnpjs.size }, 'processing SIMPLES data');
 
     const zipPath = join(this.tempDir, this.simplesFileName);
     const extractPath = join(this.tempDir, 'Simples');
     const url = `${this.webdavBase}/${this.referenceYearMonth}/${this.simplesFileName}`;
 
-    console.log(`Downloading ${url}`);
+    logger.info({ url }, 'downloading file');
     try {
       await this.downloader.downloadFile(url, zipPath, this.auth);
       this.downloader.extractZip(zipPath, extractPath);
@@ -92,8 +91,6 @@ export class ReceitaFederalSimplesPipeline {
         unlinkSync(zipPath);
       }
     }
-
-    console.log('ReceitaFederalSimplesPipeline: completed.');
   }
 
   private async processSimplesCsv(csvFile: string, knownBasicCnpjs: Set<string>): Promise<void> {
@@ -128,7 +125,7 @@ export class ReceitaFederalSimplesPipeline {
     }
 
     if (totalMeis > 0) {
-      console.log(`Updated ${totalMeis} MEI vendors from ${csvFile}`);
+      logger.info({ csvFile, rowsUpdated: totalMeis }, 'MEI vendors updated');
     }
   }
 }
