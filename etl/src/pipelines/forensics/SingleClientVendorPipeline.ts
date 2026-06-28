@@ -5,6 +5,7 @@ import type { IPipelineDepChain } from '../../types/Pipeline';
 import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 /**
  * Forensic flag: SINGLE_CLIENT_VENDOR
@@ -26,8 +27,11 @@ export class SingleClientVendorPipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertSingleClientVendor(ForensicFlag.SINGLE_CLIENT_VENDOR);
-    console.log('SingleClientVendorPipeline completed');
+    const rowsInserted = this.repo.insertSingleClientVendor(ForensicFlag.SINGLE_CLIENT_VENDOR);
+    logger.info(
+      { flag: ForensicFlag.SINGLE_CLIENT_VENDOR, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }

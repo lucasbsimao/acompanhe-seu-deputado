@@ -7,6 +7,7 @@ import { ReceitaFederalCNPJPipeline } from '../receita-federal/ReceitaFederalCNP
 import { ReceitaFederalSimplesPipeline } from '../receita-federal/ReceitaFederalSimplesPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 const TARGET_EXPENSE_TYPES = [
   'SERVICO DE SEGURANCA',
@@ -41,8 +42,14 @@ export class VendorNoEmployeesPipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertVendorNoEmployees(ForensicFlag.VENDOR_NO_EMPLOYEES, TARGET_EXPENSE_TYPES);
-    console.log('VendorNoEmployeesPipeline completed');
+    const rowsInserted = this.repo.insertVendorNoEmployees(
+      ForensicFlag.VENDOR_NO_EMPLOYEES,
+      TARGET_EXPENSE_TYPES,
+    );
+    logger.info(
+      { flag: ForensicFlag.VENDOR_NO_EMPLOYEES, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }

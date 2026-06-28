@@ -6,6 +6,7 @@ import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import { ReceitaFederalCNPJPipeline } from '../receita-federal/ReceitaFederalCNPJPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 const INACTIVE_STATUSES = ['BAIXADA', 'INAPTA', 'SUSPENSA'] as const;
 
@@ -39,8 +40,14 @@ export class CnpjInactiveAtExpensePipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertCnpjInactiveAtExpense(ForensicFlag.CNPJ_INACTIVE_AT_EXPENSE, INACTIVE_STATUSES);
-    console.log('CnpjInactiveAtExpensePipeline completed');
+    const rowsInserted = this.repo.insertCnpjInactiveAtExpense(
+      ForensicFlag.CNPJ_INACTIVE_AT_EXPENSE,
+      INACTIVE_STATUSES,
+    );
+    logger.info(
+      { flag: ForensicFlag.CNPJ_INACTIVE_AT_EXPENSE, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }

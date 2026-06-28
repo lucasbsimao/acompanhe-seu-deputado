@@ -7,6 +7,7 @@ import { ReceitaFederalCNPJPipeline } from '../receita-federal/ReceitaFederalCNP
 import { TSECampaignDonationsPipeline } from '../tse-dados-abertos/TSECampaignDonationsPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 /**
  * Forensic flag: CAMPAIGN_DONOR_VENDOR
@@ -36,8 +37,11 @@ export class CampaignDonorVendorPipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertCampaignDonorVendor(ForensicFlag.CAMPAIGN_DONOR_VENDOR);
-    console.log('CampaignDonorVendorPipeline completed');
+    const rowsInserted = this.repo.insertCampaignDonorVendor(ForensicFlag.CAMPAIGN_DONOR_VENDOR);
+    logger.info(
+      { flag: ForensicFlag.CAMPAIGN_DONOR_VENDOR, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }

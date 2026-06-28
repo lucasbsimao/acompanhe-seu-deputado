@@ -5,6 +5,7 @@ import type { IPipelineDepChain } from '../../types/Pipeline';
 import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 /**
  * Forensic flag: COMPETENCY_DATE_MISMATCH
@@ -30,8 +31,13 @@ export class CompetencyDateMismatchPipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertCompetencyDateMismatch(ForensicFlag.COMPETENCY_DATE_MISMATCH);
-    console.log('CompetencyDateMismatchPipeline completed');
+    const rowsInserted = this.repo.insertCompetencyDateMismatch(
+      ForensicFlag.COMPETENCY_DATE_MISMATCH,
+    );
+    logger.info(
+      { flag: ForensicFlag.COMPETENCY_DATE_MISMATCH, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }

@@ -6,6 +6,7 @@ import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import { ReceitaFederalCNPJPipeline } from '../receita-federal/ReceitaFederalCNPJPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
+import { logger } from '../../util/logger';
 
 /**
  * Forensic flag: CNPJ_POSTDATES_EXPENSE
@@ -40,8 +41,11 @@ export class CnpjPostdatesExpensePipeline {
   }
 
   execute(): Promise<void> {
-    this.repo.insertCnpjPostdatesExpense(ForensicFlag.CNPJ_POSTDATES_EXPENSE);
-    console.log('CnpjPostdatesExpensePipeline completed');
+    const rowsInserted = this.repo.insertCnpjPostdatesExpense(ForensicFlag.CNPJ_POSTDATES_EXPENSE);
+    logger.info(
+      { flag: ForensicFlag.CNPJ_POSTDATES_EXPENSE, rowsInserted },
+      'forensic pipeline completed',
+    );
     return Promise.resolve();
   }
 }
