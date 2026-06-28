@@ -30,6 +30,7 @@ export default tseslint.config(
       '@typescript-eslint/return-await': ['error', 'in-try-catch'],
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+      'no-console': 'error',
       '@typescript-eslint/prefer-nullish-coalescing': 'error',
       '@typescript-eslint/prefer-optional-chain': 'error',
     },

@@ -10,6 +10,7 @@ import type { IPipelineDepChain } from '../../types/Pipeline';
 import { normalizeLabel, normalizeNumericText } from '../../util/normalization.util';
 import { mapCeapsDocumentType } from '../../mappers/CodTipoDocumento.mapper';
 import defaultConfig from '../../config/defaults.json';
+import { logger } from '../../util/logger';
 
 interface CeapsExpenseDto {
   id: number;
@@ -87,11 +88,11 @@ export class SenatorsExpensesPipeline {
     forceDownload: boolean,
   ): Promise<void> {
     if (!forceDownload && this.expensesRepo.hasExpensesForSenatorYear(year)) {
-      console.log(`Skipping CEAPS expenses for year ${year} (already exists)`);
+      logger.info({ year }, 'skipping CEAPS expenses: already exists');
       return;
     }
 
-    console.log(`Fetching CEAPS expenses for year ${year}...`);
+    logger.info({ year }, 'fetching CEAPS expenses');
     const url = `https://adm.senado.gov.br/adm-dadosabertos/api/v1/senadores/despesas_ceaps/${year}`;
 
     try {
@@ -114,11 +115,11 @@ export class SenatorsExpensesPipeline {
 
       if (rows.length > 0) {
         this.expensesRepo.insertBatch(rows);
-        console.log(`Inserted ${rows.length} CEAPS expenses for year ${year}`);
+        logger.info({ year, rowsInserted: rows.length }, 'CEAPS expenses inserted');
       }
     } catch (error) {
       const message = `Failed to fetch CEAPS expenses for year ${year}`;
-      console.error(`${message}:`, error);
+      logger.error({ year, err: error }, 'failed to fetch CEAPS expenses');
       throw new Error(`${message}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -135,7 +136,10 @@ export class SenatorsExpensesPipeline {
       if (result) {
         this.politicianRepo.updateSourceApiId(result.cpf, code);
         newMappings.set(code, result.cpf);
-        console.log(`Matched historical senator: ${result.name} (${code}) -> ${result.cpf}`);
+        logger.info(
+          { senatorCode: code, name: result.name, cpf: result.cpf },
+          'historical senator matched',
+        );
       } else {
         newMappings.set(code, null);
       }
@@ -154,8 +158,9 @@ export class SenatorsExpensesPipeline {
 
       if (!senatorCpf) {
         if (senatorCpf === null) {
-          console.warn(
-            `Unknown senator code: ${expense.codSenador} for expense ID ${expense.id} - possibly missing historical TSE data, since the current data maps only currently elected politicians`,
+          logger.warn(
+            { senatorCode: expense.codSenador, expenseId: expense.id },
+            'unknown senator code: possibly missing historical TSE data',
           );
         }
         continue;

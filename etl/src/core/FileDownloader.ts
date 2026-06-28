@@ -5,6 +5,7 @@ import { pipeline } from 'stream/promises';
 import { execFileSync } from 'child_process';
 import { join } from 'path';
 import type { HttpClient } from './HttpClient';
+import { logger } from '../util/logger';
 
 export interface BasicAuthOptions {
   username: string;
@@ -23,7 +24,7 @@ export class FileDownloader {
     const response = await this.httpClient.requestStream(url, auth ? { auth } : undefined);
 
     await pipeline(response.data, createWriteStream(destPath));
-    console.log(`Downloaded: ${destPath}`);
+    logger.info({ destPath }, 'file downloaded');
   }
 
   extractZip(zipPath: string, extractPath: string): void {
@@ -32,7 +33,7 @@ export class FileDownloader {
     }
 
     execFileSync('unzip', ['-o', '-q', zipPath, '-d', extractPath]);
-    console.log(`Extracted to: ${extractPath}`);
+    logger.info({ extractPath }, 'zip extracted');
   }
 
   cleanupDir(dir: string): void {
@@ -40,7 +41,7 @@ export class FileDownloader {
     try {
       rmSync(dir, { recursive: true, force: true });
     } catch (error) {
-      console.warn(`Cleanup warning for ${dir}:`, error);
+      logger.warn({ dir, err: error }, 'cleanup warning');
     }
   }
 

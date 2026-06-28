@@ -10,6 +10,7 @@ import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import type Database from 'better-sqlite3';
 import defaultConfig from '../../config/defaults.json';
+import { logger } from '../../util/logger';
 
 interface ApiEmenda {
   codigoEmenda: string;
@@ -74,9 +75,7 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
 
       if (!politicianCpf) {
         unmatchedCount++;
-        if (unmatchedCount <= 5) {
-          console.warn(`Could not match autor: ${e.autor}`);
-        }
+        logger.warn({ unmatchedCount }, 'emenda autores not matched to any politician');
         continue;
       }
 
@@ -98,17 +97,13 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
       });
     }
 
-    if (unmatchedCount > 5) {
-      console.warn(`... and ${unmatchedCount - 5} more unmatched authors`);
-    }
-
     this.repo.insertBatch(records);
     return Promise.resolve();
   }
 
   async execute(forceDownload = false): Promise<void> {
     if (!forceDownload && !(await this.shouldDownload())) {
-      console.log('Data already exists, skipping download. Use --force-download to override.');
+      logger.info('data already exists, skipping download');
       return;
     }
 
@@ -128,16 +123,20 @@ export class EmendaParlamentarPipeline extends BasePipeline<ApiEmenda> {
         this.currentType = types[tipoIndex];
         combinationIndex++;
 
-        console.log(
-          `Processing ${combinationIndex}/${totalCombinations}: Year ${this.currentYear}, Type: ${this.currentType}`,
+        logger.info(
+          {
+            combinationIndex,
+            totalCombinations,
+            year: this.currentYear,
+            tipoEmenda: this.currentType,
+          },
+          'processing emenda combination',
         );
 
         await super.execute(forceDownload);
       }
     }
 
-    console.log(
-      `All ${totalCombinations} combinations (${totalYears} years × ${totalTypes} types) processed successfully`,
-    );
+    logger.info({ totalCombinations, totalYears, totalTypes }, 'emenda pipeline completed');
   }
 }

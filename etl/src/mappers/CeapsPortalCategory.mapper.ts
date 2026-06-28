@@ -2,6 +2,7 @@
 
 import { CeapsPortalCategory } from '../types/CeapsPortalCategory';
 import { normalizeLabel } from '../util/normalization.util';
+import { logger } from '../util/logger';
 
 /**
  * Maps normalized tipoDespesa labels to CeapsPortalCategory IDs.
@@ -35,8 +36,6 @@ export function mapToCeapsPortalCategory(label: string): CeapsPortalCategory | n
     return category;
   }
 
-  console.warn(
-    `[CeapsPortalCategoryMapper] Unmapped tipoDespesa: "${label}" (normalized: "${normalized}")`,
-  );
+  logger.warn({ tipoDespesa: label, normalized }, 'unmapped tipoDespesa');
   return null;
 }

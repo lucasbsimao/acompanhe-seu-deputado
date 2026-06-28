@@ -2,6 +2,7 @@
 
 import { HttpClient } from '../../core/HttpClient';
 import defaultConfig from '../../config/defaults.json';
+import { logger } from '../../util/logger';
 
 export interface RetryConfig {
   maxRetries: number;
@@ -47,7 +48,7 @@ export abstract class BasePipeline<T> {
 
   async execute(forceDownload = false): Promise<void> {
     if (!forceDownload && !(await this.shouldDownload())) {
-      console.log('Data already exists, skipping download. Use --force-download to override.');
+      logger.info('data already exists, skipping download');
       return;
     }
 
@@ -65,8 +66,7 @@ export abstract class BasePipeline<T> {
 
     const totalCount = await this.extractTotalCount(headers);
     const totalPages = Math.ceil(totalCount / this.pageSize);
-    console.log('Total records: %d', totalCount);
-    console.log('Total pages: %d', totalPages);
+    logger.info({ totalRecords: totalCount, totalPages }, 'pagination started');
 
     const items = await this.decodePage(data);
     return { items, totalPages };
@@ -92,7 +92,7 @@ export abstract class BasePipeline<T> {
     for (let page = 2; page <= totalPages; page++) {
       const items = pageMap.get(page);
       if (items) {
-        console.log(`Fetched page: ${page}, records: ${items.length}`);
+        logger.debug({ page, recordCount: items.length }, 'page fetched');
         await this.onPageFetched(items);
       }
     }

@@ -3,6 +3,7 @@
 import { BasePipeline } from './BasePipeline';
 import { DeputiesPipeline } from './DeputiesPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
+import { logger } from '../../util/logger';
 import { ExpensesRepository } from '../../repositories/ExpensesRepository';
 import { PoliticianRole } from '../../types/PoliticianRole';
 import type Database from 'better-sqlite3';
@@ -133,6 +134,7 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
 
     let skippedNoApiId = 0;
 
+    logger.info({ total }, 'processing expenses for deputies');
     for (let deputyIndex = 0; deputyIndex < allDeputies.length; deputyIndex++) {
       const deputy = allDeputies[deputyIndex];
 
@@ -144,17 +146,17 @@ export class ExpensesPipeline extends BasePipeline<ExpenseData> {
       this.currentApiId = deputy.apiId;
       this.currentCpf = deputy.cpf;
 
-      console.log(`Found ${total} deputies to process`);
-      console.log(`Processing deputy ${deputyIndex + 1}/${total}: ${this.currentApiId}`);
+      logger.info(
+        { deputyIndex: deputyIndex + 1, total, apiId: this.currentApiId },
+        'processing deputy',
+      );
 
       await super.execute(forceDownload);
     }
 
-    console.log(`All ${total} deputies processed successfully`);
+    logger.info({ total }, 'all deputies expenses processed');
     if (skippedNoApiId > 0) {
-      console.log(
-        `${skippedNoApiId} deputies skipped (expenses not fetched) due to missing API ID (deputy likely did not assume office during this legislature)`,
-      );
+      logger.warn({ skippedNoApiId }, 'deputies skipped: missing API ID (did not assume office)');
     }
   }
 }

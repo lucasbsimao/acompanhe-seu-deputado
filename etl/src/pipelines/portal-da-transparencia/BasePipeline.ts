@@ -2,6 +2,7 @@
 
 import { HttpClient } from '../../core/HttpClient';
 import defaultConfig from '../../config/defaults.json';
+import { logger } from '../../util/logger';
 
 export interface PortalPaginationConfig {
   pageSize?: number;
@@ -43,7 +44,7 @@ export abstract class BasePipeline<T> {
 
   async execute(forceDownload = false): Promise<void> {
     if (!forceDownload && !(await this.shouldDownload())) {
-      console.log('Data already exists, skipping download. Use --force-download to override.');
+      logger.info('data already exists, skipping download');
       return;
     }
 
@@ -59,7 +60,7 @@ export abstract class BasePipeline<T> {
       if (items.length === 0) {
         hasMore = false;
       } else {
-        console.log(`Fetched page ${page} (${items.length} items)`);
+        logger.debug({ page, itemCount: items.length }, 'page fetched');
         await this.onPageFetched(items);
         page++;
       }

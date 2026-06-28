@@ -3,6 +3,7 @@
 import { BasePipeline } from './BasePipeline';
 import { TSE2018SenatorsPipeline } from '../tse-dados-abertos/TSE2018SenatorsPipeline';
 import type { IPipelineDepChain } from '../../types/Pipeline';
+import { logger } from '../../util/logger';
 import { PoliticianRepository } from '../../repositories/PoliticianRepository';
 import { PoliticianLookupService } from '../../services/PoliticianLookupService';
 import type Database from 'better-sqlite3';
@@ -111,8 +112,9 @@ export class SenatorsPipeline extends BasePipeline<SenatorData> {
         }
 
         if (!cpf) {
-          console.warn(
-            `Could not match senator: ${id.NomeParlamentar} (${id.NomeCompletoParlamentar})`,
+          logger.warn(
+            { senatorName: id.NomeParlamentar, completeName: id.NomeCompletoParlamentar },
+            'senator name match failed',
           );
           return null;
         }
