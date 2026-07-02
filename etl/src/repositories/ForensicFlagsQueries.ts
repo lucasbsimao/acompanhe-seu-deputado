@@ -19,6 +19,25 @@ export const CROSS_POLITICIAN_INVOICE_REUSE_SQL = `INSERT OR REPLACE INTO forens
              HAVING COUNT(DISTINCT politician_id) >= 2
            )`;
 
+export const DUPLICATE_INVOICE_SQL = `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
+         SELECT
+           'expenses' AS source_table,
+           e.id AS entity_id,
+           ? AS flag_name,
+           ? AS score,
+           NULL AS metadata
+         FROM expenses e
+         WHERE TRIM(UPPER(e.num_documento)) NOT IN (SELECT value FROM json_each(?))
+           AND e.cnpj_cpf_fornecedor != ''
+           AND (e.politician_id, e.cnpj_cpf_fornecedor, e.num_documento) IN (
+             SELECT politician_id, cnpj_cpf_fornecedor, num_documento
+             FROM expenses
+             WHERE TRIM(UPPER(num_documento)) NOT IN (SELECT value FROM json_each(?))
+               AND cnpj_cpf_fornecedor != ''
+             GROUP BY politician_id, cnpj_cpf_fornecedor, num_documento
+             HAVING COUNT(*) >= 2
+           )`;
+
 export const CNPJ_POSTDATES_EXPENSE_SQL = `INSERT OR REPLACE INTO forensic_flags (source_table, entity_id, flag_name, score, metadata)
          SELECT
            'expenses' AS source_table,

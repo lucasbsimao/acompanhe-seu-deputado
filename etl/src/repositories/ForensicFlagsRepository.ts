@@ -6,6 +6,7 @@ import { FORENSIC_FLAG_SCORES } from '../pipelines/forensics/ForensicFlag';
 import { CompanySize } from '../types/CompanySize';
 import {
   CROSS_POLITICIAN_INVOICE_REUSE_SQL,
+  DUPLICATE_INVOICE_SQL,
   CNPJ_POSTDATES_EXPENSE_SQL,
   CNPJ_INACTIVE_AT_EXPENSE_SQL,
   CNPJ_MISSING_ESTABLISHMENT_SQL,
@@ -35,6 +36,12 @@ export class ForensicFlagsRepository {
     const snJson = JSON.stringify(excludedSerialNumbers);
     return this.db.prepare(CROSS_POLITICIAN_INVOICE_REUSE_SQL).run(flagName, score, snJson, snJson)
       .changes;
+  }
+
+  insertDuplicateInvoice(flagName: ForensicFlag, excludedSerialNumbers: readonly string[]): number {
+    const score = FORENSIC_FLAG_SCORES[flagName];
+    const snJson = JSON.stringify(excludedSerialNumbers);
+    return this.db.prepare(DUPLICATE_INVOICE_SQL).run(flagName, score, snJson, snJson).changes;
   }
 
   insertCnpjPostdatesExpense(flagName: ForensicFlag): number {

@@ -7,3 +7,4 @@ export * from './PoliticianRole';
 export * from './TSECandidate';
 export * from './TSECargo';
 export * from './TSEElectionResultStatus';
+export * from './SnPlaceholders';
