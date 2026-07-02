@@ -6,8 +6,7 @@ import { ExpensesPipeline } from '../dados-abertos-camara/ExpensesPipeline';
 import { ForensicFlag } from './ForensicFlag';
 import { ForensicFlagsRepository } from '../../repositories/ForensicFlagsRepository';
 import { logger } from '../../util/logger';
-
-const SN_PLACEHOLDERS: readonly string[] = ['S/N', 'SN', 'S.N.', 'S/Nº', '00', '000', '0', '-', ''];
+import { SN_PLACEHOLDERS } from '../../types/SnPlaceholders';
 
 /**
  * Forensic flag: CROSS_POLITICIAN_INVOICE_REUSE
